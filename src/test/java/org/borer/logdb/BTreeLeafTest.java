@@ -154,4 +154,50 @@ class BTreeLeafTest
 
         assertNull(valueFound);
     }
+
+    /////////////////////////////////Split
+
+    @Test
+    void shouldBeAbleToSplitALeaf()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            final String keyLabel = "key" + i;
+            final String valueLabel = "value" + i;
+            final ByteBuffer key = ByteBuffer.allocate(keyLabel.length()).put(keyLabel.getBytes());
+            final ByteBuffer value = ByteBuffer.allocate(valueLabel.length()).put(valueLabel.getBytes());
+
+            bTreeLeaf.insert(key, value);
+        }
+
+        assertEquals(10, bTreeLeaf.getKeyCount());
+
+        final BTreeLeaf newBtree = (BTreeLeaf)bTreeLeaf.split(5);
+
+        assertEquals(5, bTreeLeaf.getKeyCount());
+        for (int i = 0; i < 5; i++)
+        {
+            final String keyLabel = "key" + i;
+            final String valueLabel = "value" + i;
+            final ByteBuffer key = ByteBuffer.allocate(keyLabel.length()).put(keyLabel.getBytes());
+            final ByteBuffer value = ByteBuffer.allocate(valueLabel.length()).put(valueLabel.getBytes());
+            key.rewind();
+            value.rewind();
+            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
+            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
+        }
+
+        assertEquals(5, newBtree.getKeyCount());
+        for (int i = 0; i < 5; i++)
+        {
+            final String keyLabel = "key" + (i + 5);
+            final String valueLabel = "value" + (i + 5);
+            final ByteBuffer key = ByteBuffer.allocate(keyLabel.length()).put(keyLabel.getBytes());
+            final ByteBuffer value = ByteBuffer.allocate(valueLabel.length()).put(valueLabel.getBytes());
+            key.rewind();
+            value.rewind();
+            assertEquals(key, newBtree.getKeyAtIndex(i));
+            assertEquals(value, newBtree.getValueAtIndex(i));
+        }
+    }
 }

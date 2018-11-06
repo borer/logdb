@@ -9,4 +9,6 @@ public interface BTree
     void remove(ByteBuffer key);
 
     ByteBuffer get(ByteBuffer key);
+
+    BTree split(int at);
 }

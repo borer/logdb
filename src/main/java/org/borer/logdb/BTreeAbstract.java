@@ -6,6 +6,11 @@ abstract class BTreeAbstract implements BTree
 {
     ByteBuffer[] keys;
 
+    BTreeAbstract(ByteBuffer[] keys)
+    {
+        this.keys = keys;
+    }
+
     /**
      * Search the key in this page using a binary search. Instead of always
      * starting the search in the middle, the last found index is cached.
@@ -79,9 +84,39 @@ abstract class BTreeAbstract implements BTree
 
     void removeKey(final int index, final int keyCount)
     {
-        final ByteBuffer newKeys[] = new ByteBuffer[keyCount - 1];
+        final ByteBuffer[] newKeys = new ByteBuffer[keyCount - 1];
         copyExcept(keys, newKeys, keyCount, index);
         keys = newKeys;
+    }
+
+    final ByteBuffer[] splitKeys(int aCount, int bCount)
+    {
+        assert aCount + bCount <= getKeyCount();
+        ByteBuffer[] aKeys = new ByteBuffer[aCount];
+        ByteBuffer[] bKeys = new ByteBuffer[bCount];
+        System.arraycopy(keys, 0, aKeys, 0, aCount);
+        System.arraycopy(keys, getKeyCount() - bCount, bKeys, 0, bCount);
+        keys = aKeys;
+        return bKeys;
+    }
+
+    /**
+     * Create a new btree. The arrays are not cloned.
+     *
+     * @param keys the keys
+     * @param values the values
+     * @param children the child page positions
+     * @return the page
+     */
+    static BTree create(
+            ByteBuffer[] keys,
+            ByteBuffer[] values,
+            BTree[] children)
+    {
+        assert keys != null;
+        return (children == null)
+                ? new BTreeLeaf(keys, values)
+                : new BTreeNode(keys, children);
     }
 
     /**

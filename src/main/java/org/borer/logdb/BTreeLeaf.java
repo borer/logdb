@@ -8,8 +8,14 @@ public class BTreeLeaf extends BTreeAbstract
 
     public BTreeLeaf()
     {
-        keys = new ByteBuffer[0];
+        super(new ByteBuffer[0]);
         values = new ByteBuffer[0];
+    }
+
+    public BTreeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
+    {
+        super(keys);
+        this.values = values;
     }
 
     /**
@@ -30,6 +36,24 @@ public class BTreeLeaf extends BTreeAbstract
         return getValueAtIndex(index);
     }
 
+    @Override
+    public BTree split(final int at)
+    {
+        final int bSize = getKeyCount() - at;
+        final ByteBuffer[] bKeys = splitKeys(at, bSize);
+        final ByteBuffer[] bValues = new ByteBuffer[bSize];
+
+        if (values != null)
+        {
+            final ByteBuffer[] aValues = new ByteBuffer[at];
+            System.arraycopy(values, 0, aValues, 0, at);
+            System.arraycopy(values, at, bValues, 0, bSize);
+            values = aValues;
+        }
+
+        return create(bKeys, bValues, null);
+    }
+
     /**
      * Remove the key and value.
      *
@@ -45,7 +69,7 @@ public class BTreeLeaf extends BTreeAbstract
             return;
         }
 
-        int keyCount = getKeyCount();
+        final int keyCount = getKeyCount();
         removeKey(index, keyCount);
         removeValue(index, keyCount);
     }
@@ -81,10 +105,12 @@ public class BTreeLeaf extends BTreeAbstract
      */
     public ByteBuffer getValueAtIndex(final int index)
     {
-        return values[index];
+        final ByteBuffer value = values[index];
+        value.rewind();
+        return value;
     }
 
-    private void removeValue(int index, int keyCount)
+    private void removeValue(final int index, final int keyCount)
     {
         final ByteBuffer[] newValues = new ByteBuffer[keyCount - 1];
         copyExcept(values, newValues, keyCount, index);
