@@ -281,5 +281,9 @@
         <module name="FinalClass" />
 
         <module name="MutableException" />
+
+        <module name="RedundantImport" />
+
+        <module name="UnusedImports" />
     </module>
 </module>
