@@ -2,11 +2,11 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 
-abstract class BTreeAbstract implements BTree
+abstract class BTreeNodeAbstract implements BTreeNode
 {
     ByteBuffer[] keys;
 
-    BTreeAbstract(ByteBuffer[] keys)
+    BTreeNodeAbstract(ByteBuffer[] keys)
     {
         this.keys = keys;
     }
@@ -108,15 +108,15 @@ abstract class BTreeAbstract implements BTree
      * @param children the child page positions
      * @return the page
      */
-    static BTree create(
+    static BTreeNode create(
             ByteBuffer[] keys,
             ByteBuffer[] values,
-            BTree[] children)
+            BTreeNode[] children)
     {
         assert keys != null;
         return (children == null)
-                ? new BTreeLeaf(keys, values)
-                : new BTreeNode(keys, children);
+                ? new BTreeNodeLeaf(keys, values)
+                : new BTreeNodeNonLeaf(keys, children);
     }
 
     /**

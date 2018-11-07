@@ -7,14 +7,14 @@ import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class BTreeLeafTest
+class BTreeNodeLeafTest
 {
-    private BTreeLeaf bTreeLeaf;
+    private BTreeNodeLeaf bTreeLeaf;
 
     @BeforeEach
     void setUp()
     {
-        bTreeLeaf = new BTreeLeaf();
+        bTreeLeaf = new BTreeNodeLeaf();
     }
 
     /////////////////////////////////Add/Update
@@ -172,7 +172,7 @@ class BTreeLeafTest
 
         assertEquals(10, bTreeLeaf.getKeyCount());
 
-        final BTreeLeaf newBtree = (BTreeLeaf)bTreeLeaf.split(5);
+        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(5);
 
         assertEquals(5, bTreeLeaf.getKeyCount());
         for (int i = 0; i < 5; i++)

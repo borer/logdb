@@ -2,17 +2,17 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 
-public class BTreeLeaf extends BTreeAbstract
+public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
     private ByteBuffer[] values;
 
-    public BTreeLeaf()
+    public BTreeNodeLeaf()
     {
         super(new ByteBuffer[0]);
         values = new ByteBuffer[0];
     }
 
-    public BTreeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
+    public BTreeNodeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
     {
         super(keys);
         this.values = values;
@@ -37,7 +37,7 @@ public class BTreeLeaf extends BTreeAbstract
     }
 
     @Override
-    public BTree split(final int at)
+    public BTreeNode split(final int at)
     {
         final int bSize = getKeyCount() - at;
         final ByteBuffer[] bKeys = splitKeys(at, bSize);
