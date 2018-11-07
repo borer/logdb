@@ -98,6 +98,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         }
     }
 
+    @Override
+    public void insertChild(final ByteBuffer key, final BTreeNode child)
+    {
+        throw new UnsupportedOperationException("BTreeNodeLeaf cannot have children");
+    }
+
     /**
      * Gets the value at index position.
      * @param index Index inside the btree leaf

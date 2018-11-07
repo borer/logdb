@@ -32,6 +32,28 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
+    public void insertChild(final ByteBuffer key, final BTreeNode child)
+    {
+        final int index = binarySearch(key);
+
+        if (index < 0)
+        {
+            final int absIndex = -index - 1;
+            final int keyCount = getKeyCount();
+            insertKey(absIndex, keyCount, key);
+            insertChild(absIndex, keyCount, child);
+        }
+    }
+
+    private void insertChild(final int index, final int keyCount, final BTreeNode child)
+    {
+        BTreeNode[] newChildren = new BTreeNode[keyCount + 1];
+        copyWithGap(children, newChildren, keyCount, index);
+        children = newChildren;
+        children[index] = child;
+    }
+
+    @Override
     public void remove(final ByteBuffer key)
     {
         final int index = binarySearch(key);
