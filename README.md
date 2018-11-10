@@ -1,7 +1,7 @@
 # LogDB
 
 
-[![Build Status](https://travis-ci.org/logdb/cmake-basics.png?branch=master)](https://travis-ci.org/borer/logdb)
+[![Build Status](https://api.travis-ci.org/borer/logdb.svg?branch=master)](https://travis-ci.org/borer/logdb)
 
 License
 ----
