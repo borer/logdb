@@ -2,12 +2,12 @@ package org.borer.logdb;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.nio.ByteBuffer;
 
 import static org.borer.logdb.TestUtils.createValue;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class BTreeNodeLeafTest
 {
@@ -46,6 +46,31 @@ class BTreeNodeLeafTest
             assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
             assertEquals(value, bTreeLeaf.getValueAtIndex(i));
             assertEquals(i + 1, bTreeLeaf.getKeyCount());
+        }
+    }
+
+    @Test
+    void shouldBeAbleToInsertMultipleNewValuesInMemOrder()
+    {
+        final int count = 10;
+
+        for (int i = count - 1; i >= 0; i--)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("value" + i);
+
+            bTreeLeaf.insert(key, value);
+        }
+
+        assertEquals(count, bTreeLeaf.getKeyCount());
+
+        for (int i = 0; i < count; i++)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("value" + i);
+
+            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
+            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
         }
     }
 
@@ -179,15 +204,24 @@ class BTreeNodeLeafTest
     }
 
     @Test
-    void shouldThrowExceptionWhenAddingChild()
+    void shouldPrintLeafNode()
     {
-        final ByteBuffer key = createValue("key");
-        Executable btreeLeafInsertChild = () -> bTreeLeaf.insertChild(key, bTreeLeaf);
+        for (int i = 0; i < 10; i++)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("value" + i);
 
-        assertThrows(
-                UnsupportedOperationException.class,
-                btreeLeafInsertChild,
-                "BTreeNodeLeaf cannot have children");
+            bTreeLeaf.insert(key, value);
+        }
+
+        final StringBuilder printer = new StringBuilder();
+        bTreeLeaf.print(printer, "root");
+
+        final String expectedDotString = "digraph g {\n" +
+                "node [shape = record,height=.1];\n" +
+                "root[label = \"<key0> |value0|<key1> |value1|<key2> |value2|<key3> |value3|<key4> |value4|<key5> |value5|<key6> |value6|<key7> |value7|<key8> |value8|<key9> |value9|\"];\n" +
+                "}\n";
+
+        assertEquals(expectedDotString, printer.toString());
     }
-
 }

@@ -99,9 +99,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void insertChild(final ByteBuffer key, final BTreeNode child)
+    public void printNode(StringBuilder printer, final String label)
     {
-        throw new UnsupportedOperationException("BTreeNodeLeaf cannot have children");
+        printer.append(label);
+        printer.append("[label = \"");
+        for (int i = 0; i < keys.length; i++)
+        {
+            final String key = new String(keys[i].array());
+            final String value = new String(values[i].array());
+            printer.append(String.format("<%s> |%s|", key, value));
+        }
+        printer.append("\"];\n");
     }
 
     /**

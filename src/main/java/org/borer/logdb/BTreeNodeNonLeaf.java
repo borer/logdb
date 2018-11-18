@@ -9,7 +9,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     public BTreeNodeNonLeaf()
     {
         super(new ByteBuffer[0]);
-        this.children = new BTreeNode[0];
+        this.children = new BTreeNode[1]; //there is always one child at least
     }
 
     public BTreeNodeNonLeaf(ByteBuffer[] keys, BTreeNode[] children)
@@ -21,27 +21,29 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public void insert(final ByteBuffer key, final ByteBuffer value)
     {
-        final int index = binarySearch(key);
-
+        int index = binarySearch(key) + 1;
         if (index < 0)
         {
-            return;
+            index = -index;
         }
 
         children[index].insert(key, value);
     }
 
-    @Override
+    public void setChildren(final int index, final BTreeNode child)
+    {
+        children[index] = child;
+    }
+
     public void insertChild(final ByteBuffer key, final BTreeNode child)
     {
         final int index = binarySearch(key);
-
         if (index < 0)
         {
             final int absIndex = -index - 1;
             final int keyCount = getKeyCount();
             insertKey(absIndex, keyCount, key);
-            insertChild(absIndex, keyCount, child);
+            insertChild(absIndex, keyCount + 1, child);
         }
     }
 
@@ -56,8 +58,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public void remove(final ByteBuffer key)
     {
-        final int index = binarySearch(key);
-
+        final int index = binarySearch(key) +  1;
         if (index < 0)
         {
             return;
@@ -69,11 +70,10 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public ByteBuffer get(final ByteBuffer key)
     {
-        final int index = binarySearch(key);
-
+        int index = binarySearch(key) + 1;
         if (index < 0)
         {
-            return null;
+            index = -index;
         }
 
         return children[index].get(key);
@@ -91,5 +91,31 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         children = aChildren;
 
         return create(bKeys, null, bChildren);
+    }
+
+    @Override
+    public void printNode(StringBuilder printer, final String label)
+    {
+        printer.append(label);
+        printer.append("[label = \"");
+        for (ByteBuffer key : keys)
+        {
+            final String keyLabel = new String(key.array());
+            printer.append(String.format("<%s> |%s|", keyLabel, keyLabel));
+        }
+        printer.append("\"];\n");
+
+        for (ByteBuffer key : keys)
+        {
+            final String keyLabel = new String(key.array());
+            printer.append(String.format("\"%s\":%s -> \"%s\"", label, keyLabel, keyLabel));
+            printer.append("\n");
+        }
+
+        for (int i = 0; i < keys.length; i++)
+        {
+            final String key = new String(keys[i].array());
+            children[i].print(printer, key);
+        }
     }
 }

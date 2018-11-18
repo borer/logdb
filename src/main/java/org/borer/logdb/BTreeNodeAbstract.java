@@ -11,6 +11,25 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.keys = keys;
     }
 
+    @Override
+    public void print(StringBuilder printer, String label)
+    {
+        if ("root".equals(label))
+        {
+            printer.append("digraph g {\n");
+            printer.append("node [shape = record,height=.1];\n");
+        }
+
+        printNode(printer, label);
+
+        if ("root".equals(label))
+        {
+            printer.append("}\n");
+        }
+    }
+
+    public abstract void printNode(StringBuilder printer, String label);
+
     /**
      * Search the key in this page using a binary search. Instead of always
      * starting the search in the middle, the last found index is cached.
