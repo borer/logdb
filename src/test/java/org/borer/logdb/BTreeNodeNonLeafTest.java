@@ -1,13 +1,13 @@
 package org.borer.logdb;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
 import static org.borer.logdb.TestUtils.createValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class BTreeNodeNonLeafTest
 {
@@ -86,11 +86,12 @@ class BTreeNodeNonLeafTest
         assertEquals(expectedDotString, printer.toString());
     }
 
-    @Disabled("currently splitting and searching is broker in the btree nonleaf node")
     @Test
     void shouldBeAbleToSplitInTwoNodes()
     {
         final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedKeysInSplit = 4;
         for (int i = 0; i < 10; i++)
         {
             final String keyValue = "key" + (numKeysPerChild * i);
@@ -100,31 +101,25 @@ class BTreeNodeNonLeafTest
             bTreeNonLeaf.insertChild(childKeyBuffer, child);
         }
 
-        bTreeNonLeaf.setChildren(10, new BTreeNodeLeaf());
-
-        final StringBuilder printer2 = new StringBuilder();
-        bTreeNonLeaf.print(printer2, "root");
-        System.out.println("printing before split");
-        System.out.println(printer2.toString());
-        System.out.println("end printing");
-
         //first 5 childs have first 25 keys
+        final ByteBuffer keyUsedForSplit = bTreeNonLeaf.getKeyAtIndex(5);
+
         final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(5);
 
-        final StringBuilder printer = new StringBuilder();
-        bTreeNonLeaf.print(printer, "root");
-        System.out.println("printing after split");
-        System.out.println(printer.toString());
-        System.out.println("end printing");
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
 
-        final StringBuilder printer3 = new StringBuilder();
-        split.print(printer3, "root");
-        System.out.println("printing split");
-        System.out.println(printer3.toString());
-        System.out.println("end printing");
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final ByteBuffer keyAtIndex = bTreeNonLeaf.getKeyAtIndex(i);
+            assertNotEquals(keyUsedForSplit, keyAtIndex);
+        }
 
-        assertEquals(5, bTreeNonLeaf.getKeyCount());
-        assertEquals(5, split.getKeyCount());
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final ByteBuffer keyAtIndex = split.getKeyAtIndex(i);
+            assertNotEquals(keyUsedForSplit, keyAtIndex);
+        }
     }
 
     private BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)

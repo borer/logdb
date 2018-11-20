@@ -79,6 +79,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         return children[index].get(key);
     }
 
+    /**
+     * Splits the current node into 2 nodes.
+     * Current node with all the keys from 0...at-1 and a new one from at+1...end.
+     * @param at the key index that we are going to split by
+     * @return a new node containing from at+1...end children
+     */
     @Override
     public BTreeNode split(final int at)
     {

@@ -36,6 +36,13 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         return getValueAtIndex(index);
     }
 
+    /**
+     * Splits the current node in two.
+     * The current node holds from 0...at values and a new node that holds from at+1...end.
+     *
+     * @param at the key index to use from the split
+     * @return a new node that holds from at+1...end values
+     */
     @Override
     public BTreeNode split(final int at)
     {
