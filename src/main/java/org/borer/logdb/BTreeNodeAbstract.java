@@ -75,9 +75,21 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * Get the number of entries in the leaf.
      * @return the number of entries.
      */
+    @Override
     public int getKeyCount()
     {
         return keys.length;
+    }
+
+    /**
+     * Returns a key at the given index.
+     * @param index has to be between 0...getKeyCount()
+     * @return the key
+     */
+    @Override
+    public ByteBuffer getKey(final int index)
+    {
+        return keys[index];
     }
 
     /**
@@ -90,8 +102,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return keys[index];
     }
 
-    void insertKey(final int index, final int keyCount, final ByteBuffer key)
+    void insertKey(final int index, final ByteBuffer key)
     {
+        final int keyCount = getKeyCount();
         assert index <= keyCount : index + " > " + keyCount;
 
         final ByteBuffer[] newKeys = new ByteBuffer[keyCount + 1];
@@ -147,8 +160,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * @param gapIndex the index of the gap
      */
     static void copyWithGap(
-            final Object src,
-            final Object dst,
+            final Object[] src,
+            final Object[] dst,
             final int oldSize,
             final int gapIndex)
     {
@@ -172,8 +185,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * @param removeIndex the index of the entry to remove
      */
     static void copyExcept(
-            final Object src,
-            final Object dst,
+            final Object[] src,
+            final Object[] dst,
             final int oldSize,
             final int removeIndex)
     {

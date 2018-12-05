@@ -8,6 +8,10 @@ public interface BTreeNode
 
     void remove(ByteBuffer key);
 
+    int getKeyCount();
+
+    ByteBuffer getKey(int index);
+
     ByteBuffer get(ByteBuffer key);
 
     BTreeNode split(int at);

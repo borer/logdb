@@ -30,29 +30,30 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         children[index].insert(key, value);
     }
 
-    public void setChildren(final int index, final BTreeNode child)
+    void setChild(final int index, final BTreeNode child)
     {
         children[index] = child;
     }
 
-    public void insertChild(final ByteBuffer key, final BTreeNode child)
+    void insertChild(final int index, final ByteBuffer key, final BTreeNode child)
     {
-        final int index = binarySearch(key);
-        if (index < 0)
-        {
-            final int absIndex = -index - 1;
-            final int keyCount = getKeyCount();
-            insertKey(absIndex, keyCount, key);
-            insertChild(absIndex, keyCount + 1, child);
-        }
-    }
+        final int rawChildPageCount = getRawChildPageCount();
+        insertKey(index, key);
 
-    private void insertChild(final int index, final int keyCount, final BTreeNode child)
-    {
-        BTreeNode[] newChildren = new BTreeNode[keyCount + 1];
-        copyWithGap(children, newChildren, keyCount, index);
+        BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
+        copyWithGap(children, newChildren, rawChildPageCount, index);
         children = newChildren;
         children[index] = child;
+    }
+
+    private int getRawChildPageCount()
+    {
+        return getKeyCount() + 1;
+    }
+
+    BTreeNode getChildPage(final int index)
+    {
+        return children[index];
     }
 
     @Override
@@ -102,6 +103,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public void printNode(StringBuilder printer, final String label)
     {
+        final String lastLabel = "lastKey" + label;
         printer.append(label);
         printer.append("[label = \"");
         for (ByteBuffer key : keys)
@@ -109,6 +111,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
             final String keyLabel = new String(key.array());
             printer.append(String.format("<%s> |%s|", keyLabel, keyLabel));
         }
+        printer.append(String.format(" <%s>", lastLabel));
         printer.append("\"];\n");
 
         for (ByteBuffer key : keys)
@@ -118,10 +121,15 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
             printer.append("\n");
         }
 
+        printer.append(String.format("\"%s\":%s -> \"%s\"", label, lastLabel, lastLabel));
+        printer.append("\n");
+
         for (int i = 0; i < keys.length; i++)
         {
             final String key = new String(keys[i].array());
             children[i].print(printer, key);
         }
+
+        children[keys.length].print(printer, lastLabel);
     }
 }

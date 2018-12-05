@@ -2,7 +2,7 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 
-public class TestUtils
+class TestUtils
 {
     static ByteBuffer createValue(final String value)
     {

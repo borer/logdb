@@ -96,7 +96,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         {
             final int absIndex = -index - 1;
             final int keyCount = getKeyCount();
-            insertKey(absIndex, keyCount, key);
+            insertKey(absIndex, key);
             insertValue(absIndex, keyCount, value);
         }
         else

@@ -25,7 +25,7 @@ class BTreeNodeNonLeafTest
         final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0);
         final ByteBuffer key = createValue("key0");
 
-        bTreeNonLeaf.insertChild(key, bTreeNode);
+        bTreeNonLeaf.insertChild(0, key, bTreeNode);
     }
 
     @Test
@@ -37,7 +37,7 @@ class BTreeNodeNonLeafTest
             final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
             final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
 
-            bTreeNonLeaf.insertChild(key, bTreeNode);
+            bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
             assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
         }
@@ -49,16 +49,21 @@ class BTreeNodeNonLeafTest
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
-            final ByteBuffer childKeyBuffer = createValue("key" + (numKeysPerChild * i));
-            final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, i);
+            final int keyStart = numKeysPerChild * i;
+            final ByteBuffer childKeyBuffer = createValue("key" + keyStart);
+            final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, keyStart);
 
-            bTreeNonLeaf.insertChild(childKeyBuffer, child);
+            bTreeNonLeaf.insertChild(i, childKeyBuffer, child);
         }
+
+        final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, numKeysPerChild * 10);
+        bTreeNonLeaf.setChild(10, child);
 
         final String expectedDotString = "digraph g {\n" +
                 "node [shape = record,height=.1];\n" +
-                "root[label = \"<key0> |key0|<key10> |key10|<key15> |key15|<key20> |key20|<key25> |key25|<key30> |key30|<key35> |key35|<key40> |key40|<key45> |key45|<key5> |key5|\"];\n" +
+                "root[label = \"<key0> |key0|<key5> |key5|<key10> |key10|<key15> |key15|<key20> |key20|<key25> |key25|<key30> |key30|<key35> |key35|<key40> |key40|<key45> |key45| <lastKeyroot>\"];\n" +
                 "\"root\":key0 -> \"key0\"\n" +
+                "\"root\":key5 -> \"key5\"\n" +
                 "\"root\":key10 -> \"key10\"\n" +
                 "\"root\":key15 -> \"key15\"\n" +
                 "\"root\":key20 -> \"key20\"\n" +
@@ -67,17 +72,18 @@ class BTreeNodeNonLeafTest
                 "\"root\":key35 -> \"key35\"\n" +
                 "\"root\":key40 -> \"key40\"\n" +
                 "\"root\":key45 -> \"key45\"\n" +
-                "\"root\":key5 -> \"key5\"\n" +
+                "\"root\":lastKeyroot -> \"lastKeyroot\"\n" +
                 "key0[label = \"<key0> |value0|<key1> |value1|<key2> |value2|<key3> |value3|<key4> |value4|\"];\n" +
-                "key10[label = \"<key2> |value2|<key3> |value3|<key4> |value4|<key5> |value5|<key6> |value6|\"];\n" +
-                "key15[label = \"<key3> |value3|<key4> |value4|<key5> |value5|<key6> |value6|<key7> |value7|\"];\n" +
-                "key20[label = \"<key4> |value4|<key5> |value5|<key6> |value6|<key7> |value7|<key8> |value8|\"];\n" +
-                "key25[label = \"<key5> |value5|<key6> |value6|<key7> |value7|<key8> |value8|<key9> |value9|\"];\n" +
-                "key30[label = \"<key10> |value10|<key6> |value6|<key7> |value7|<key8> |value8|<key9> |value9|\"];\n" +
-                "key35[label = \"<key10> |value10|<key11> |value11|<key7> |value7|<key8> |value8|<key9> |value9|\"];\n" +
-                "key40[label = \"<key10> |value10|<key11> |value11|<key12> |value12|<key8> |value8|<key9> |value9|\"];\n" +
-                "key45[label = \"<key10> |value10|<key11> |value11|<key12> |value12|<key13> |value13|<key9> |value9|\"];\n" +
-                "key5[label = \"<key1> |value1|<key2> |value2|<key3> |value3|<key4> |value4|<key5> |value5|\"];\n" +
+                "key5[label = \"<key5> |value5|<key6> |value6|<key7> |value7|<key8> |value8|<key9> |value9|\"];\n" +
+                "key10[label = \"<key10> |value10|<key11> |value11|<key12> |value12|<key13> |value13|<key14> |value14|\"];\n" +
+                "key15[label = \"<key15> |value15|<key16> |value16|<key17> |value17|<key18> |value18|<key19> |value19|\"];\n" +
+                "key20[label = \"<key20> |value20|<key21> |value21|<key22> |value22|<key23> |value23|<key24> |value24|\"];\n" +
+                "key25[label = \"<key25> |value25|<key26> |value26|<key27> |value27|<key28> |value28|<key29> |value29|\"];\n" +
+                "key30[label = \"<key30> |value30|<key31> |value31|<key32> |value32|<key33> |value33|<key34> |value34|\"];\n" +
+                "key35[label = \"<key35> |value35|<key36> |value36|<key37> |value37|<key38> |value38|<key39> |value39|\"];\n" +
+                "key40[label = \"<key40> |value40|<key41> |value41|<key42> |value42|<key43> |value43|<key44> |value44|\"];\n" +
+                "key45[label = \"<key45> |value45|<key46> |value46|<key47> |value47|<key48> |value48|<key49> |value49|\"];\n" +
+                "lastKeyroot[label = \"<key50> |value50|<key51> |value51|<key52> |value52|<key53> |value53|<key54> |value54|\"];\n" +
                 "}\n";
 
         final StringBuilder printer = new StringBuilder();
@@ -98,10 +104,10 @@ class BTreeNodeNonLeafTest
             final ByteBuffer childKeyBuffer = createValue(keyValue);
             final BTreeNode child = new BTreeNodeLeaf();
 
-            bTreeNonLeaf.insertChild(childKeyBuffer, child);
+            bTreeNonLeaf.insertChild(i, childKeyBuffer, child);
         }
 
-        //first 5 childs have first 25 keys
+        //first 5 children have first 25 keys
         final ByteBuffer keyUsedForSplit = bTreeNonLeaf.getKeyAtIndex(5);
 
         final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(5);
