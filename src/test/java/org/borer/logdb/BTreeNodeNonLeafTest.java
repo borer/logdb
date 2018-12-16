@@ -44,6 +44,29 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
+    void shouldBeAbleToDeleteChildren()
+    {
+        final int numKeysPerChild = 5;
+        for (int i = 0; i < 10; i++)
+        {
+            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
+            final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
+
+            bTreeNonLeaf.insertChild(i, key, bTreeNode);
+        }
+
+        assertEquals(10, bTreeNonLeaf.getKeyCount());
+
+        final ByteBuffer key = createValue("key" + (numKeysPerChild * 9));
+        bTreeNonLeaf.remove(key);
+        assertEquals(9, bTreeNonLeaf.getKeyCount());
+
+        final ByteBuffer key2 = createValue("key" + (numKeysPerChild * 8));
+        bTreeNonLeaf.remove(key2);
+        assertEquals(8, bTreeNonLeaf.getKeyCount());
+    }
+
+    @Test
     void shouldPrintNode()
     {
         final int numKeysPerChild = 5;
@@ -126,6 +149,30 @@ class BTreeNodeNonLeafTest
             final ByteBuffer keyAtIndex = split.getKeyAtIndex(i);
             assertNotEquals(keyUsedForSplit, keyAtIndex);
         }
+    }
+
+    @Test
+    void shouldDeepCopyNonLeafNode()
+    {
+        final int numKeysPerChild = 5;
+        for (int i = 0; i < 10; i++)
+        {
+            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
+            final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
+
+            bTreeNonLeaf.insertChild(i, key, bTreeNode);
+
+            assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
+        }
+
+        BTreeNode copy = bTreeNonLeaf.copy();
+
+        final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * 10));
+        final ByteBuffer key = createValue("key" + (numKeysPerChild * 10));
+        bTreeNonLeaf.insertChild(10, key, child);
+
+        assertEquals(11, bTreeNonLeaf.getKeyCount());
+        assertEquals(10, copy.getKeyCount());
     }
 
     private BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)

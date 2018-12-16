@@ -59,13 +59,22 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public void remove(final ByteBuffer key)
     {
-        final int index = binarySearch(key) +  1;
+        final int index = binarySearch(key);
         if (index < 0)
         {
             return;
         }
 
-        children[index].remove(key);
+        final int keyCount = getKeyCount();
+        removeKey(index, keyCount);
+        removeChild(index, keyCount);
+    }
+
+    private void removeChild(final int index, final int keyCount)
+    {
+        final BTreeNode[] newChildren = new BTreeNode[keyCount - 1];
+        copyExcept(children, newChildren, keyCount, index);
+        children = newChildren;
     }
 
     @Override
@@ -80,12 +89,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         return children[index].get(key);
     }
 
-    /**
-     * Splits the current node into 2 nodes.
-     * Current node with all the keys from 0...at-1 and a new one from at+1...end.
-     * @param at the key index that we are going to split by
-     * @return a new node containing from at+1...end children
-     */
     @Override
     public BTreeNode split(final int at)
     {
@@ -130,6 +133,9 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
             children[i].print(printer, key);
         }
 
-        children[keys.length].print(printer, lastLabel);
+        if (keys.length < children.length)
+        {
+            children[keys.length].print(printer, lastLabel);
+        }
     }
 }

@@ -18,11 +18,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         this.values = values;
     }
 
-    /**
-     * Get the value corresponding to the key.
-     * @param key key to search for
-     * @return the value corresponding to that key or null if not found
-     */
     @Override
     public ByteBuffer get(final ByteBuffer key)
     {
@@ -36,13 +31,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         return getValueAtIndex(index);
     }
 
-    /**
-     * Splits the current node in two.
-     * The current node holds from 0...at values and a new node that holds from at+1...end.
-     *
-     * @param at the key index to use from the split
-     * @return a new node that holds from at+1...end values
-     */
     @Override
     public BTreeNode split(final int at)
     {
@@ -61,11 +49,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         return create(bKeys, bValues, null);
     }
 
-    /**
-     * Remove the key and value.
-     *
-     * @param key the key to remove
-     */
     @Override
     public void remove(final ByteBuffer key)
     {
@@ -81,12 +64,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         removeValue(index, keyCount);
     }
 
-    /**
-     * Inserts key/value pair in the current leaf.
-     * If the key already exits, its value is replaced.
-     * @param key Key that identifies the value
-     * @param value Value to persist
-     */
     @Override
     public void insert(final ByteBuffer key, final ByteBuffer value)
     {

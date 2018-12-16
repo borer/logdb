@@ -224,4 +224,35 @@ class BTreeNodeLeafTest
 
         assertEquals(expectedDotString, printer.toString());
     }
+
+    @Test
+    void shouldDeepCopyLeafNode()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("value" + i);
+
+            bTreeLeaf.insert(key, value);
+        }
+
+        final BTreeNodeLeaf copy = (BTreeNodeLeaf)bTreeLeaf.copy();
+
+        for (int i = 0; i < 10; i++)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("valueEdited" + i);
+
+            bTreeLeaf.insert(key, value);
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            final ByteBuffer key = createValue("key" + i);
+            final ByteBuffer value = createValue("value" + i);
+
+            assertEquals(key, copy.getKeyAtIndex(i));
+            assertEquals(value, copy.getValueAtIndex(i));
+        }
+    }
 }

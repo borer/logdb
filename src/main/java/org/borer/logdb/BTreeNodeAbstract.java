@@ -2,13 +2,35 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 
-abstract class BTreeNodeAbstract implements BTreeNode
+abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
 {
     ByteBuffer[] keys;
 
     BTreeNodeAbstract(ByteBuffer[] keys)
     {
         this.keys = keys;
+    }
+
+    @Override
+    public BTreeNode copy()
+    {
+        return clone();
+    }
+
+    @Override
+    protected final BTreeNode clone()
+    {
+        BTreeNode clone;
+        try
+        {
+            clone = (BTreeNode) super.clone();
+        }
+        catch (CloneNotSupportedException impossible)
+        {
+            throw new RuntimeException(impossible);
+        }
+
+        return clone;
     }
 
     @Override
@@ -71,10 +93,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return -(low + 1);
     }
 
-    /**
-     * Get the number of entries in the leaf.
-     * @return the number of entries.
-     */
     @Override
     public int getKeyCount()
     {
