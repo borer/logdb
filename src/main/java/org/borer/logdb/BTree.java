@@ -19,12 +19,12 @@ public class BTree
 
     public BTree(final BTreeNode root)
     {
-        this.root = new AtomicReference<>();
-        this.root.set(setNewRoot(null, root));
+        this.root = new AtomicReference<>(null);
+        setNewRoot(null, root);
     }
 
     /**
-     * Remove a key-value pair, if the key exists.
+     * Remove a key and the associated value, if the key exists.
      *
      * @param key the key (may not be null)
      */
@@ -139,7 +139,7 @@ public class BTree
         {
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
             assert nonLeaf.getKeyCount() > 0;
-            index = nonLeaf.binarySearch(key) + 1;
+            index = SearchUtils.binarySearch(key, nonLeaf.keys) + 1;
             if (index < 0)
             {
                 index = -index;

@@ -52,47 +52,6 @@ abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
 
     public abstract void printNode(StringBuilder printer, String label);
 
-    /**
-     * Search the key in this page using a binary search. Instead of always
-     * starting the search in the middle, the last found index is cached.
-     *
-     * <p>If the key was found, the returned value is the index in the key array.
-     * If not found, the returned value is negative, where -1 means the provided
-     * key is smaller than any keys in this page. See also Arrays.binarySearch.
-     *
-     * @param key the key
-     * @return the value or -1
-     */
-    protected int binarySearch(final ByteBuffer key)
-    {
-        int low = 0;
-        int high = keys.length - 1;
-        int index = high >>> 1;
-
-        final ByteBuffer[] existingKeys = keys;
-        while (low <= high)
-        {
-            final ByteBuffer existingKey = existingKeys[index];
-            key.rewind();
-            existingKey.rewind();
-            final int compare = key.compareTo(existingKey);
-            if (compare > 0)
-            {
-                low = index + 1;
-            }
-            else if (compare < 0)
-            {
-                high = index - 1;
-            }
-            else
-            {
-                return index;
-            }
-            index = (low + high) >>> 1;
-        }
-        return -(low + 1);
-    }
-
     @Override
     public int getKeyCount()
     {

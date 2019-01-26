@@ -21,7 +21,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     @Override
     public ByteBuffer get(final ByteBuffer key)
     {
-        final int index = binarySearch(key);
+        final int index = SearchUtils.binarySearch(key, keys);
 
         if (index < 0)
         {
@@ -52,7 +52,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     @Override
     public void remove(final ByteBuffer key)
     {
-        final int index = binarySearch(key);
+        final int index = SearchUtils.binarySearch(key, keys);
 
         if (index < 0)
         {
@@ -67,7 +67,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     @Override
     public void insert(final ByteBuffer key, final ByteBuffer value)
     {
-        final int index = binarySearch(key);
+        final int index = SearchUtils.binarySearch(key, keys);
 
         if (index < 0)
         {
