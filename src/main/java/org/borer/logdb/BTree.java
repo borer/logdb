@@ -10,7 +10,7 @@ public class BTree
      * This designates the "last stored" version for a store which was
      * just open for the first time.
      */
-    private static final long INITIAL_VERSION = -1;
+    private static final long INITIAL_VERSION = 0;
 
     /**
      * Reference to the current root page.
@@ -31,7 +31,7 @@ public class BTree
     public void remove(final ByteBuffer key)
     {
         assert key != null;
-        BTreeNode rootNode = getRootNode();
+        BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
         BTreeNode currentNode = cursorPosition.node;
@@ -68,12 +68,12 @@ public class BTree
      * @param key   the kay to insert/set
      * @param value the value
      */
-    public void insert(final ByteBuffer key, final ByteBuffer value)
+    public void put(final ByteBuffer key, final ByteBuffer value)
     {
         assert key != null;
         assert value != null;
 
-        BTreeNode rootNode = getRootNode();
+        BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
         BTreeNode currentNode = cursorPosition.node;
@@ -114,28 +114,44 @@ public class BTree
         updatePathToRoot(parentCursor, currentNode);
     }
 
-    private void updatePathToRoot(final CursorPosition cursor, final BTreeNode current)
+    /**
+     * Gets a value for the key at time/instance t
+     * @param key the key to search for
+     * @param version the version that we are interested. Must be >= 0
+     */
+    public ByteBuffer get(final ByteBuffer key, final int version)
     {
-        BTreeNode currentNode = current;
-        CursorPosition parentCursor = cursor;
+        assert key != null;
+        assert version >= 0;
 
-        while (parentCursor != null)
+        RootReference rootReference = getRootReferenceForVersion(version);
+        if (rootReference == null)
         {
-            BTreeNode c = currentNode;
-            currentNode = parentCursor.node.copy();
-            ((BTreeNodeNonLeaf)currentNode).setChild(parentCursor.index, c);
-            parentCursor = parentCursor.parent;
+            return null;
         }
 
-        setNewRoot(getRoot(), currentNode);
+        final BTreeNode rootNode = rootReference.root;
+        return rootNode.get(key);
     }
 
+    public ByteBuffer get(final ByteBuffer key)
+    {
+        assert key != null;
+
+        final BTreeNode rootNode = getCurrentRootNode();
+        return rootNode.get(key);
+    }
+
+    /**
+     * Outputs graphivz format that represents the B+tree
+     * @param printer Buffer used for output
+     */
     public void print(StringBuilder printer)
     {
         printer.append("digraph g {\n");
         printer.append("node [shape = record,height=.1];\n");
 
-        getRootNode().print(printer);
+        getCurrentRootNode().print(printer);
 
         printer.append("}\n");
     }
@@ -161,12 +177,43 @@ public class BTree
         return new CursorPosition(node, index, cursor);
     }
 
-    private RootReference getRoot()
+    private void updatePathToRoot(final CursorPosition cursor, final BTreeNode current)
+    {
+        BTreeNode currentNode = current;
+        CursorPosition parentCursor = cursor;
+
+        while (parentCursor != null)
+        {
+            BTreeNode c = currentNode;
+            currentNode = parentCursor.node.copy();
+            ((BTreeNodeNonLeaf)currentNode).setChild(parentCursor.index, c);
+            parentCursor = parentCursor.parent;
+        }
+
+        setNewRoot(getCurrentRoot(), currentNode);
+    }
+
+    private RootReference getRootReferenceForVersion(int version)
+    {
+        RootReference rootReference = getCurrentRoot();
+        while (rootReference != null && rootReference.version > version)
+        {
+            rootReference = rootReference.previous;
+        }
+
+        if (rootReference == null || rootReference.version < version)
+        {
+            return null;
+        }
+        return rootReference;
+    }
+
+    private RootReference getCurrentRoot()
     {
         return root.get();
     }
 
-    private BTreeNode getRootNode()
+    private BTreeNode getCurrentRootNode()
     {
         RootReference rootReference = root.get();
         assert rootReference != null;
@@ -182,14 +229,13 @@ public class BTree
      */
     private RootReference setNewRoot(RootReference oldRoot, BTreeNode newRootPage)
     {
-        RootReference currentRoot = getRoot();
+        RootReference currentRoot = getCurrentRoot();
         assert newRootPage != null || currentRoot != null;
         if (currentRoot != oldRoot && oldRoot != null)
         {
             return null;
         }
 
-        RootReference previous = currentRoot;
         long newVersion = INITIAL_VERSION;
         if (currentRoot != null)
         {
@@ -198,11 +244,10 @@ public class BTree
                 newRootPage = currentRoot.root;
             }
 
-            newVersion = currentRoot.version;
-            previous = currentRoot.previous;
+            newVersion = currentRoot.version + 1L;
         }
 
-        RootReference updatedRootReference = new RootReference(newRootPage, newVersion, previous);
+        RootReference updatedRootReference = new RootReference(newRootPage, newVersion, currentRoot);
         boolean success = root.compareAndSet(currentRoot, updatedRootReference);
         return success ? updatedRootReference : null;
     }
