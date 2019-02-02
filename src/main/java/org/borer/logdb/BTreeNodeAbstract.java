@@ -1,14 +1,37 @@
 package org.borer.logdb;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 
 abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
 {
-    ByteBuffer[] keys;
+    private static AtomicLong idCounter = new AtomicLong();
 
-    BTreeNodeAbstract(ByteBuffer[] keys)
+    static final String RIGHT_SIBLING_PRINTER_FORMAT = "\"%s\":rightSibling -> \"%s\" [style=dashed, color=grey]";
+    static final String LEFT_SIBLING_PRINTER_FORMAT = "\"%s\":leftSibling -> \"%s\" [style=dashed, color=grey]";
+
+    private final String id;
+
+    ByteBuffer[] keys;
+    BTreeNode leftSibling;
+    BTreeNode rightSibling;
+
+    BTreeNodeAbstract(
+            final ByteBuffer[] keys,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
     {
         this.keys = keys;
+        this.leftSibling = leftSibling;
+        this.rightSibling = rightSibling;
+        this.id = String.valueOf(idCounter.getAndIncrement());
+    }
+
+    @Override
+    public String getId()
+    {
+        //TODO: use page offset
+        return id;
     }
 
     @Override
@@ -34,28 +57,33 @@ abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
     }
 
     @Override
-    public void print(StringBuilder printer, String label)
-    {
-        if ("root".equals(label))
-        {
-            printer.append("digraph g {\n");
-            printer.append("node [shape = record,height=.1];\n");
-        }
-
-        printNode(printer, label);
-
-        if ("root".equals(label))
-        {
-            printer.append("}\n");
-        }
-    }
-
-    public abstract void printNode(StringBuilder printer, String label);
-
-    @Override
     public int getKeyCount()
     {
         return keys.length;
+    }
+
+    @Override
+    public BTreeNode getRightSibling()
+    {
+        return rightSibling;
+    }
+
+    @Override
+    public void setLeftSibling(BTreeNode leftSibling)
+    {
+        this.leftSibling = leftSibling;
+    }
+
+    @Override
+    public void setRightSibling(BTreeNode rightSibling)
+    {
+        this.rightSibling = rightSibling;
+    }
+
+    @Override
+    public BTreeNode getLeftSibling()
+    {
+        return leftSibling;
     }
 
     /**
@@ -120,12 +148,14 @@ abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
     static BTreeNode create(
             ByteBuffer[] keys,
             ByteBuffer[] values,
-            BTreeNode[] children)
+            BTreeNode[] children,
+            BTreeNode leftSibling,
+            BTreeNode rightSibling)
     {
         assert keys != null;
         return (children == null)
-                ? new BTreeNodeLeaf(keys, values)
-                : new BTreeNodeNonLeaf(keys, children);
+                ? new BTreeNodeLeaf(keys, values, leftSibling, rightSibling)
+                : new BTreeNodeNonLeaf(keys, children, leftSibling, rightSibling);
     }
 
     /**

@@ -8,13 +8,15 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
 
     public BTreeNodeLeaf()
     {
-        super(new ByteBuffer[0]);
-        values = new ByteBuffer[0];
+        this(new ByteBuffer[0], new ByteBuffer[0], null, null);
     }
 
-    public BTreeNodeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
+    public BTreeNodeLeaf(final ByteBuffer[] keys,
+                         final ByteBuffer[] values,
+                         BTreeNode leftSibling,
+                         final BTreeNode rightSibling)
     {
-        super(keys);
+        super(keys, leftSibling, rightSibling);
         this.values = values;
     }
 
@@ -46,7 +48,21 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
             values = aValues;
         }
 
-        return create(bKeys, bValues, null);
+        final BTreeNode bTreeNode = create(
+                bKeys,
+                bValues,
+                null,
+                this,
+                this.rightSibling);
+
+        if (this.rightSibling != null)
+        {
+            this.rightSibling.setLeftSibling(bTreeNode);
+        }
+
+        setRightSibling(bTreeNode);
+
+        return bTreeNode;
     }
 
     @Override
@@ -83,17 +99,42 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void printNode(StringBuilder printer, final String label)
+    public void print(StringBuilder printer)
     {
-        printer.append(label);
+        final String id = getId();
+        printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
+
+        if (this.leftSibling != null)
+        {
+            printer.append(" <leftSibling> L| ");
+        }
+
         for (int i = 0; i < keys.length; i++)
         {
             final String key = new String(keys[i].array());
             final String value = new String(values[i].array());
-            printer.append(String.format("<%s> |%s|", key, value));
+            printer.append(String.format(" <%s> |%s| ", key, value));
         }
+
+        if (this.rightSibling != null)
+        {
+            printer.append(" <rightSibling> R ");
+        }
+
         printer.append("\"];\n");
+
+        if (this.leftSibling != null)
+        {
+            printer.append(String.format(LEFT_SIBLING_PRINTER_FORMAT, id, this.leftSibling.getId()));
+            printer.append("\n");
+        }
+
+        if (this.rightSibling != null)
+        {
+            printer.append(String.format(RIGHT_SIBLING_PRINTER_FORMAT, id, this.rightSibling.getId()));
+            printer.append("\n");
+        }
     }
 
     /**

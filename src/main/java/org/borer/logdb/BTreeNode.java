@@ -5,6 +5,12 @@ import java.nio.ByteBuffer;
 public interface BTreeNode
 {
     /**
+     * unique id for the node
+      * @return
+     */
+    String getId();
+
+    /**
      * Inserts key/value pair in the current leaf.
      * If the key already exits, its value is replaced.
      * @param key Key that identifies the value
@@ -27,6 +33,14 @@ public interface BTreeNode
 
     ByteBuffer getKey(int index);
 
+    BTreeNode getRightSibling();
+
+    void setLeftSibling(BTreeNode leftSibling);
+
+    void setRightSibling(BTreeNode rightSibling);
+
+    BTreeNode getLeftSibling();
+
     /**
      * Get the value corresponding to the key.
      * @param key key to search for
@@ -42,7 +56,7 @@ public interface BTreeNode
      */
     BTreeNode split(int at);
 
-    void print(StringBuilder printer, String label);
+    void print(StringBuilder printer);
 
     BTreeNode copy();
 }

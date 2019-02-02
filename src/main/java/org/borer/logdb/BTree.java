@@ -93,7 +93,12 @@ public class BTree
             {
                 final ByteBuffer[] keys = {keyAt};
                 final BTreeNode[] children = {currentNode, split};
-                currentNode = BTreeNodeAbstract.create(keys, null, children);
+                currentNode = BTreeNodeAbstract.create(
+                        keys,
+                        null,
+                        children,
+                        null,
+                        null);
                 break;
             }
 
@@ -127,7 +132,12 @@ public class BTree
 
     public void print(StringBuilder printer)
     {
-        getRootNode().print(printer, "root");
+        printer.append("digraph g {\n");
+        printer.append("node [shape = record,height=.1];\n");
+
+        getRootNode().print(printer);
+
+        printer.append("}\n");
     }
 
     private static CursorPosition traverseDown(final BTreeNode root, final ByteBuffer key)

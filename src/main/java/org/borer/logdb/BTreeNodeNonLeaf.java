@@ -8,13 +8,17 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
     public BTreeNodeNonLeaf()
     {
-        super(new ByteBuffer[0]);
+        super(new ByteBuffer[0], null, null);
         this.children = new BTreeNode[1]; //there is always one child at least
     }
 
-    public BTreeNodeNonLeaf(ByteBuffer[] keys, BTreeNode[] children)
+    public BTreeNodeNonLeaf(
+            final ByteBuffer[] keys,
+            final BTreeNode[] children,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
     {
-        super(keys);
+        super(keys, leftSibling, rightSibling);
         this.children = children;
     }
 
@@ -100,42 +104,77 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, at + 1, bChildren, 0, b);
         children = aChildren;
 
-        return create(bKeys, null, bChildren);
+        final BTreeNode bTreeNode = create(
+                bKeys,
+                null,
+                bChildren,
+                this,
+                this.rightSibling);
+
+        if (this.rightSibling != null)
+        {
+            this.rightSibling.setLeftSibling(bTreeNode);
+        }
+
+        this.setRightSibling(bTreeNode);
+
+        return bTreeNode;
     }
 
     @Override
-    public void printNode(StringBuilder printer, final String label)
+    public void print(final StringBuilder printer)
     {
-        final String lastLabel = "lastKey" + label;
-        printer.append(label);
+        final String id = getId();
+        final String lastChildId = children[keys.length].getId();
+
+        printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
+
+        if (this.leftSibling != null)
+        {
+            printer.append(" <leftSibling> L| ");
+        }
+
         for (ByteBuffer key : keys)
         {
             final String keyLabel = new String(key.array());
-            printer.append(String.format("<%s> |%s|", keyLabel, keyLabel));
+            printer.append(String.format(" <%s> |%s| ", keyLabel, keyLabel));
         }
-        printer.append(String.format(" <%s>", lastLabel));
+        printer.append(" <lastChild> Ls| ");
+
+        if (this.rightSibling != null)
+        {
+            printer.append(" <rightSibling> R| ");
+        }
+
         printer.append("\"];\n");
-
-        for (ByteBuffer key : keys)
-        {
-            final String keyLabel = new String(key.array());
-            printer.append(String.format("\"%s\":%s -> \"%s\"", label, keyLabel, keyLabel));
-            printer.append("\n");
-        }
-
-        printer.append(String.format("\"%s\":%s -> \"%s\"", label, lastLabel, lastLabel));
-        printer.append("\n");
 
         for (int i = 0; i < keys.length; i++)
         {
-            final String key = new String(keys[i].array());
-            children[i].print(printer, key);
+            final String keyLabel = new String(keys[i].array());
+            final String childId = children[i].getId();
+            printer.append(String.format("\"%s\":%s -> \"%s\"", id, keyLabel, childId));
+            printer.append("\n");
         }
 
-        if (keys.length < children.length)
+        printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
+        printer.append("\n");
+
+        if (this.leftSibling != null)
         {
-            children[keys.length].print(printer, lastLabel);
+            printer.append(String.format(LEFT_SIBLING_PRINTER_FORMAT, id, this.leftSibling.getId()));
+            printer.append("\n");
+        }
+
+        if (this.rightSibling != null)
+        {
+            printer.append(String.format(RIGHT_SIBLING_PRINTER_FORMAT, id, this.rightSibling.getId()));
+            printer.append("\n");
+        }
+
+        for (final BTreeNode child : children)
+        {
+            child.print(printer);
         }
     }
 }
