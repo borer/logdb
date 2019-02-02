@@ -22,6 +22,20 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         this.children = children;
     }
 
+    /**
+     * Copy constructor
+     */
+    private BTreeNodeNonLeaf(
+            final String id,
+            final ByteBuffer[] keys,
+            final BTreeNode[] children,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
+    {
+        super(id, keys, leftSibling, rightSibling);
+        this.children = children;
+    }
+
     @Override
     public void insert(final ByteBuffer key, final ByteBuffer value)
     {
@@ -91,6 +105,17 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         }
 
         return children[index].get(key);
+    }
+
+    @Override
+    public BTreeNode copy()
+    {
+        final ByteBuffer[] copyKeys = new ByteBuffer[keys.length];
+        final BTreeNode[] copyChildren = new BTreeNode[children.length];
+        System.arraycopy(keys, 0, copyKeys, 0, keys.length);
+        System.arraycopy(children, 0, copyChildren, 0, children.length);
+
+        return new BTreeNodeNonLeaf(getId(), keys, children, leftSibling, rightSibling);
     }
 
     @Override

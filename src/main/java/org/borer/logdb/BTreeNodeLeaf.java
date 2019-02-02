@@ -11,12 +11,27 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         this(new ByteBuffer[0], new ByteBuffer[0], null, null);
     }
 
-    public BTreeNodeLeaf(final ByteBuffer[] keys,
-                         final ByteBuffer[] values,
-                         BTreeNode leftSibling,
-                         final BTreeNode rightSibling)
+    public BTreeNodeLeaf(
+            final ByteBuffer[] keys,
+            final ByteBuffer[] values,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
     {
         super(keys, leftSibling, rightSibling);
+        this.values = values;
+    }
+
+    /**
+     * Copy constructor
+     */
+    private BTreeNodeLeaf(
+            final String id,
+            final ByteBuffer[] keys,
+            final ByteBuffer[] values,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
+    {
+        super(id, keys, leftSibling, rightSibling);
         this.values = values;
     }
 
@@ -31,6 +46,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         }
 
         return getValueAtIndex(index);
+    }
+
+    @Override
+    public BTreeNode copy()
+    {
+        final ByteBuffer[] copyKeys = new ByteBuffer[keys.length];
+        final ByteBuffer[] copyValues = new ByteBuffer[values.length];
+        System.arraycopy(keys, 0, copyKeys, 0, keys.length);
+        System.arraycopy(values, 0, copyValues, 0, values.length);
+
+        return new BTreeNodeLeaf(getId(), keys, values, leftSibling, rightSibling);
     }
 
     @Override

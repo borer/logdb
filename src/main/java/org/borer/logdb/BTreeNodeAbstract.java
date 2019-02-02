@@ -3,7 +3,7 @@ package org.borer.logdb;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
-abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
+abstract class BTreeNodeAbstract implements BTreeNode
 {
     private static AtomicLong idCounter = new AtomicLong();
 
@@ -21,10 +21,25 @@ abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
             final BTreeNode leftSibling,
             final BTreeNode rightSibling)
     {
+        this(String.valueOf(idCounter.getAndIncrement()),
+                keys,
+                leftSibling,
+                rightSibling);
+    }
+
+    /**
+     * Copy constructor
+     */
+    BTreeNodeAbstract(
+            final String id,
+            final ByteBuffer[] keys,
+            final BTreeNode leftSibling,
+            final BTreeNode rightSibling)
+    {
+        this.id = id;
         this.keys = keys;
         this.leftSibling = leftSibling;
         this.rightSibling = rightSibling;
-        this.id = String.valueOf(idCounter.getAndIncrement());
     }
 
     @Override
@@ -32,28 +47,6 @@ abstract class BTreeNodeAbstract implements BTreeNode, Cloneable
     {
         //TODO: use page offset
         return id;
-    }
-
-    @Override
-    public BTreeNode copy()
-    {
-        return clone();
-    }
-
-    @Override
-    protected final BTreeNode clone()
-    {
-        BTreeNode clone;
-        try
-        {
-            clone = (BTreeNode) super.clone();
-        }
-        catch (CloneNotSupportedException impossible)
-        {
-            throw new RuntimeException(impossible);
-        }
-
-        return clone;
     }
 
     @Override
