@@ -8,16 +8,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
 
     public BTreeNodeLeaf()
     {
-        this(new ByteBuffer[0], new ByteBuffer[0], null, null);
+        this(new ByteBuffer[0], new ByteBuffer[0]);
     }
 
-    public BTreeNodeLeaf(
-            final ByteBuffer[] keys,
-            final ByteBuffer[] values,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+    public BTreeNodeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
     {
-        super(keys, leftSibling, rightSibling);
+        super(keys);
         this.values = values;
     }
 
@@ -27,11 +23,9 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     private BTreeNodeLeaf(
             final String id,
             final ByteBuffer[] keys,
-            final ByteBuffer[] values,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+            final ByteBuffer[] values)
     {
-        super(id, keys, leftSibling, rightSibling);
+        super(id, keys);
         this.values = values;
     }
 
@@ -56,7 +50,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(values, 0, copyValues, 0, values.length);
 
-        return new BTreeNodeLeaf(getId(), keys, values, leftSibling, rightSibling);
+        return new BTreeNodeLeaf(getId(), keys, values);
     }
 
     @Override
@@ -74,19 +68,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
             values = aValues;
         }
 
-        final BTreeNode bTreeNode = create(
-                bKeys,
-                bValues,
-                null,
-                this,
-                this.rightSibling);
-
-        if (this.rightSibling != null)
-        {
-            this.rightSibling.setLeftSibling(bTreeNode);
-        }
-
-        setRightSibling(bTreeNode);
+        final BTreeNode bTreeNode = create(bKeys, bValues, null);
 
         return bTreeNode;
     }
@@ -131,11 +113,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        if (this.leftSibling != null)
-        {
-            printer.append(" <leftSibling> L| ");
-        }
-
         for (int i = 0; i < keys.length; i++)
         {
             final String key = new String(keys[i].array());
@@ -143,24 +120,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
             printer.append(String.format(" <%s> |%s| ", key, value));
         }
 
-        if (this.rightSibling != null)
-        {
-            printer.append(" <rightSibling> R ");
-        }
-
         printer.append("\"];\n");
-
-        if (this.leftSibling != null)
-        {
-            printer.append(String.format(LEFT_SIBLING_PRINTER_FORMAT, id, this.leftSibling.getId()));
-            printer.append("\n");
-        }
-
-        if (this.rightSibling != null)
-        {
-            printer.append(String.format(RIGHT_SIBLING_PRINTER_FORMAT, id, this.rightSibling.getId()));
-            printer.append("\n");
-        }
     }
 
     /**

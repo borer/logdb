@@ -33,14 +33,6 @@ public interface BTreeNode
 
     ByteBuffer getKey(int index);
 
-    BTreeNode getRightSibling();
-
-    void setLeftSibling(BTreeNode leftSibling);
-
-    void setRightSibling(BTreeNode rightSibling);
-
-    BTreeNode getLeftSibling();
-
     /**
      * Get the value corresponding to the key.
      * @param key key to search for

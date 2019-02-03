@@ -7,39 +7,23 @@ abstract class BTreeNodeAbstract implements BTreeNode
 {
     private static AtomicLong idCounter = new AtomicLong();
 
-    static final String RIGHT_SIBLING_PRINTER_FORMAT = "\"%s\":rightSibling -> \"%s\" [style=dashed, color=grey]";
-    static final String LEFT_SIBLING_PRINTER_FORMAT = "\"%s\":leftSibling -> \"%s\" [style=dashed, color=grey]";
-
     private final String id;
 
     ByteBuffer[] keys;
-    BTreeNode leftSibling;
-    BTreeNode rightSibling;
 
     BTreeNodeAbstract(
-            final ByteBuffer[] keys,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+            final ByteBuffer[] keys)
     {
-        this(String.valueOf(idCounter.getAndIncrement()),
-                keys,
-                leftSibling,
-                rightSibling);
+        this(String.valueOf(idCounter.getAndIncrement()), keys);
     }
 
     /**
      * Copy constructor
      */
-    BTreeNodeAbstract(
-            final String id,
-            final ByteBuffer[] keys,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+    BTreeNodeAbstract(final String id, final ByteBuffer[] keys)
     {
         this.id = id;
         this.keys = keys;
-        this.leftSibling = leftSibling;
-        this.rightSibling = rightSibling;
     }
 
     @Override
@@ -53,30 +37,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public int getKeyCount()
     {
         return keys.length;
-    }
-
-    @Override
-    public BTreeNode getRightSibling()
-    {
-        return rightSibling;
-    }
-
-    @Override
-    public void setLeftSibling(BTreeNode leftSibling)
-    {
-        this.leftSibling = leftSibling;
-    }
-
-    @Override
-    public void setRightSibling(BTreeNode rightSibling)
-    {
-        this.rightSibling = rightSibling;
-    }
-
-    @Override
-    public BTreeNode getLeftSibling()
-    {
-        return leftSibling;
     }
 
     /**
@@ -141,14 +101,12 @@ abstract class BTreeNodeAbstract implements BTreeNode
     static BTreeNode create(
             ByteBuffer[] keys,
             ByteBuffer[] values,
-            BTreeNode[] children,
-            BTreeNode leftSibling,
-            BTreeNode rightSibling)
+            BTreeNode[] children)
     {
         assert keys != null;
         return (children == null)
-                ? new BTreeNodeLeaf(keys, values, leftSibling, rightSibling)
-                : new BTreeNodeNonLeaf(keys, children, leftSibling, rightSibling);
+                ? new BTreeNodeLeaf(keys, values)
+                : new BTreeNodeNonLeaf(keys, children);
     }
 
     /**

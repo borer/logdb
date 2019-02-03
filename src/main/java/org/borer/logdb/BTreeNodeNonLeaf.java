@@ -8,17 +8,13 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
     public BTreeNodeNonLeaf()
     {
-        super(new ByteBuffer[0], null, null);
+        super(new ByteBuffer[0]);
         this.children = new BTreeNode[1]; //there is always one child at least
     }
 
-    public BTreeNodeNonLeaf(
-            final ByteBuffer[] keys,
-            final BTreeNode[] children,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+    public BTreeNodeNonLeaf(final ByteBuffer[] keys, final BTreeNode[] children)
     {
-        super(keys, leftSibling, rightSibling);
+        super(keys);
         this.children = children;
     }
 
@@ -28,11 +24,9 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     private BTreeNodeNonLeaf(
             final String id,
             final ByteBuffer[] keys,
-            final BTreeNode[] children,
-            final BTreeNode leftSibling,
-            final BTreeNode rightSibling)
+            final BTreeNode[] children)
     {
-        super(id, keys, leftSibling, rightSibling);
+        super(id, keys);
         this.children = children;
     }
 
@@ -115,7 +109,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        return new BTreeNodeNonLeaf(getId(), keys, children, leftSibling, rightSibling);
+        return new BTreeNodeNonLeaf(getId(), keys, children);
     }
 
     @Override
@@ -129,20 +123,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, at + 1, bChildren, 0, b);
         children = aChildren;
 
-        final BTreeNode bTreeNode = create(
-                bKeys,
-                null,
-                bChildren,
-                this,
-                this.rightSibling);
-
-        if (this.rightSibling != null)
-        {
-            this.rightSibling.setLeftSibling(bTreeNode);
-        }
-
-        this.setRightSibling(bTreeNode);
-
+        final BTreeNode bTreeNode = create(bKeys, null, bChildren);
         return bTreeNode;
     }
 
@@ -155,23 +136,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        if (this.leftSibling != null)
-        {
-            printer.append(" <leftSibling> L| ");
-        }
-
         for (ByteBuffer key : keys)
         {
             final String keyLabel = new String(key.array());
             printer.append(String.format(" <%s> |%s| ", keyLabel, keyLabel));
         }
-        printer.append(" <lastChild> Ls| ");
-
-        if (this.rightSibling != null)
-        {
-            printer.append(" <rightSibling> R| ");
-        }
-
+        printer.append(" <lastChild> |Ls ");
         printer.append("\"];\n");
 
         for (int i = 0; i < keys.length; i++)
@@ -184,18 +154,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
         printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
         printer.append("\n");
-
-        if (this.leftSibling != null)
-        {
-            printer.append(String.format(LEFT_SIBLING_PRINTER_FORMAT, id, this.leftSibling.getId()));
-            printer.append("\n");
-        }
-
-        if (this.rightSibling != null)
-        {
-            printer.append(String.format(RIGHT_SIBLING_PRINTER_FORMAT, id, this.rightSibling.getId()));
-            printer.append("\n");
-        }
 
         for (final BTreeNode child : children)
         {

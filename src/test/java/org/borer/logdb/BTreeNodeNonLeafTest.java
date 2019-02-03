@@ -84,7 +84,7 @@ class BTreeNodeNonLeafTest
 
         final String expectedDotString = "digraph g {\n" +
                 "node [shape = record,height=.1];\n" +
-                "\"61\"[label = \" <key0> |key0|  <key5> |key5|  <key10> |key10|  <key15> |key15|  <key20> |key20|  <key25> |key25|  <key30> |key30|  <key35> |key35|  <key40> |key40|  <key45> |key45|  <lastChild> Ls| \"];\n" +
+                "\"61\"[label = \" <key0> |key0|  <key5> |key5|  <key10> |key10|  <key15> |key15|  <key20> |key20|  <key25> |key25|  <key30> |key30|  <key35> |key35|  <key40> |key40|  <key45> |key45|  <lastChild> |Ls \"];\n" +
                 "\"61\":key0 -> \"62\"\n" +
                 "\"61\":key5 -> \"63\"\n" +
                 "\"61\":key10 -> \"64\"\n" +

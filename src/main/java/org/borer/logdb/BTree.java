@@ -96,9 +96,8 @@ public class BTree
                 currentNode = BTreeNodeAbstract.create(
                         keys,
                         null,
-                        children,
-                        null,
-                        null);
+                        children
+                );
                 break;
             }
 
