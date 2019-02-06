@@ -2,6 +2,7 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 public class BTree
 {
@@ -46,7 +47,7 @@ public class BTree
             {
                 int index = cursorPosition.index;
                 assert index <= 1;
-                final BTreeNodeNonLeaf currentNonLeafNode = (BTreeNodeNonLeaf)currentNode;
+                final BTreeNodeNonLeaf currentNonLeafNode = (BTreeNodeNonLeaf) currentNode;
                 currentNode = currentNonLeafNode.getChildPage(1 - index);
 
                 updatePathToRoot(parentCursor, currentNode);
@@ -93,11 +94,7 @@ public class BTree
             {
                 final ByteBuffer[] keys = {keyAt};
                 final BTreeNode[] children = {currentNode, split};
-                currentNode = BTreeNodeAbstract.create(
-                        keys,
-                        null,
-                        children
-                );
+                currentNode = new BTreeNodeNonLeaf(keys, children);
                 break;
             }
 
@@ -115,7 +112,8 @@ public class BTree
 
     /**
      * Gets a value for the key at time/instance t
-     * @param key the key to search for
+     *
+     * @param key     the key to search for
      * @param version the version that we are interested. Must be >= 0
      */
     public ByteBuffer get(final ByteBuffer key, final int version)
@@ -142,7 +140,80 @@ public class BTree
     }
 
     /**
+     * Calls the consumer for all the key/value pairs in linear scan, from start to end
+     * @param consumer A consumer that will accept the key/value pairs
+     */
+    public void consumeAll(BiConsumer<ByteBuffer, ByteBuffer> consumer)
+    {
+        final BTreeNode rootNodeForVersion = getCurrentRootNode();
+
+        if (rootNodeForVersion instanceof BTreeNodeNonLeaf)
+        {
+            consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) rootNodeForVersion);
+        }
+        else
+        {
+            consumeLeafNode(consumer, (BTreeNodeLeaf) rootNodeForVersion);
+        }
+    }
+
+    /**
+     * Calls the consumer for all the key/value pairs in linear scan, from start to end
+     * @param version Version that we want to scan for
+     * @param consumer A consumer that will accept the key/value pairs
+     */
+    public void consumeAll(final int version, BiConsumer<ByteBuffer, ByteBuffer> consumer)
+    {
+        assert version >= 0;
+
+        final BTreeNode rootNodeForVersion = getRootNodeForVersion(version);
+
+        if (rootNodeForVersion instanceof BTreeNodeNonLeaf)
+        {
+            consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) rootNodeForVersion);
+        }
+        else
+        {
+            consumeLeafNode(consumer, (BTreeNodeLeaf) rootNodeForVersion);
+        }
+    }
+
+    private void consumeNonLeafNode(BiConsumer<ByteBuffer, ByteBuffer> consumer, BTreeNodeNonLeaf nonLeaf)
+    {
+        assert nonLeaf != null;
+
+        final int childPageCount = nonLeaf.getRawChildPageCount();
+        for (int i = 0; i < childPageCount; i++)
+        {
+            final BTreeNode childPage = nonLeaf.getChildPage(i);
+            if (childPage instanceof BTreeNodeNonLeaf)
+            {
+                consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) childPage);
+            }
+            else
+            {
+                consumeLeafNode(consumer, (BTreeNodeLeaf)childPage);
+            }
+        }
+    }
+
+    private void consumeLeafNode(BiConsumer<ByteBuffer, ByteBuffer> consumer, BTreeNodeLeaf leaf)
+    {
+        assert leaf != null;
+
+        final int keyCount = leaf.getKeyCount();
+        for (int i = 0; i < keyCount; i++)
+        {
+            final ByteBuffer key = leaf.getKey(i);
+            final ByteBuffer value = leaf.getValueAtIndex(i);
+
+            consumer.accept(key, value);
+        }
+    }
+
+    /**
      * Outputs graphivz format that represents the B+tree
+     *
      * @param printer Buffer used for output
      */
     public void print(StringBuilder printer)
@@ -185,7 +256,7 @@ public class BTree
         {
             BTreeNode c = currentNode;
             currentNode = parentCursor.node.copy();
-            ((BTreeNodeNonLeaf)currentNode).setChild(parentCursor.index, c);
+            ((BTreeNodeNonLeaf) currentNode).setChild(parentCursor.index, c);
             parentCursor = parentCursor.parent;
         }
 
@@ -207,6 +278,14 @@ public class BTree
         return rootReference;
     }
 
+    private BTreeNode getRootNodeForVersion(int version)
+    {
+        final RootReference rootReferenceForVersion = getRootReferenceForVersion(version);
+        assert rootReferenceForVersion != null;
+        assert rootReferenceForVersion.root != null;
+        return rootReferenceForVersion.root;
+    }
+
     private RootReference getCurrentRoot()
     {
         return root.get();
@@ -222,7 +301,7 @@ public class BTree
     /**
      * Try to set the new root reference from now on.
      *
-     * @param oldRoot previous root reference
+     * @param oldRoot     previous root reference
      * @param newRootPage the new root page
      * @return new RootReference or null if update failed
      */

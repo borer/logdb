@@ -50,7 +50,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(values, 0, copyValues, 0, values.length);
 
-        return new BTreeNodeLeaf(getId(), keys, values);
+        return new BTreeNodeLeaf(getId(), copyKeys, copyValues);
     }
 
     @Override
@@ -68,9 +68,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
             values = aValues;
         }
 
-        final BTreeNode bTreeNode = create(bKeys, bValues, null);
-
-        return bTreeNode;
+        return new BTreeNodeLeaf(bKeys, bValues);
     }
 
     @Override

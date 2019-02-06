@@ -58,7 +58,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         children[index] = child;
     }
 
-    private int getRawChildPageCount()
+    protected int getRawChildPageCount()
     {
         return getKeyCount() + 1;
     }
@@ -109,7 +109,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        return new BTreeNodeNonLeaf(getId(), keys, children);
+        return new BTreeNodeNonLeaf(getId(), copyKeys, copyChildren);
     }
 
     @Override
@@ -123,8 +123,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, at + 1, bChildren, 0, b);
         children = aChildren;
 
-        final BTreeNode bTreeNode = create(bKeys, null, bChildren);
-        return bTreeNode;
+        return new BTreeNodeNonLeaf(bKeys, bChildren);
     }
 
     @Override

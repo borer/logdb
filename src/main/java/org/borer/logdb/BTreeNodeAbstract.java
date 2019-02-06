@@ -91,25 +91,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     /**
-     * Create a new btree. The arrays are not cloned.
-     *
-     * @param keys the keys
-     * @param values the values
-     * @param children the child page positions
-     * @return the page
-     */
-    static BTreeNode create(
-            ByteBuffer[] keys,
-            ByteBuffer[] values,
-            BTreeNode[] children)
-    {
-        assert keys != null;
-        return (children == null)
-                ? new BTreeNodeLeaf(keys, values)
-                : new BTreeNodeNonLeaf(keys, children);
-    }
-
-    /**
      * Copy the elements of an array, with a gap.
      *
      * @param src the source array

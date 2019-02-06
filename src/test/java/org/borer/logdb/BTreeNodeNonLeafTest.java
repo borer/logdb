@@ -171,7 +171,7 @@ class BTreeNodeNonLeafTest
 
         final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * 10));
         final ByteBuffer key = createValue("key" + (numKeysPerChild * 10));
-        bTreeNonLeaf.insertChild(10, key, child);
+        bTreeNonLeaf.insertChild(8, key, child);
 
         assertEquals(11, bTreeNonLeaf.getKeyCount());
         assertEquals(10, copy.getKeyCount());
