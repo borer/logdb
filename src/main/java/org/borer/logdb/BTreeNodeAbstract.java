@@ -1,33 +1,32 @@
 package org.borer.logdb;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    private static AtomicLong idCounter = new AtomicLong();
-
-    private final String id;
+    private final long id;
 
     ByteBuffer[] keys;
+    LongSupplier idSupplier;
 
-    BTreeNodeAbstract(
-            final ByteBuffer[] keys)
+    BTreeNodeAbstract(final ByteBuffer[] keys, final LongSupplier idSupplier)
     {
-        this(String.valueOf(idCounter.getAndIncrement()), keys);
+        this(idSupplier.getAsLong(), keys, idSupplier);
     }
 
     /**
      * Copy constructor
      */
-    BTreeNodeAbstract(final String id, final ByteBuffer[] keys)
+    BTreeNodeAbstract(final long id, final ByteBuffer[] keys, final LongSupplier idSupplier)
     {
         this.id = id;
         this.keys = keys;
+        this.idSupplier = idSupplier;
     }
 
     @Override
-    public String getId()
+    public long getId()
     {
         //TODO: use page offset
         return id;
@@ -39,11 +38,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return keys.length;
     }
 
-    /**
-     * Returns a key at the given index.
-     * @param index has to be between 0...getKeyCount()
-     * @return the key
-     */
     @Override
     public ByteBuffer getKey(final int index)
     {
@@ -52,7 +46,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     /**
      * Gets the key at index position.
-     * @param index Index inside the btree leaf
+     * @param index index inside the btree leaf
      * @return The key or null if it doesn't exist
      */
     public ByteBuffer getKeyAtIndex(final int index)

@@ -5,10 +5,10 @@ import java.nio.ByteBuffer;
 public interface BTreeNode
 {
     /**
-     * unique id for the node
+     * unique id of this node
       * @return
      */
-    String getId();
+    long getId();
 
     /**
      * Inserts key/value pair in the current leaf.
@@ -20,7 +20,6 @@ public interface BTreeNode
 
     /**
      * Remove the key and value.
-     *
      * @param key the key to remove
      */
     void remove(ByteBuffer key);
@@ -31,6 +30,11 @@ public interface BTreeNode
      */
     int getKeyCount();
 
+    /**
+     * Returns a key at the given index.
+     * @param index has to be between 0...getKeyCount()
+     * @return the key
+     */
     ByteBuffer getKey(int index);
 
     /**
@@ -48,7 +52,15 @@ public interface BTreeNode
      */
     BTreeNode split(int at);
 
+    /**
+     * Prints this node representation in graphivz format.
+     * @param printer that will be used to print on
+     */
     void print(StringBuilder printer);
 
+    /**
+     * Creates a copy of the node. The copy has the same id as the original.
+     * @return a deep copy of the this node
+     */
     BTreeNode copy();
 }

@@ -19,7 +19,7 @@ class BTreeTest
     @BeforeEach
     void setUp()
     {
-        bTree = new BTree(new BTreeNodeLeaf());
+        bTree = new BTree();
     }
 
     @Test
@@ -143,51 +143,51 @@ class BTreeTest
 
         final String expectedTree = "digraph g {\n" +
                 "node [shape = record,height=.1];\n" +
-                "\"134\"[label = \" <key4> |key4|  <key67> |key67|  <lastChild> |Ls \"];\n" +
-                "\"134\":key4 -> \"122\"\n" +
-                "\"134\":key67 -> \"133\"\n" +
-                "\"134\":lastChild -> \"141\"\n" +
-                "\"122\"[label = \" <key13> |key13|  <key18> |key18|  <key22> |key22|  <key27> |key27|  <key31> |key31|  <lastChild> |Ls \"];\n" +
-                "\"122\":key13 -> \"120\"\n" +
-                "\"122\":key18 -> \"123\"\n" +
-                "\"122\":key22 -> \"124\"\n" +
-                "\"122\":key27 -> \"125\"\n" +
-                "\"122\":key31 -> \"126\"\n" +
-                "\"122\":lastChild -> \"127\"\n" +
-                "\"120\"[label = \" <key0> |key0|  <key1> |key1|  <key10> |key10|  <key11> |key11|  <key12> |key12| \"];\n" +
-                "\"123\"[label = \" <key13> |key13|  <key14> |key14|  <key15> |key15|  <key16> |key16|  <key17> |key17| \"];\n" +
-                "\"124\"[label = \" <key18> |key18|  <key19> |key19|  <key2> |key2|  <key20> |key20|  <key21> |key21| \"];\n" +
-                "\"125\"[label = \" <key22> |key22|  <key23> |key23|  <key24> |key24|  <key25> |key25|  <key26> |key26| \"];\n" +
-                "\"126\"[label = \" <key27> |key27|  <key28> |key28|  <key29> |key29|  <key3> |key3|  <key30> |key30| \"];\n" +
-                "\"127\"[label = \" <key31> |key31|  <key32> |key32|  <key33> |key33|  <key34> |key34|  <key35> |key35|  <key36> |key36|  <key37> |key37|  <key38> |key38|  <key39> |key39| \"];\n" +
-                "\"133\"[label = \" <key44> |key44|  <key49> |key49|  <key53> |key53|  <key58> |key58|  <key62> |key62|  <lastChild> |Ls \"];\n" +
-                "\"133\":key44 -> \"121\"\n" +
-                "\"133\":key49 -> \"128\"\n" +
-                "\"133\":key53 -> \"129\"\n" +
-                "\"133\":key58 -> \"130\"\n" +
-                "\"133\":key62 -> \"131\"\n" +
-                "\"133\":lastChild -> \"132\"\n" +
-                "\"121\"[label = \" <key4> |key4|  <key40> |key40|  <key41> |key41|  <key42> |key42|  <key43> |key43| \"];\n" +
-                "\"128\"[label = \" <key44> |key44|  <key45> |key45|  <key46> |key46|  <key47> |key47|  <key48> |key48| \"];\n" +
-                "\"129\"[label = \" <key49> |key49|  <key5> |key5|  <key50> |key50|  <key51> |key51|  <key52> |key52| \"];\n" +
-                "\"130\"[label = \" <key53> |key53|  <key54> |key54|  <key55> |key55|  <key56> |key56|  <key57> |key57| \"];\n" +
-                "\"131\"[label = \" <key58> |key58|  <key59> |key59|  <key6> |key6|  <key60> |key60|  <key61> |key61| \"];\n" +
-                "\"132\"[label = \" <key62> |key62|  <key63> |key63|  <key64> |key64|  <key65> |key65|  <key66> |key66| \"];\n" +
-                "\"141\"[label = \" <key71> |key71|  <key76> |key76|  <key80> |key80|  <key85> |key85|  <key9> |key9|  <key94> |key94|  <lastChild> |Ls \"];\n" +
-                "\"141\":key71 -> \"135\"\n" +
-                "\"141\":key76 -> \"136\"\n" +
-                "\"141\":key80 -> \"137\"\n" +
-                "\"141\":key85 -> \"138\"\n" +
-                "\"141\":key9 -> \"139\"\n" +
-                "\"141\":key94 -> \"140\"\n" +
-                "\"141\":lastChild -> \"142\"\n" +
-                "\"135\"[label = \" <key67> |key67|  <key68> |key68|  <key69> |key69|  <key7> |key7|  <key70> |key70| \"];\n" +
-                "\"136\"[label = \" <key71> |key71|  <key72> |key72|  <key73> |key73|  <key74> |key74|  <key75> |key75| \"];\n" +
-                "\"137\"[label = \" <key76> |key76|  <key77> |key77|  <key78> |key78|  <key79> |key79|  <key8> |key8| \"];\n" +
-                "\"138\"[label = \" <key80> |key80|  <key81> |key81|  <key82> |key82|  <key83> |key83|  <key84> |key84| \"];\n" +
-                "\"139\"[label = \" <key85> |key85|  <key86> |key86|  <key87> |key87|  <key88> |key88|  <key89> |key89| \"];\n" +
-                "\"140\"[label = \" <key9> |key9|  <key90> |key90|  <key91> |key91|  <key92> |key92|  <key93> |key93| \"];\n" +
-                "\"142\"[label = \" <key94> |key94|  <key95> |key95|  <key96> |key96|  <key97> |key97|  <key98> |key98|  <key99> |key99| \"];\n" +
+                "\"14\"[label = \" <key4> |key4|  <key67> |key67|  <lastChild> |Ls \"];\n" +
+                "\"14\":key4 -> \"2\"\n" +
+                "\"14\":key67 -> \"13\"\n" +
+                "\"14\":lastChild -> \"21\"\n" +
+                "\"2\"[label = \" <key13> |key13|  <key18> |key18|  <key22> |key22|  <key27> |key27|  <key31> |key31|  <lastChild> |Ls \"];\n" +
+                "\"2\":key13 -> \"0\"\n" +
+                "\"2\":key18 -> \"3\"\n" +
+                "\"2\":key22 -> \"4\"\n" +
+                "\"2\":key27 -> \"5\"\n" +
+                "\"2\":key31 -> \"6\"\n" +
+                "\"2\":lastChild -> \"7\"\n" +
+                "\"0\"[label = \" <key0> |key0|  <key1> |key1|  <key10> |key10|  <key11> |key11|  <key12> |key12| \"];\n" +
+                "\"3\"[label = \" <key13> |key13|  <key14> |key14|  <key15> |key15|  <key16> |key16|  <key17> |key17| \"];\n" +
+                "\"4\"[label = \" <key18> |key18|  <key19> |key19|  <key2> |key2|  <key20> |key20|  <key21> |key21| \"];\n" +
+                "\"5\"[label = \" <key22> |key22|  <key23> |key23|  <key24> |key24|  <key25> |key25|  <key26> |key26| \"];\n" +
+                "\"6\"[label = \" <key27> |key27|  <key28> |key28|  <key29> |key29|  <key3> |key3|  <key30> |key30| \"];\n" +
+                "\"7\"[label = \" <key31> |key31|  <key32> |key32|  <key33> |key33|  <key34> |key34|  <key35> |key35|  <key36> |key36|  <key37> |key37|  <key38> |key38|  <key39> |key39| \"];\n" +
+                "\"13\"[label = \" <key44> |key44|  <key49> |key49|  <key53> |key53|  <key58> |key58|  <key62> |key62|  <lastChild> |Ls \"];\n" +
+                "\"13\":key44 -> \"1\"\n" +
+                "\"13\":key49 -> \"8\"\n" +
+                "\"13\":key53 -> \"9\"\n" +
+                "\"13\":key58 -> \"10\"\n" +
+                "\"13\":key62 -> \"11\"\n" +
+                "\"13\":lastChild -> \"12\"\n" +
+                "\"1\"[label = \" <key4> |key4|  <key40> |key40|  <key41> |key41|  <key42> |key42|  <key43> |key43| \"];\n" +
+                "\"8\"[label = \" <key44> |key44|  <key45> |key45|  <key46> |key46|  <key47> |key47|  <key48> |key48| \"];\n" +
+                "\"9\"[label = \" <key49> |key49|  <key5> |key5|  <key50> |key50|  <key51> |key51|  <key52> |key52| \"];\n" +
+                "\"10\"[label = \" <key53> |key53|  <key54> |key54|  <key55> |key55|  <key56> |key56|  <key57> |key57| \"];\n" +
+                "\"11\"[label = \" <key58> |key58|  <key59> |key59|  <key6> |key6|  <key60> |key60|  <key61> |key61| \"];\n" +
+                "\"12\"[label = \" <key62> |key62|  <key63> |key63|  <key64> |key64|  <key65> |key65|  <key66> |key66| \"];\n" +
+                "\"21\"[label = \" <key71> |key71|  <key76> |key76|  <key80> |key80|  <key85> |key85|  <key9> |key9|  <key94> |key94|  <lastChild> |Ls \"];\n" +
+                "\"21\":key71 -> \"15\"\n" +
+                "\"21\":key76 -> \"16\"\n" +
+                "\"21\":key80 -> \"17\"\n" +
+                "\"21\":key85 -> \"18\"\n" +
+                "\"21\":key9 -> \"19\"\n" +
+                "\"21\":key94 -> \"20\"\n" +
+                "\"21\":lastChild -> \"22\"\n" +
+                "\"15\"[label = \" <key67> |key67|  <key68> |key68|  <key69> |key69|  <key7> |key7|  <key70> |key70| \"];\n" +
+                "\"16\"[label = \" <key71> |key71|  <key72> |key72|  <key73> |key73|  <key74> |key74|  <key75> |key75| \"];\n" +
+                "\"17\"[label = \" <key76> |key76|  <key77> |key77|  <key78> |key78|  <key79> |key79|  <key8> |key8| \"];\n" +
+                "\"18\"[label = \" <key80> |key80|  <key81> |key81|  <key82> |key82|  <key83> |key83|  <key84> |key84| \"];\n" +
+                "\"19\"[label = \" <key85> |key85|  <key86> |key86|  <key87> |key87|  <key88> |key88|  <key89> |key89| \"];\n" +
+                "\"20\"[label = \" <key9> |key9|  <key90> |key90|  <key91> |key91|  <key92> |key92|  <key93> |key93| \"];\n" +
+                "\"22\"[label = \" <key94> |key94|  <key95> |key95|  <key96> |key96|  <key97> |key97|  <key98> |key98|  <key99> |key99| \"];\n" +
                 "}\n";
 
         assertEquals(expectedTree, printer.toString());

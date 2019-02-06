@@ -17,11 +17,15 @@ public class BTree
      * Reference to the current root page.
      */
     private final AtomicReference<RootReference> root;
+    private final IdSupplier idSupplier;
 
-    public BTree(final BTreeNode root)
+    public BTree()
     {
+        this.idSupplier = new IdSupplier();
         this.root = new AtomicReference<>(null);
-        setNewRoot(null, root);
+
+        final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(new ByteBuffer[0], new ByteBuffer[0], idSupplier);
+        setNewRoot(null, emptyLeaf);
     }
 
     /**
@@ -94,7 +98,7 @@ public class BTree
             {
                 final ByteBuffer[] keys = {keyAt};
                 final BTreeNode[] children = {currentNode, split};
-                currentNode = new BTreeNodeNonLeaf(keys, children);
+                currentNode = new BTreeNodeNonLeaf(keys, children, idSupplier);
                 break;
             }
 

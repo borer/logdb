@@ -1,6 +1,7 @@
 package org.borer.logdb;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
@@ -8,13 +9,16 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
     public BTreeNodeNonLeaf()
     {
-        super(new ByteBuffer[0]);
+        super(new ByteBuffer[0], new IdSupplier());
         this.children = new BTreeNode[1]; //there is always one child at least
     }
 
-    public BTreeNodeNonLeaf(final ByteBuffer[] keys, final BTreeNode[] children)
+    public BTreeNodeNonLeaf(
+            final ByteBuffer[] keys,
+            final BTreeNode[] children,
+            final LongSupplier idSupplier)
     {
-        super(keys);
+        super(keys, idSupplier);
         this.children = children;
     }
 
@@ -22,11 +26,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
      * Copy constructor
      */
     private BTreeNodeNonLeaf(
-            final String id,
+            final long id,
             final ByteBuffer[] keys,
-            final BTreeNode[] children)
+            final BTreeNode[] children,
+            final LongSupplier idSupplier)
     {
-        super(id, keys);
+        super(id, keys, idSupplier);
         this.children = children;
     }
 
@@ -109,7 +114,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        return new BTreeNodeNonLeaf(getId(), copyKeys, copyChildren);
+        return new BTreeNodeNonLeaf(getId(), copyKeys, copyChildren, idSupplier);
     }
 
     @Override
@@ -123,14 +128,14 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, at + 1, bChildren, 0, b);
         children = aChildren;
 
-        return new BTreeNodeNonLeaf(bKeys, bChildren);
+        return new BTreeNodeNonLeaf(bKeys, bChildren, idSupplier);
     }
 
     @Override
     public void print(final StringBuilder printer)
     {
-        final String id = getId();
-        final String lastChildId = children[keys.length].getId();
+        final String id = String.valueOf(getId());
+        final String lastChildId = String.valueOf(children[keys.length].getId());
 
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
@@ -146,7 +151,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         for (int i = 0; i < keys.length; i++)
         {
             final String keyLabel = new String(keys[i].array());
-            final String childId = children[i].getId();
+            final String childId = String.valueOf(children[i].getId());
             printer.append(String.format("\"%s\":%s -> \"%s\"", id, keyLabel, childId));
             printer.append("\n");
         }

@@ -1,6 +1,7 @@
 package org.borer.logdb;
 
 import java.nio.ByteBuffer;
+import java.util.function.LongSupplier;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
@@ -8,12 +9,15 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
 
     public BTreeNodeLeaf()
     {
-        this(new ByteBuffer[0], new ByteBuffer[0]);
+        this(new ByteBuffer[0], new ByteBuffer[0], new IdSupplier());
     }
 
-    public BTreeNodeLeaf(final ByteBuffer[] keys, final ByteBuffer[] values)
+    public BTreeNodeLeaf(
+            final ByteBuffer[] keys,
+            final ByteBuffer[] values,
+            final LongSupplier idSupplier)
     {
-        super(keys);
+        super(keys, idSupplier);
         this.values = values;
     }
 
@@ -21,11 +25,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
      * Copy constructor
      */
     private BTreeNodeLeaf(
-            final String id,
+            final long id,
             final ByteBuffer[] keys,
-            final ByteBuffer[] values)
+            final ByteBuffer[] values,
+            final LongSupplier idSupplier)
     {
-        super(id, keys);
+        super(id, keys, idSupplier);
         this.values = values;
     }
 
@@ -50,7 +55,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(values, 0, copyValues, 0, values.length);
 
-        return new BTreeNodeLeaf(getId(), copyKeys, copyValues);
+        return new BTreeNodeLeaf(getId(), copyKeys, copyValues, idSupplier);
     }
 
     @Override
@@ -68,7 +73,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
             values = aValues;
         }
 
-        return new BTreeNodeLeaf(bKeys, bValues);
+        return new BTreeNodeLeaf(bKeys, bValues, idSupplier);
     }
 
     @Override
@@ -107,7 +112,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     @Override
     public void print(StringBuilder printer)
     {
-        final String id = getId();
+        final String id = String.valueOf(getId());
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 

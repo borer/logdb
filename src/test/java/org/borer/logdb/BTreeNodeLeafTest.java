@@ -221,7 +221,7 @@ class BTreeNodeLeafTest
 
         final String expectedDotString = "digraph g {\n" +
                 "node [shape = record,height=.1];\n" +
-                "\"9\"[label = \" <key0> |value0|  <key1> |value1|  <key2> |value2|  <key3> |value3|  <key4> |value4|  <key5> |value5|  <key6> |value6|  <key7> |value7|  <key8> |value8|  <key9> |value9| \"];\n" +
+                "\"0\"[label = \" <key0> |value0|  <key1> |value1|  <key2> |value2|  <key3> |value3|  <key4> |value4|  <key5> |value5|  <key6> |value6|  <key7> |value7|  <key8> |value8|  <key9> |value9| \"];\n" +
                 "}\n";
 
         assertEquals(expectedDotString, printer.toString());
