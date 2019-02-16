@@ -69,6 +69,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
     void removeKey(final int index, final int keyCount)
     {
         final ByteBuffer[] newKeys = new ByteBuffer[keyCount - 1];
+        assert newKeys.length >= 0
+                : String.format("key size after removing index %d was %d", index, newKeys.length);
         copyExcept(keys, newKeys, keyCount, index);
         keys = newKeys;
     }

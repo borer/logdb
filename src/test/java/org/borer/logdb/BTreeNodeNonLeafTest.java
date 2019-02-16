@@ -57,13 +57,25 @@ class BTreeNodeNonLeafTest
 
         assertEquals(10, bTreeNonLeaf.getKeyCount());
 
-        final ByteBuffer key = createValue("key" + (numKeysPerChild * 9));
-        bTreeNonLeaf.remove(key);
+        bTreeNonLeaf.remove(9);
         assertEquals(9, bTreeNonLeaf.getKeyCount());
 
-        final ByteBuffer key2 = createValue("key" + (numKeysPerChild * 8));
-        bTreeNonLeaf.remove(key2);
+        bTreeNonLeaf.remove(2);
         assertEquals(8, bTreeNonLeaf.getKeyCount());
+    }
+
+    @Test
+    void shouldIgnoreRemovingNonExistentChildren()
+    {
+        try
+        {
+            bTreeNonLeaf.remove(0);
+        }
+        catch (final AssertionError e)
+        {
+            assertEquals(0, bTreeNonLeaf.getKeyCount());
+            assertEquals("removing index 0 when key count is 0", e.getMessage());
+        }
     }
 
     @Test

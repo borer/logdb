@@ -7,6 +7,7 @@ import java.util.function.BiConsumer;
 public class BTree
 {
     private static final int MAX_CHILDREN_PER_NODE = 10;
+    private static final int TRESHOLD_CHILDREN_PER_NODE = 4;
     /**
      * This designates the "last stored" version for a store which was
      * just open for the first time.
@@ -19,10 +20,13 @@ public class BTree
     private final AtomicReference<RootReference> root;
     private final IdSupplier idSupplier;
 
+    private long nodesCount;
+
     public BTree()
     {
         this.idSupplier = new IdSupplier();
         this.root = new AtomicReference<>(null);
+        this.nodesCount = 1;
 
         final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(new ByteBuffer[0], new ByteBuffer[0], idSupplier);
         setNewRoot(null, emptyLeaf);
@@ -39,20 +43,23 @@ public class BTree
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
+        int index = cursorPosition.index;
         BTreeNode currentNode = cursorPosition.node;
         CursorPosition parentCursor = cursorPosition.parent;
 
         if (currentNode.getKeyCount() == 1 && parentCursor != null)
         {
+            this.nodesCount--;
+            index = parentCursor.index;
             currentNode = parentCursor.node;
             parentCursor = parentCursor.parent;
 
             if (currentNode.getKeyCount() == 1)
             {
-                int index = cursorPosition.index;
+                this.nodesCount--;
                 assert index <= 1;
                 final BTreeNodeNonLeaf currentNonLeafNode = (BTreeNodeNonLeaf) currentNode;
-                currentNode = currentNonLeafNode.getChildPage(1 - index);
+                currentNode = currentNonLeafNode.getChildAtIndex(1 - index);
 
                 updatePathToRoot(parentCursor, currentNode);
                 return;
@@ -61,7 +68,70 @@ public class BTree
         }
 
         currentNode = currentNode.copy();
-        currentNode.remove(key);
+        currentNode.remove(index);
+
+        updatePathToRoot(parentCursor, currentNode);
+    }
+
+    /**
+     * Remove a key and the associated value, if the key exists. Does rebalancing of the btree
+     *
+     * @param key the key (may not be null)
+     */
+    public void removeWithRebalancing(final ByteBuffer key)
+    {
+        assert key != null;
+        BTreeNode rootNode = getCurrentRootNode();
+        final CursorPosition cursorPosition = traverseDown(rootNode, key);
+
+        BTreeNode currentNode = cursorPosition.node;
+        int index = cursorPosition.index;
+        CursorPosition parentCursor = cursorPosition.parent;
+
+        currentNode = currentNode.copy();
+        currentNode.remove(index);
+
+        //rebalance
+        if (currentNode.needRebalancing(TRESHOLD_CHILDREN_PER_NODE))
+        {
+            final CursorPosition rightSiblingCursor = parentCursor.getRightSibling();
+            if (rightSiblingCursor != null)
+            {
+                final BTreeNodeLeaf rightSibling = (BTreeNodeLeaf) rightSiblingCursor.node;
+                if (rightSibling.getKeyCount() >= TRESHOLD_CHILDREN_PER_NODE + 2)
+                {
+                    // we can move one from there to here
+                }
+                else
+                {
+                    // we merge the two nodes together
+                }
+
+                //Complicated to update both in the same path
+                //updatePathToRoot(parentCursor, currentNode, rightSiblingCursor, rightSibling);
+
+                return;
+            }
+
+            final CursorPosition leftSiblingCursor = parentCursor.getLeftSibling();
+            if (leftSiblingCursor != null)
+            {
+                final BTreeNodeLeaf leftSibling = (BTreeNodeLeaf) leftSiblingCursor.node;
+                if (leftSibling.getKeyCount() >= TRESHOLD_CHILDREN_PER_NODE + 2)
+                {
+                    // we can move one from there to here
+                }
+                else
+                {
+                    // we merge the two nodes together
+                }
+
+                //Complicated to update both in the same path
+                //updatePathToRoot(parentCursor, currentNode, leftSiblingCursor, leftSibling);
+
+                return;
+            }
+        }
 
         updatePathToRoot(parentCursor, currentNode);
     }
@@ -90,12 +160,14 @@ public class BTree
         int keyCount = currentNode.getKeyCount();
         while (keyCount > MAX_CHILDREN_PER_NODE)
         {
+            this.nodesCount++;
             final int at = keyCount >> 1;
             final ByteBuffer keyAt = currentNode.getKey(at);
             final BTreeNode split = currentNode.split(at);
 
             if (parentCursor == null)
             {
+                this.nodesCount++;
                 final ByteBuffer[] keys = {keyAt};
                 final BTreeNode[] children = {currentNode, split};
                 currentNode = new BTreeNodeNonLeaf(keys, children, idSupplier);
@@ -189,7 +261,7 @@ public class BTree
         final int childPageCount = nonLeaf.getRawChildPageCount();
         for (int i = 0; i < childPageCount; i++)
         {
-            final BTreeNode childPage = nonLeaf.getChildPage(i);
+            final BTreeNode childPage = nonLeaf.getChildAtIndex(i);
             if (childPage instanceof BTreeNodeNonLeaf)
             {
                 consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) childPage);
@@ -238,14 +310,22 @@ public class BTree
         while (node instanceof BTreeNodeNonLeaf)
         {
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
-            assert nonLeaf.getKeyCount() > 0;
+            assert nonLeaf.getKeyCount() > 0
+                    : String.format("non leaf node should always have at least 1 key. Current node had %d",
+                                    nonLeaf.getKeyCount());
             index = SearchUtils.binarySearch(key, nonLeaf.keys) + 1;
             if (index < 0)
             {
                 index = -index;
             }
             cursor = new CursorPosition(node, index, cursor);
-            node = nonLeaf.getChildPage(index);
+            node = nonLeaf.getChildAtIndex(index);
+        }
+
+        index = SearchUtils.binarySearch(key, ((BTreeNodeLeaf)node).keys);
+        if (index < 0)
+        {
+            index = -index;
         }
 
         return new CursorPosition(node, index, cursor);
@@ -332,6 +412,11 @@ public class BTree
         RootReference updatedRootReference = new RootReference(newRootPage, newVersion, currentRoot);
         boolean success = root.compareAndSet(currentRoot, updatedRootReference);
         return success ? updatedRootReference : null;
+    }
+
+    public long getNodesCount()
+    {
+        return this.nodesCount;
     }
 
     public static final class RootReference

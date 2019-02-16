@@ -102,9 +102,15 @@ class BTreeNodeLeafTest
 
         assertEquals(1, bTreeLeaf.getKeyCount());
 
-        bTreeLeaf.remove(key);
-
-        assertEquals(0, bTreeLeaf.getKeyCount());
+        try
+        {
+            bTreeLeaf.remove(0);
+        }
+        catch (final AssertionError e)
+        {
+            assertEquals(0, bTreeLeaf.getKeyCount());
+            assertEquals("removing index 0 when key count is 0", e.getMessage());
+        }
     }
 
     @Test
@@ -124,10 +130,7 @@ class BTreeNodeLeafTest
 
         for (int i = 9; i >= 0; i--)
         {
-            final ByteBuffer key = createValue("key" + i);
-
-            bTreeLeaf.remove(key);
-
+            bTreeLeaf.remove(0);
             assertEquals(i, bTreeLeaf.getKeyCount());
         }
     }
@@ -135,11 +138,15 @@ class BTreeNodeLeafTest
     @Test
     void shouldIgnoreRemovingNonExistentEntry()
     {
-        final ByteBuffer key = createValue("key");
-
-        bTreeLeaf.remove(key);
-
-        assertEquals(0, bTreeLeaf.getKeyCount());
+        try
+        {
+            bTreeLeaf.remove(0);
+        }
+        catch (final AssertionError e)
+        {
+            assertEquals(0, bTreeLeaf.getKeyCount());
+            assertEquals("removing index 0 when key count is 0", e.getMessage());
+        }
     }
 
     /////////////////////////////////Get

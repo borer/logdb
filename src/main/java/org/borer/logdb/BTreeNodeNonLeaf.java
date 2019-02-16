@@ -68,29 +68,30 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         return getKeyCount() + 1;
     }
 
-    BTreeNode getChildPage(final int index)
+    BTreeNode getChildAtIndex(final int index)
     {
         return children[index];
     }
 
     @Override
-    public void remove(final ByteBuffer key)
+    public void remove(final int index)
     {
-        final int index = SearchUtils.binarySearch(key, keys);
-        if (index < 0)
-        {
-            return;
-        }
-
         final int keyCount = getKeyCount();
+
+        assert keyCount > index && keyCount > 0
+                : String.format("removing index %d when key count is %d", index, keyCount);
+
         removeKey(index, keyCount);
-        removeChild(index, keyCount);
+        removeChild(index);
     }
 
-    private void removeChild(final int index, final int keyCount)
+    private void removeChild(final int index)
     {
-        final BTreeNode[] newChildren = new BTreeNode[keyCount - 1];
-        copyExcept(children, newChildren, keyCount, index);
+        final int oldChildrenSize = children.length;
+        final BTreeNode[] newChildren = new BTreeNode[oldChildrenSize - 1];
+        assert newChildren.length >= 0
+                : String.format("children size after removing index %d was %d", index, newChildren.length);
+        copyExcept(children, newChildren, oldChildrenSize, index);
         children = newChildren;
     }
 
@@ -115,6 +116,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
         return new BTreeNodeNonLeaf(getId(), copyKeys, copyChildren, idSupplier);
+    }
+
+    @Override
+    public boolean needRebalancing(int threshold)
+    {
+        return this.children.length < 2;
     }
 
     @Override

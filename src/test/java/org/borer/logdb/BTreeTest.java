@@ -127,6 +127,28 @@ class BTreeTest
     }
 
     @Test
+    void shouldBeABleToRemoveKeysFromTree()
+    {
+        for (int i = 0; i < 100; i++)
+        {
+            final String keyValue = "key" + i;
+            final ByteBuffer childKeyBuffer = createValue(keyValue);
+            final ByteBuffer childValueBuffer = createValue(keyValue);
+
+            bTree.put(childKeyBuffer, childValueBuffer);
+        }
+
+        for (int i = 0; i < 100; i++)
+        {
+            final String keyValue = "key" + i;
+            final ByteBuffer childKeyBuffer = createValue(keyValue);
+            bTree.remove(childKeyBuffer);
+        }
+
+        assertEquals(1L, bTree.getNodesCount());
+    }
+
+    @Test
     void shouldBeAbleToInsert100Elements()
     {
         for (int i = 0; i < 100; i++)

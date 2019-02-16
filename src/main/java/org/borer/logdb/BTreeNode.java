@@ -19,10 +19,10 @@ public interface BTreeNode
     void insert(ByteBuffer key, ByteBuffer value);
 
     /**
-     * Remove the key and value.
-     * @param key the key to remove
+     * Remove the key and value at index
+     * @param index the index of the element to remove
      */
-    void remove(ByteBuffer key);
+    void remove(int index);
 
     /**
      * Get the number of entries in the leaf.
@@ -63,4 +63,6 @@ public interface BTreeNode
      * @return a deep copy of the this node
      */
     BTreeNode copy();
+
+    boolean needRebalancing(int threshold);
 }

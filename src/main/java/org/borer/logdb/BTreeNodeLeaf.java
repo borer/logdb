@@ -77,16 +77,19 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void remove(final ByteBuffer key)
+    public boolean needRebalancing(final int threshold)
     {
-        final int index = SearchUtils.binarySearch(key, keys);
+        return this.keys.length == 0 || this.keys.length < threshold;
+    }
 
-        if (index < 0)
-        {
-            return;
-        }
-
+    @Override
+    public void remove(final int index)
+    {
         final int keyCount = getKeyCount();
+
+        assert keyCount > index && keyCount > 0
+                : String.format("removing index %d when key count is %d", index, keyCount);
+
         removeKey(index, keyCount);
         removeValue(index, keyCount);
     }
@@ -141,6 +144,8 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     private void removeValue(final int index, final int keyCount)
     {
         final ByteBuffer[] newValues = new ByteBuffer[keyCount - 1];
+        assert newValues.length >= 0
+                : String.format("value size after removing index %d was %d", index, newValues.length);
         copyExcept(values, newValues, keyCount, index);
         values = newValues;
     }
