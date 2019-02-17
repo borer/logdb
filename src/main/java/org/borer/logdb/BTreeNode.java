@@ -53,12 +53,6 @@ public interface BTreeNode
     BTreeNode split(int at);
 
     /**
-     * Prints this node representation in graphivz format.
-     * @param printer that will be used to print on
-     */
-    void print(StringBuilder printer);
-
-    /**
      * Creates a copy of the node. The copy has the same id as the original.
      * @return a deep copy of the this node
      */

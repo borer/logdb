@@ -160,9 +160,6 @@ class BTreeTest
             bTree.put(childKeyBuffer, childValueBuffer);
         }
 
-        StringBuilder printer= new StringBuilder();
-        bTree.print(printer);
-
         final String expectedTree = "digraph g {\n" +
                 "node [shape = record,height=.1];\n" +
                 "\"14\"[label = \" <key4> |key4|  <key67> |key67|  <lastChild> |Ls \"];\n" +
@@ -212,6 +209,6 @@ class BTreeTest
                 "\"22\"[label = \" <key94> |key94|  <key95> |key95|  <key96> |key96|  <key97> |key97|  <key98> |key98|  <key99> |key99| \"];\n" +
                 "}\n";
 
-        assertEquals(expectedTree, printer.toString());
+        assertEquals(expectedTree, BTreePrinter.print(bTree));
     }
 }

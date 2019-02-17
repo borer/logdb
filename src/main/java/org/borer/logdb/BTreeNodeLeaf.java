@@ -5,7 +5,7 @@ import java.util.function.LongSupplier;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
-    private ByteBuffer[] values;
+    protected ByteBuffer[] values;
 
     public BTreeNodeLeaf()
     {
@@ -110,23 +110,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         {
             setValue(index, value);
         }
-    }
-
-    @Override
-    public void print(StringBuilder printer)
-    {
-        final String id = String.valueOf(getId());
-        printer.append(String.format("\"%s\"", id));
-        printer.append("[label = \"");
-
-        for (int i = 0; i < keys.length; i++)
-        {
-            final String key = new String(keys[i].array());
-            final String value = new String(values[i].array());
-            printer.append(String.format(" <%s> |%s| ", key, value));
-        }
-
-        printer.append("\"];\n");
     }
 
     /**

@@ -287,21 +287,6 @@ public class BTree
         }
     }
 
-    /**
-     * Outputs graphivz format that represents the B+tree
-     *
-     * @param printer Buffer used for output
-     */
-    public void print(StringBuilder printer)
-    {
-        printer.append("digraph g {\n");
-        printer.append("node [shape = record,height=.1];\n");
-
-        getCurrentRootNode().print(printer);
-
-        printer.append("}\n");
-    }
-
     private static CursorPosition traverseDown(final BTreeNode root, final ByteBuffer key)
     {
         BTreeNode node = root;
@@ -375,7 +360,7 @@ public class BTree
         return root.get();
     }
 
-    private BTreeNode getCurrentRootNode()
+    protected BTreeNode getCurrentRootNode()
     {
         RootReference rootReference = root.get();
         assert rootReference != null;
