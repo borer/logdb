@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 public interface BTreeNode
 {
     /**
-     * unique id of this node
+     * unique id of this node.
       * @return
      */
     long getId();
@@ -19,7 +19,7 @@ public interface BTreeNode
     void insert(ByteBuffer key, ByteBuffer value);
 
     /**
-     * Remove the key and value at index
+     * Remove the key and value at index.
      * @param index the index of the element to remove
      */
     void remove(int index);
@@ -35,7 +35,7 @@ public interface BTreeNode
      * @param index has to be between 0...getKeyCount()
      * @return the key
      */
-    ByteBuffer getKey(int index);
+    ByteBuffer  getKey(int index);
 
     /**
      * Get the value corresponding to the key.

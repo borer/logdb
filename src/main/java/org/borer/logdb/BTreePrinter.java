@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 public class BTreePrinter
 {
     /**
-     * Outputs graphivz format that represents the B+tree
+     * Outputs graphivz format that represents the B+tree.
      * @param bTree uses the current root node of the btree
      * @return a graphivz string formated representation of the btree
      */
@@ -15,7 +15,7 @@ public class BTreePrinter
     }
 
     /**
-     * Outputs graphivz format that represents the B+tree
+     * Outputs graphivz format that represents the B+tree.
      * @param root the root node to start printing.
      * @return a graphivz string formated representation of the btree
      */

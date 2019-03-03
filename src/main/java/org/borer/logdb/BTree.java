@@ -187,7 +187,7 @@ public class BTree
     }
 
     /**
-     * Gets a value for the key at time/instance t
+     * Gets a value for the key at time/instance t.
      *
      * @param key     the key to search for
      * @param version the version that we are interested. Must be >= 0
@@ -216,7 +216,7 @@ public class BTree
     }
 
     /**
-     * Calls the consumer for all the key/value pairs in linear scan, from start to end
+     * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param consumer A consumer that will accept the key/value pairs
      */
     public void consumeAll(BiConsumer<ByteBuffer, ByteBuffer> consumer)
@@ -234,7 +234,7 @@ public class BTree
     }
 
     /**
-     * Calls the consumer for all the key/value pairs in linear scan, from start to end
+     * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param version Version that we want to scan for
      * @param consumer A consumer that will accept the key/value pairs
      */

@@ -16,7 +16,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     /**
-     * Copy constructor
+     * Copy constructor.
      */
     BTreeNodeAbstract(final long id, final ByteBuffer[] keys, final LongSupplier idSupplier)
     {

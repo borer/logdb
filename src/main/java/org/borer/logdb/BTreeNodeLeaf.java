@@ -22,7 +22,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     /**
-     * Copy constructor
+     * Copy constructor.
      */
     private BTreeNodeLeaf(
             final long id,
