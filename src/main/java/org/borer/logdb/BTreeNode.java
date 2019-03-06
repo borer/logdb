@@ -1,7 +1,5 @@
 package org.borer.logdb;
 
-import java.nio.ByteBuffer;
-
 public interface BTreeNode
 {
     /**
@@ -16,7 +14,7 @@ public interface BTreeNode
      * @param key Key that identifies the value
      * @param value Value to persist
      */
-    void insert(ByteBuffer key, ByteBuffer value);
+    void insert(long key, long value);
 
     /**
      * Remove the key and value at index.
@@ -35,14 +33,14 @@ public interface BTreeNode
      * @param index has to be between 0...getKeyCount()
      * @return the key
      */
-    ByteBuffer  getKey(int index);
+    long getKey(int index);
 
     /**
      * Get the value corresponding to the key.
      * @param key key to search for
      * @return the value corresponding to that key or null if not found
      */
-    ByteBuffer get(ByteBuffer key);
+    long get(long key);
 
     /**
      * Splits the current node into 2 nodes.

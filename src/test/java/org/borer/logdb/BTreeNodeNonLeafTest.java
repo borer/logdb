@@ -3,10 +3,7 @@ package org.borer.logdb;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.ByteBuffer;
-
 import static org.borer.logdb.TestUtils.createLeafNodeWithKeys;
-import static org.borer.logdb.TestUtils.createValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -17,16 +14,16 @@ class BTreeNodeNonLeafTest
     @BeforeEach
     void setUp()
     {
-        bTreeNonLeaf = new BTreeNodeNonLeaf();
+        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0);
+        bTreeNonLeaf = new BTreeNodeNonLeaf(bTreeNode);
     }
 
     @Test
     void shouldBeAbleToInsertChild()
     {
         final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0);
-        final ByteBuffer key = createValue("key0");
 
-        bTreeNonLeaf.insertChild(0, key, bTreeNode);
+        bTreeNonLeaf.insertChild(0, 0, bTreeNode);
     }
 
     @Test
@@ -36,11 +33,17 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
+            final long key = numKeysPerChild * i;
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
             assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
+        }
+
+        for (int i = 0; i < 11; i++)
+        {
+            final int expectedValue = (i == 10) ? 0 : numKeysPerChild * i; // the first value when crete bTreeNonLeaf is 0
+            assertEquals(expectedValue, bTreeNonLeaf.getValue(i));
         }
     }
 
@@ -51,18 +54,29 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
+            final long key = numKeysPerChild * i;
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
         }
 
         assertEquals(10, bTreeNonLeaf.getKeyCount());
 
-        bTreeNonLeaf.remove(9);
+        bTreeNonLeaf.remove(9); //remove last key item
         assertEquals(9, bTreeNonLeaf.getKeyCount());
+        for (int i = 0; i < 9; i++)
+        {
+            final int expectedValue = numKeysPerChild * i;
+            assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
+            assertEquals(expectedValue, bTreeNonLeaf.getValue(i));
+        }
 
         bTreeNonLeaf.remove(2);
         assertEquals(8, bTreeNonLeaf.getKeyCount());
+        for (int i = 0; i < 8; i++)
+        {
+            final int expectedValue = numKeysPerChild * ((i >= 2) ? i + 1 : i);
+            assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
+        }
     }
 
     @Test
@@ -80,38 +94,117 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
-    void shouldBeAbleToSplitInTwoNodes()
+    void shouldBeAbleToSplitInTwoNodesWithEvenKeyNumber()
     {
         final int numKeysPerChild = 5;
         final int expectedKeysInCurrent = 5;
         final int expectedKeysInSplit = 4;
-        for (int i = 0; i < 10; i++)
+        final int totalKeys = 10;
+        for (int i = 0; i < totalKeys; i++)
         {
-            final String keyValue = "key" + (numKeysPerChild * i);
-            final ByteBuffer childKeyBuffer = createValue(keyValue);
-            final BTreeNode child = new BTreeNodeLeaf();
+            final long key = numKeysPerChild * i;
+            final BTreeNode child = new BTreeNodeLeaf(i);
 
-            bTreeNonLeaf.insertChild(i, childKeyBuffer, child);
+            bTreeNonLeaf.insertChild(i, key, child); //there is something funky with the byte order
         }
 
-        //first 5 children have first 25 keys
-        final ByteBuffer keyUsedForSplit = bTreeNonLeaf.getKeyAtIndex(5);
-
-        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(5);
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());
 
+        final long[] currentKeys = new long[expectedKeysInCurrent];
         for (int i = 0; i < expectedKeysInCurrent; i++)
         {
-            final ByteBuffer keyAtIndex = bTreeNonLeaf.getKeyAtIndex(i);
-            assertNotEquals(keyUsedForSplit, keyAtIndex);
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long currentKey = currentKeys[i];
+            for (int j = 0; j < expectedKeysInSplit; j++)
+            {
+                assertNotEquals(currentKey, split.getKey(j));
+            }
+        }
+
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int keyOffsetDueToLostKey = i + 1;
+            final int keyOffsetDueToSplit = keyOffsetDueToLostKey + expectedKeysInCurrent;
+            final long expectedKey = numKeysPerChild * keyOffsetDueToSplit;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            splitKeys[i] = keyAtIndex;
         }
 
         for (int i = 0; i < expectedKeysInSplit; i++)
         {
-            final ByteBuffer keyAtIndex = split.getKeyAtIndex(i);
-            assertNotEquals(keyUsedForSplit, keyAtIndex);
+            final long splitKey = splitKeys[i];
+            for (int j = 0; j < expectedKeysInCurrent; j++)
+            {
+                assertNotEquals(splitKey, bTreeNonLeaf.getKey(j));
+            }
+        }
+    }
+
+    @Test
+    void shouldBeAbleToSplitInTwoNodesWithOddKeyNumber()
+    {
+        final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedKeysInSplit = 5;
+        final int totalKeys = 11;
+        for (int i = 0; i < totalKeys; i++)
+        {
+            final long key = numKeysPerChild * i;
+            final BTreeNode child = new BTreeNodeLeaf(i);
+
+            bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
+        };
+
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at);
+
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
+        final long[] currentKeys = new long[expectedKeysInCurrent];
+
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            assertNotEquals(currentKeys[i], split.getKey(i));
+        }
+
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int expectedKeyIndex = (i + 1) + expectedKeysInCurrent; //we lose one key when split
+            final long expectedKey = numKeysPerChild * expectedKeyIndex;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            splitKeys[i] = keyAtIndex;
+        }
+
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            assertNotEquals(splitKeys[i], bTreeNonLeaf.getKey(i));
         }
     }
 
@@ -122,7 +215,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final ByteBuffer key = createValue("key" + (numKeysPerChild * i));
+            final long key = numKeysPerChild * i;
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
@@ -132,7 +225,7 @@ class BTreeNodeNonLeafTest
         BTreeNode copy = bTreeNonLeaf.copy();
 
         final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * 10));
-        final ByteBuffer key = createValue("key" + (numKeysPerChild * 10));
+        final long key = numKeysPerChild * 10;
         bTreeNonLeaf.insertChild(8, key, child);
 
         assertEquals(11, bTreeNonLeaf.getKeyCount());

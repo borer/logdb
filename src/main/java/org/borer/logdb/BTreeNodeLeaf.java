@@ -1,24 +1,32 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryByteBufferImpl;
+
 import java.nio.ByteBuffer;
 import java.util.function.LongSupplier;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
-    protected ByteBuffer[] values;
-
-    public BTreeNodeLeaf()
+    public BTreeNodeLeaf(final int id)
     {
-        this(new ByteBuffer[0], new ByteBuffer[0], new IdSupplier());
+        super(
+                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                0,
+                0,
+                new IdSupplier(id));
     }
 
-    public BTreeNodeLeaf(
-            final ByteBuffer[] keys,
-            final ByteBuffer[] values,
+    /**
+     * split constructor.
+     */
+    BTreeNodeLeaf(
+            final Memory memory,
+            final int numberOfKeys,
+            final int numberOfValues,
             final LongSupplier idSupplier)
     {
-        super(keys, idSupplier);
-        this.values = values;
+        super(memory, numberOfKeys, numberOfValues, idSupplier);
     }
 
     /**
@@ -26,60 +34,70 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
      */
     private BTreeNodeLeaf(
             final long id,
-            final ByteBuffer[] keys,
-            final ByteBuffer[] values,
+            final Memory memory,
+            final int numberOfKeys,
+            final int numberOfValues,
             final LongSupplier idSupplier)
     {
-        super(id, keys, idSupplier);
-        this.values = values;
+        super(id, memory, numberOfKeys, numberOfValues, idSupplier);
     }
 
     @Override
-    public ByteBuffer get(final ByteBuffer key)
+    public long get(final long key)
     {
-        final int index = SearchUtils.binarySearch(key, keys);
+        final int index = binarySearch(key);
 
         if (index < 0)
         {
-            return null;
+            return -1;
         }
 
-        return getValueAtIndex(index);
+        return getValue(index);
     }
 
     @Override
     public BTreeNode copy()
     {
-        final ByteBuffer[] copyKeys = new ByteBuffer[keys.length];
-        final ByteBuffer[] copyValues = new ByteBuffer[values.length];
-        System.arraycopy(keys, 0, copyKeys, 0, keys.length);
-        System.arraycopy(values, 0, copyValues, 0, values.length);
+        final byte[] array = new byte[PAGE_SIZE];
+        buffer.getBytes(0L, array);
 
-        return new BTreeNodeLeaf(getId(), copyKeys, copyValues, idSupplier);
+        final ByteBuffer buffer = ByteBuffer.wrap(array);
+        final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(buffer);
+
+        return new BTreeNodeLeaf(getId(), memory, numberOfKeys, numberOfValues, idSupplier);
     }
 
     @Override
     public BTreeNode split(final int at)
     {
-        final int bSize = getKeyCount() - at;
-        final ByteBuffer[] bKeys = splitKeys(at, bSize);
-        final ByteBuffer[] bValues = new ByteBuffer[bSize];
-
-        if (values != null)
+        final int keyCount = getKeyCount();
+        if (keyCount <= 0)
         {
-            final ByteBuffer[] aValues = new ByteBuffer[at];
-            System.arraycopy(values, 0, aValues, 0, at);
-            System.arraycopy(values, at, bValues, 0, bSize);
-            values = aValues;
+            return null;
         }
 
-        return new BTreeNodeLeaf(bKeys, bValues, idSupplier);
+        final int bNumberOfKeys = numberOfKeys - at;
+        final int bNumberOfValues = numberOfValues - at;
+
+        //TODO: allocate from other place
+        final BTreeNodeLeaf bTreeNodeLeaf = new BTreeNodeLeaf(
+                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                bNumberOfKeys,
+                bNumberOfValues,
+                idSupplier);
+        bTreeNodeLeaf.updateNumberOfKeys(bTreeNodeLeaf.numberOfKeys);
+        bTreeNodeLeaf.updateNumberOfValues(bTreeNodeLeaf.numberOfValues);
+
+        splitKeys(at, bNumberOfKeys,  bTreeNodeLeaf);
+        splitValues(at, bNumberOfValues, bTreeNodeLeaf);
+
+        return bTreeNodeLeaf;
     }
 
     @Override
     public boolean needRebalancing(final int threshold)
     {
-        return this.keys.length == 0 || this.keys.length < threshold;
+        return numberOfKeys == 0 || numberOfKeys < threshold;
     }
 
     @Override
@@ -95,59 +113,19 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void insert(final ByteBuffer key, final ByteBuffer value)
+    public void insert(final long key, final long value)
     {
-        final int index = SearchUtils.binarySearch(key, keys);
+        final int index = binarySearch(key);
 
         if (index < 0)
         {
             final int absIndex = -index - 1;
-            final int keyCount = getKeyCount();
             insertKey(absIndex, key);
-            insertValue(absIndex, keyCount, value);
+            insertValue(absIndex, value);
         }
         else
         {
             setValue(index, value);
         }
-    }
-
-    /**
-     * Gets the value at index position.
-     * @param index Index inside the btree leaf
-     * @return The value or null if it doesn't exist
-     */
-    public ByteBuffer getValueAtIndex(final int index)
-    {
-        final ByteBuffer value = values[index];
-        value.rewind();
-        return value;
-    }
-
-    private void removeValue(final int index, final int keyCount)
-    {
-        final ByteBuffer[] newValues = new ByteBuffer[keyCount - 1];
-        assert newValues.length >= 0
-                : String.format("value size after removing index %d was %d", index, newValues.length);
-        copyExcept(values, newValues, keyCount, index);
-        values = newValues;
-    }
-
-    private void insertValue(final int index, final int keyCount, final ByteBuffer value)
-    {
-        final ByteBuffer[] newValues = new ByteBuffer[keyCount + 1];
-        copyWithGap(values, newValues, keyCount, index);
-        values = newValues;
-
-        values[index] = value;
-    }
-
-    private ByteBuffer setValue(final int index, final ByteBuffer value)
-    {
-        values = values.clone();
-        final ByteBuffer old = values[index];
-        values[index] = value;
-
-        return old;
     }
 }

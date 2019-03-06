@@ -1,28 +1,88 @@
 package org.borer.logdb;
 
-import java.nio.ByteBuffer;
+import org.borer.logdb.bit.Memory;
+
 import java.util.function.LongSupplier;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    private final long id;
+    protected static int PAGE_SIZE = 4096; // default 4 KiBs
+    private static int PAGE_START_OFFSET = 0;
+    private static int NUMBER_OF_KEY_OFFSET = PAGE_START_OFFSET + Integer.BYTES;
+    private static int NUMBER_OF_VALUES_OFFSET = NUMBER_OF_KEY_OFFSET + Integer.BYTES;
+    private static int HEADER_SIZE_BYTES = NUMBER_OF_VALUES_OFFSET + Integer.BYTES;
+    private static int KEY_START_OFFSET = HEADER_SIZE_BYTES;
 
-    ByteBuffer[] keys;
+    protected static int KEY_SIZE = Long.BYTES;
+    protected static int VALUE_SIZE = Long.BYTES;
+
+
+    private final long id;
+    protected long freeSizeLeftBytes;
+
+    protected Memory buffer;
+    protected long pageNumber;
+    protected int numberOfKeys;
+    protected int numberOfValues;
+
     LongSupplier idSupplier;
 
-    BTreeNodeAbstract(final ByteBuffer[] keys, final LongSupplier idSupplier)
+    /**
+     * Index Page layout :
+     * ------------------------------------------ 0
+     * |                 Header                 |
+     * ------------------------------------------ 8
+     * |   Number of keys  |  Number of values  |
+     * ------------------------------------------ 16
+     * |                   Key1                 |
+     * ------------------------------------------ 24
+     * |                   Key2                 |
+     * ------------------------------------------ 32
+     * |                  ......                |
+     * ------------------------------------------ number of keys * 8 = N
+     * |                  ......                |
+     * ------------------------------------------ 4072
+     * |                   Value3               |
+     * ------------------------------------------ 4080
+     * |                   Value2               |
+     * ------------------------------------------ 4088
+     * |                   Value1               |
+     * ------------------------------------------ 4096 (end of page)
+     *
+     * The keys are always 8 bytes.
+     *
+     * For leaf nodes the values are pointers in the leaf nodes to the page that has the element
+     * For internal index nodes the values are pointer in the index file to the page that has the child
+     * Values are always 8 bytes (long)
+     *
+     *
+     * @param buffer the buffer used as a content for this node
+     * @param idSupplier the id generator used to assign id to this node and splitted nodes
+     */
+    BTreeNodeAbstract(final Memory buffer,
+                      final int numberOfKeys,
+                      final int numberOfValues,
+                      final LongSupplier idSupplier)
     {
-        this(idSupplier.getAsLong(), keys, idSupplier);
+        this(idSupplier.getAsLong(), buffer, numberOfKeys, numberOfValues, idSupplier);
     }
 
     /**
      * Copy constructor.
      */
-    BTreeNodeAbstract(final long id, final ByteBuffer[] keys, final LongSupplier idSupplier)
+    BTreeNodeAbstract(final long id,
+                      final Memory buffer,
+                      final int numberOfKeys,
+                      final int numberOfValues,
+                      final LongSupplier idSupplier)
     {
         this.id = id;
-        this.keys = keys;
+        this.buffer = buffer;
+        this.numberOfKeys = numberOfKeys;
+        this.numberOfValues = numberOfValues;
         this.idSupplier = idSupplier;
+        final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
+        this.freeSizeLeftBytes = PAGE_SIZE - usedBytes;
     }
 
     @Override
@@ -35,104 +95,261 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public int getKeyCount()
     {
-        return keys.length;
+        return numberOfKeys;
     }
 
     @Override
-    public ByteBuffer getKey(final int index)
+    public long getKey(final int index)
     {
-        return keys[index];
+        return buffer.getLong(getKeyIndexOffset(index));
     }
 
-    /**
-     * Gets the key at index position.
-     * @param index index inside the btree leaf
-     * @return The key or null if it doesn't exist
-     */
-    public ByteBuffer getKeyAtIndex(final int index)
+    private static long getKeyIndexOffset(final int index)
     {
-        return keys[index];
+        return KEY_START_OFFSET + (index * KEY_SIZE);
     }
 
-    void insertKey(final int index, final ByteBuffer key)
+    private static long getValueIndexOffset(final int index)
+    {
+        return PAGE_SIZE - ((index + 1) * VALUE_SIZE);
+    }
+
+    void insertKey(final int index, final long key)
     {
         final int keyCount = getKeyCount();
         assert index <= keyCount : index + " > " + keyCount;
 
-        final ByteBuffer[] newKeys = new ByteBuffer[keyCount + 1];
-        copyWithGap(keys, newKeys, keyCount, index);
-        keys = newKeys;
+        copyKeysWithGap(index);
 
-        keys[index] = key;
+        buffer.putLong(getKeyIndexOffset(index), key);
+
+        numberOfKeys++;
+        updateNumberOfKeys(numberOfKeys);
+
+        freeSizeLeftBytes -= KEY_SIZE;
     }
 
     void removeKey(final int index, final int keyCount)
     {
-        final ByteBuffer[] newKeys = new ByteBuffer[keyCount - 1];
-        assert newKeys.length >= 0
-                : String.format("key size after removing index %d was %d", index, newKeys.length);
-        copyExcept(keys, newKeys, keyCount, index);
-        keys = newKeys;
+        assert (keyCount - 1) >= 0
+                : String.format("key size after removing index %d was %d", index, keyCount - 1);
+        copyKeysExcept(index);
+
+        numberOfKeys--;
+        updateNumberOfKeys(numberOfKeys);
+
+        freeSizeLeftBytes += KEY_SIZE;
     }
 
-    final ByteBuffer[] splitKeys(int aCount, int bCount)
+    void updateNumberOfKeys(final int numberOfKeys)
     {
-        assert aCount + bCount <= getKeyCount();
-        ByteBuffer[] aKeys = new ByteBuffer[aCount];
-        ByteBuffer[] bKeys = new ByteBuffer[bCount];
-        System.arraycopy(keys, 0, aKeys, 0, aCount);
-        System.arraycopy(keys, getKeyCount() - bCount, bKeys, 0, bCount);
-        keys = aKeys;
-        return bKeys;
+        buffer.putInt(NUMBER_OF_KEY_OFFSET, numberOfKeys);
+    }
+
+    void updateNumberOfValues(final int numberOfValues)
+    {
+        buffer.putInt(NUMBER_OF_VALUES_OFFSET, numberOfValues);
+    }
+
+    /**
+     * Gets the value at index position.
+     * @param index Index inside the btree leaf
+     * @return The value or null if it doesn't exist
+     */
+    long getValue(final int index)
+    {
+        return buffer.getLong(getValueIndexOffset(index));
+    }
+
+    void removeValue(final int index, final int keyCount)
+    {
+        assert keyCount >= 0
+                : String.format("value size after removing index %d was %d", index, keyCount - 1);
+        copyValuesExcept(index);
+
+        numberOfValues--;
+        updateNumberOfValues(numberOfValues);
+
+        freeSizeLeftBytes += VALUE_SIZE;
+    }
+
+    void insertValue(final int index, final long value)
+    {
+        copyValuesWithGap(index);
+        setValue(index, value);
+
+        numberOfValues++;
+        updateNumberOfValues(numberOfValues);
+
+        freeSizeLeftBytes -= VALUE_SIZE;
+    }
+
+    long setValue(final int index, final long value)
+    {
+        final long valueIndexOffset = getValueIndexOffset(index);
+        final long oldValue = buffer.getLong(valueIndexOffset);
+        buffer.putLong(valueIndexOffset, value);
+
+        return oldValue;
+    }
+
+    void splitKeys(final int aNumberOfKeys, final int bNumberOfKeys, final BTreeNodeAbstract bNode)
+    {
+        //copy keys
+        final byte[] bKeysBuffer = new byte[bNumberOfKeys * KEY_SIZE];
+        buffer.getBytes(getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bKeysBuffer);
+        bNode.buffer.putBytes(getKeyIndexOffset(0), bKeysBuffer);
+
+        freeSizeLeftBytes += (numberOfKeys - aNumberOfKeys) * KEY_SIZE;
+        numberOfKeys = aNumberOfKeys;
+        updateNumberOfKeys(numberOfKeys);
+    }
+
+    void splitValues(final int aNumberOfValues, int bNumberOfValues, final BTreeNodeAbstract bNode)
+    {
+        //copy values
+        final byte[] bValuesBuffer = new byte[bNumberOfValues * VALUE_SIZE];
+        buffer.getBytes(getValueIndexOffset(aNumberOfValues + bNumberOfValues - 1), bValuesBuffer);
+        bNode.buffer.putBytes(getValueIndexOffset(bNumberOfValues - 1), bValuesBuffer);
+
+        freeSizeLeftBytes += (numberOfValues - aNumberOfValues) * VALUE_SIZE;
+        numberOfValues = aNumberOfValues;
+        updateNumberOfValues(numberOfValues);
     }
 
     /**
      * Copy the elements of an array, with a gap.
      *
-     * @param src the source array
-     * @param dst the target array
-     * @param oldSize the size of the old array
      * @param gapIndex the index of the gap
      */
-    static void copyWithGap(
-            final Object[] src,
-            final Object[] dst,
-            final int oldSize,
-            final int gapIndex)
+    private void copyKeysWithGap(final int gapIndex)
     {
-        if (gapIndex > 0)
+        if (gapIndex < numberOfKeys)
         {
-            System.arraycopy(src, 0, dst, 0, gapIndex);
+            final int elementsToMove = numberOfKeys - gapIndex;
+            final long oldKeyIndexOffset = getKeyIndexOffset(gapIndex);
+            final long newKeyIndexOffset = getKeyIndexOffset(gapIndex + 1);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * KEY_SIZE];
+
+            buffer.getBytes(oldKeyIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(newKeyIndexOffset, bufferForElementsToMove);
         }
-        if (gapIndex < oldSize)
+    }
+
+    private void copyKeysExcept(final int removeIndex)
+    {
+        if (numberOfKeys > 0 && removeIndex < numberOfKeys)
         {
-            System.arraycopy(src, gapIndex, dst, gapIndex + 1, oldSize
-                    - gapIndex);
+            final int elementsToMove = numberOfKeys - removeIndex;
+            final long oldKeyIndexOffset = getKeyIndexOffset(removeIndex);
+            final long newKeyIndexOffset = getKeyIndexOffset(removeIndex + 1);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * KEY_SIZE];
+
+            buffer.getBytes(newKeyIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(oldKeyIndexOffset, bufferForElementsToMove);
         }
     }
 
     /**
-     * Copy the elements of an array, and remove one element.
+     * Copy the elements of an array, with a gap.
      *
-     * @param src the source array
-     * @param dst the target array
-     * @param oldSize the size of the old array
-     * @param removeIndex the index of the entry to remove
+     * @param gapIndex the index of the gap
      */
-    static void copyExcept(
-            final Object[] src,
-            final Object[] dst,
-            final int oldSize,
-            final int removeIndex)
+    private void copyValuesWithGap(final int gapIndex)
     {
-        if (removeIndex > 0 && oldSize > 0)
+        if (gapIndex < numberOfValues)
         {
-            System.arraycopy(src, 0, dst, 0, removeIndex);
+            final int elementsToMove = numberOfValues - gapIndex;
+            final long oldValueIndexOffset = getValueIndexOffset(numberOfValues - 1);
+            final long newValueIndexOffset = getValueIndexOffset(numberOfValues);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * VALUE_SIZE];
+
+            buffer.getBytes(oldValueIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(newValueIndexOffset, bufferForElementsToMove);
         }
-        if (removeIndex < oldSize)
+    }
+
+    private void copyValuesExcept(final int removeIndex)
+    {
+        if (numberOfValues > 0 && removeIndex < (numberOfValues - 1) && removeIndex > 0)
         {
-            System.arraycopy(src, removeIndex + 1, dst, removeIndex, oldSize
-                    - removeIndex - 1);
+            final int elementsToMove = numberOfValues - removeIndex;
+            final long oldValueIndexOffset = getValueIndexOffset(elementsToMove - removeIndex);
+            final long newValueIndexOffset = getValueIndexOffset(elementsToMove - removeIndex + 1);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * VALUE_SIZE];
+
+            buffer.getBytes(newValueIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(oldValueIndexOffset, bufferForElementsToMove);
         }
+    }
+
+    /**
+     * <p>Tries to find a key in a previously sorted array.</p>
+     *
+     * <p>If the key was found, the returned value is the index in the key array.
+     * If not found, the returned value is negative, where -1 means the provided
+     * key is smaller than any keys in this page, -(existingKeys + 1) if it's bigger
+     * or somewhere in the middle.</p>
+     *
+     * <p>Note that this guarantees that the return value will be >= 0 if and only if
+     * the key is found.</p>
+     *
+     * <p>See also Arrays.binarySearch.</p>
+     *
+     * @param key the key to find
+     * @return the index in existing keys or negative
+     */
+    int binarySearch(final long key)
+    {
+        int low = 0;
+        int high = numberOfKeys - 1;
+        int index = high >>> 1;
+
+        while (low <= high)
+        {
+            final long existingKey = getKey(index);
+            final int compare = Long.compare(key, existingKey);
+            if (compare > 0)
+            {
+                low = index + 1;
+            }
+            else if (compare < 0)
+            {
+                high = index - 1;
+            }
+            else
+            {
+                return index;
+            }
+            index = (low + high) >>> 1;
+        }
+        return -(low + 1);
+    }
+
+    @Override
+    public String toString()
+    {
+        final StringBuilder contentBuilder = new StringBuilder();
+
+        contentBuilder.append(" keys : ");
+        for (int i = 0; i < numberOfKeys; i++)
+        {
+            contentBuilder.append(getKey(i));
+            if (i + 1 != numberOfKeys)
+            {
+                contentBuilder.append(",");
+            }
+        }
+        contentBuilder.append(" values : ");
+        for (int i = 0; i < numberOfValues; i++)
+        {
+            contentBuilder.append(getValue(i));
+            if (i + 1 != numberOfValues)
+            {
+                contentBuilder.append(",");
+            }
+        }
+
+        return String.format("BTreeNodeLeaf{ %s }", contentBuilder.toString());
     }
 }

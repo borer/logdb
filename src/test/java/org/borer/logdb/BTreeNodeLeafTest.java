@@ -3,11 +3,7 @@ package org.borer.logdb;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.ByteBuffer;
-
-import static org.borer.logdb.TestUtils.createValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 class BTreeNodeLeafTest
 {
@@ -16,7 +12,7 @@ class BTreeNodeLeafTest
     @BeforeEach
     void setUp()
     {
-        bTreeLeaf = new BTreeNodeLeaf();
+        bTreeLeaf = new BTreeNodeLeaf(0);
     }
 
     /////////////////////////////////Add/Update
@@ -24,27 +20,23 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToInsertNewValue()
     {
-        final ByteBuffer key = createValue("key");
-        final ByteBuffer value = createValue("value");
-        bTreeLeaf.insert(key, value);
+        final int key = 1;
+        bTreeLeaf.insert(key, key);
 
-        assertEquals(key, bTreeLeaf.getKeyAtIndex(0));
-        assertEquals(value, bTreeLeaf.getValueAtIndex(0));
+        assertEquals(key, bTreeLeaf.getKey(0));
+        assertEquals(key, bTreeLeaf.getValue(0));
         assertEquals(1, bTreeLeaf.getKeyCount());
     }
 
     @Test
     void shouldBeAbleToInsertMultipleNewValues()
     {
-        for (int i = 0; i < 10; i++)
+        for (int key = 10, i = 0; key < 100; i++,key+=10)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
+            bTreeLeaf.insert(key, key);
 
-            bTreeLeaf.insert(key, value);
-
-            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
-            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
+            assertEquals(key, bTreeLeaf.getKey(i));
+            assertEquals(key, bTreeLeaf.getValue(i));
             assertEquals(i + 1, bTreeLeaf.getKeyCount());
         }
     }
@@ -54,38 +46,30 @@ class BTreeNodeLeafTest
     {
         final int count = 10;
 
-        for (int i = count - 1; i >= 0; i--)
+        for (long i = count - 1; i >= 0; i--)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-
-            bTreeLeaf.insert(key, value);
+            bTreeLeaf.insert(i, i);
         }
 
         assertEquals(count, bTreeLeaf.getKeyCount());
 
         for (int i = 0; i < count; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-
-            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
-            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
+            assertEquals(i, bTreeLeaf.getKey(i));
+            assertEquals(i, bTreeLeaf.getValue(i));
         }
     }
 
     @Test
     void shouldBeAbleToUpdateValuesWithExistingKey()
     {
-        final ByteBuffer key = createValue("key");
-        for (int i = 0; i < 10; i++)
+        final long key = 99L;
+        for (long i = 0; i < 10; i++)
         {
-            final ByteBuffer value = createValue("value" + i);
+            bTreeLeaf.insert(key, i);
 
-            bTreeLeaf.insert(key, value);
-
-            assertEquals(key, bTreeLeaf.getKeyAtIndex(0));
-            assertEquals(value, bTreeLeaf.getValueAtIndex(0));
+            assertEquals(key, bTreeLeaf.getKey(0));
+            assertEquals(i, bTreeLeaf.getValue(0));
             assertEquals(1, bTreeLeaf.getKeyCount());
         }
     }
@@ -95,10 +79,8 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToRemoveEntry()
     {
-        final ByteBuffer key = createValue("key");
-        final ByteBuffer value = createValue("value");
-
-        bTreeLeaf.insert(key, value);
+        final long key = 99L;
+        bTreeLeaf.insert(key, key);
 
         assertEquals(1, bTreeLeaf.getKeyCount());
 
@@ -118,13 +100,10 @@ class BTreeNodeLeafTest
     {
         for (int i = 0; i < 10; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
+            bTreeLeaf.insert(i, i);
 
-            bTreeLeaf.insert(key, value);
-
-            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
-            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
+            assertEquals(i, bTreeLeaf.getKey(i));
+            assertEquals(i, bTreeLeaf.getValue(i));
             assertEquals(i + 1, bTreeLeaf.getKeyCount());
         }
 
@@ -154,59 +133,84 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToGetValueByKey()
     {
-        final ByteBuffer key = createValue("key");
-        final ByteBuffer value = createValue("value");
+        final long key = 99L;
+        bTreeLeaf.insert(key, key);
 
-        bTreeLeaf.insert(key, value);
+        final long valueFound = bTreeLeaf.get(key);
 
-        final ByteBuffer valueFound = bTreeLeaf.get(key);
-
-        assertEquals(value, valueFound);
+        assertEquals(key, valueFound);
     }
 
     @Test
     void shouldGetNullForKeyNotFound()
     {
-        final ByteBuffer key = createValue("key");
+        final long valueFound = bTreeLeaf.get(10L);
 
-        final ByteBuffer valueFound = bTreeLeaf.get(key);
-
-        assertNull(valueFound);
+        assertEquals(-1, valueFound);
     }
 
     /////////////////////////////////Split
 
     @Test
-    void shouldBeAbleToSplitALeaf()
+    void shouldBeAbleToSplitALeafWithEvenNumberOfElements()
     {
-        for (int i = 0; i < 10; i++)
+        final int totalElements = 10;
+        for (int i = 0; i < totalElements; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-
-            bTreeLeaf.insert(key, value);
+            bTreeLeaf.insert(i, i);
         }
 
-        assertEquals(10, bTreeLeaf.getKeyCount());
+        assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
-        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(5);
+        final int at = totalElements >> 1;
+        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at);
 
-        assertEquals(5, bTreeLeaf.getKeyCount());
-        for (int i = 0; i < 5; i++)
+        assertEquals(at, bTreeLeaf.getKeyCount());
+        for (int i = 0; i < at; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-            assertEquals(key, bTreeLeaf.getKeyAtIndex(i));
-            assertEquals(value, bTreeLeaf.getValueAtIndex(i));
+            assertEquals(i, bTreeLeaf.getKey(i));
+            assertEquals(i, bTreeLeaf.getValue(i));
         }
 
-        assertEquals(5, newBtree.getKeyCount());
-        for (int i = 0; i < 5; i++)
+        assertEquals(at, newBtree.getKeyCount());
+        for (int i = 0; i < at; i++)
         {
-            final ByteBuffer key = createValue("key" + (i + 5));
-            final ByteBuffer value = createValue("value" + (i + 5));
-            assertEquals(key, newBtree.getKeyAtIndex(i));
-            assertEquals(value, newBtree.getValueAtIndex(i));
+            final int key = i + at;
+            final int value = i + at;
+            assertEquals(key, newBtree.getKey(i));
+            assertEquals(value, newBtree.getValue(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToSplitALeafWithOddNumberOfElements()
+    {
+        final int totalElements = 11;
+        final int at = totalElements >> 1;
+        for (int i = 0; i < totalElements; i++)
+        {
+            bTreeLeaf.insert(i, i);
+        }
+
+        assertEquals(totalElements, bTreeLeaf.getKeyCount());
+
+        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at);
+
+        assertEquals(at, bTreeLeaf.getKeyCount());
+        for (int i = 0; i < at; i++)
+        {
+            assertEquals(i, bTreeLeaf.getKey(i));
+            assertEquals(i, bTreeLeaf.getValue(i));
+        }
+
+        final int newBtreeSize = at + 1;
+        assertEquals(newBtreeSize, newBtree.getKeyCount());
+        for (int i = 0; i < newBtreeSize; i++)
+        {
+            final int key = i + at;
+            final int value = i + at;
+            assertEquals(key, newBtree.getKey(i));
+            assertEquals(value, newBtree.getValue(i));
         }
     }
 
@@ -215,29 +219,20 @@ class BTreeNodeLeafTest
     {
         for (int i = 0; i < 10; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-
-            bTreeLeaf.insert(key, value);
+            bTreeLeaf.insert(i, i);
         }
 
         final BTreeNodeLeaf copy = (BTreeNodeLeaf)bTreeLeaf.copy();
 
         for (int i = 0; i < 10; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("valueEdited" + i);
-
-            bTreeLeaf.insert(key, value);
+            bTreeLeaf.insert(i, 99L);
         }
 
         for (int i = 0; i < 10; i++)
         {
-            final ByteBuffer key = createValue("key" + i);
-            final ByteBuffer value = createValue("value" + i);
-
-            assertEquals(key, copy.getKeyAtIndex(i));
-            assertEquals(value, copy.getValueAtIndex(i));
+            assertEquals(i, copy.getKey(i));
+            assertEquals(i, copy.getValue(i));
         }
     }
 }

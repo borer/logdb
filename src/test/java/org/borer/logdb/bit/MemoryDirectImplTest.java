@@ -6,14 +6,14 @@ import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class MemoryTest
+class MemoryDirectImplTest
 {
     @Test
     void shouldPutAndGetLongIntoDirectAllocatedMemory()
     {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(Long.BYTES);
         final long baseAddress = MemoryAccess.getBaseAddressForDirectBuffer(buffer);
-        final Memory memory = new Memory(baseAddress);
+        final Memory memory = new MemoryDirectImpl(baseAddress);
         final long expected = 14789L;
 
         memory.putLong(expected);
@@ -28,7 +28,7 @@ class MemoryTest
     {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(Long.BYTES);
         final long baseAddress = MemoryAccess.getBaseAddressForDirectBuffer(buffer);
-        final Memory memory = new Memory(baseAddress);
+        final Memory memory = new MemoryDirectImpl(baseAddress);
         final int expected = 98765;
 
         memory.putInt(expected);
@@ -46,7 +46,7 @@ class MemoryTest
         final byte[] actual = new byte[expected.length];
         final ByteBuffer buffer = ByteBuffer.allocateDirect(expected.length);
         final long baseAddress = MemoryAccess.getBaseAddressForDirectBuffer(buffer);
-        final Memory memory = new Memory(baseAddress);
+        final Memory memory = new MemoryDirectImpl(baseAddress);
 
         memory.putBytes(expected);
         memory.resetPosition();

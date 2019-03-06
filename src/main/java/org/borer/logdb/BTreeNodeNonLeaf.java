@@ -1,24 +1,40 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryAccess;
+import org.borer.logdb.bit.MemoryByteBufferImpl;
+import org.borer.logdb.bit.MemoryDirectImpl;
+
 import java.nio.ByteBuffer;
 import java.util.function.LongSupplier;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
-    protected BTreeNode[] children;
+    BTreeNode[] children;
 
-    public BTreeNodeNonLeaf()
+    BTreeNodeNonLeaf(final BTreeNode child)
     {
-        super(new ByteBuffer[0], new IdSupplier());
+        super(
+                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(200))),
+                0,
+                1, //there is always one child at least
+                new IdSupplier());
         this.children = new BTreeNode[1]; //there is always one child at least
+
+        setChild(0, child);
     }
 
-    public BTreeNodeNonLeaf(
-            final ByteBuffer[] keys,
+    /**
+     * split constructor.
+     */
+    BTreeNodeNonLeaf(
+            final Memory memory,
+            final int numberOfKeys,
+            final int numberOfValues,
             final BTreeNode[] children,
             final LongSupplier idSupplier)
     {
-        super(keys, idSupplier);
+        super(memory, numberOfKeys, numberOfValues, idSupplier);
         this.children = children;
     }
 
@@ -27,18 +43,20 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
      */
     private BTreeNodeNonLeaf(
             final long id,
-            final ByteBuffer[] keys,
+            final Memory memory,
+            final int numberOfKeys,
+            final int numberOfValues,
             final BTreeNode[] children,
             final LongSupplier idSupplier)
     {
-        super(id, keys, idSupplier);
+        super(id, memory, numberOfKeys, numberOfValues, idSupplier);
         this.children = children;
     }
 
     @Override
-    public void insert(final ByteBuffer key, final ByteBuffer value)
+    public void insert(final long key, final long value)
     {
-        int index = SearchUtils.binarySearch(key, keys) + 1;
+        int index = binarySearch(key) + 1;
         if (index < 0)
         {
             index = -index;
@@ -49,13 +67,16 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
     void setChild(final int index, final BTreeNode child)
     {
+        setValue(index, child.getId());
+
         children[index] = child;
     }
 
-    void insertChild(final int index, final ByteBuffer key, final BTreeNode child)
+    void insertChild(final int index, final long key, final BTreeNode child)
     {
         final int rawChildPageCount = getRawChildPageCount();
         insertKey(index, key);
+        insertValue(index, child.getId()); //TODO: store the page number of the child
 
         BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
         copyWithGap(children, newChildren, rawChildPageCount, index);
@@ -82,6 +103,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
         removeKey(index, keyCount);
+        removeValue(index, keyCount);
+
         removeChild(index);
     }
 
@@ -96,45 +119,120 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public ByteBuffer get(final ByteBuffer key)
+    public long get(final long key)
     {
-        int index = SearchUtils.binarySearch(key, keys) + 1;
+        int index = binarySearch(key) + 1;
         if (index < 0)
         {
             index = -index;
         }
 
-        return children[index].get(key);
+        return getValue(index);
     }
 
     @Override
     public BTreeNode copy()
     {
-        final ByteBuffer[] copyKeys = new ByteBuffer[keys.length];
+        final byte[] array = new byte[PAGE_SIZE];
+        buffer.getBytes(0L, array);
+
+        final ByteBuffer buffer = ByteBuffer.wrap(array);
+        final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(buffer);
+
         final BTreeNode[] copyChildren = new BTreeNode[children.length];
-        System.arraycopy(keys, 0, copyKeys, 0, keys.length);
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        return new BTreeNodeNonLeaf(getId(), copyKeys, copyChildren, idSupplier);
+        return new BTreeNodeNonLeaf(getId(), memory, numberOfKeys, numberOfValues, copyChildren, idSupplier);
     }
 
     @Override
     public boolean needRebalancing(int threshold)
     {
-        return this.children.length < 2;
+        return numberOfValues < 2;
     }
 
     @Override
     public BTreeNode split(final int at)
     {
-        final int b = getKeyCount() - at;
-        final ByteBuffer[] bKeys = splitKeys(at, b - 1);
-        final BTreeNode[] aChildren = new BTreeNode[at + 1];
-        final BTreeNode[] bChildren = new BTreeNode[b];
-        System.arraycopy(children, 0, aChildren, 0, at + 1);
-        System.arraycopy(children, at + 1, bChildren, 0, b);
+        final int keyCount = getKeyCount();
+        if (keyCount <= 0)
+        {
+            return null;
+        }
+
+        final int aNumberOfValues = at + 1;
+        final int bNumberOfKeys = numberOfKeys - aNumberOfValues;
+        final int bNumberOfValues = numberOfValues - aNumberOfValues;
+
+        final BTreeNode[] aChildren = new BTreeNode[aNumberOfValues];
+        final BTreeNode[] bChildren = new BTreeNode[bNumberOfValues];
+        System.arraycopy(children, 0, aChildren, 0, aNumberOfValues);
+        System.arraycopy(children, aNumberOfValues, bChildren, 0, bNumberOfValues);
         children = aChildren;
 
-        return new BTreeNodeNonLeaf(bKeys, bChildren, idSupplier);
+        //TODO: allocate from other place
+        final BTreeNodeNonLeaf bTreeNodeLeaf = new BTreeNodeNonLeaf(
+                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                bNumberOfKeys,
+                bNumberOfValues,
+                bChildren,
+                idSupplier);
+        bTreeNodeLeaf.updateNumberOfKeys(bTreeNodeLeaf.numberOfKeys);
+        bTreeNodeLeaf.updateNumberOfValues(bTreeNodeLeaf.numberOfValues);
+
+        splitKeys(at, bNumberOfKeys, bTreeNodeLeaf);
+        splitValues(aNumberOfValues, bNumberOfValues, bTreeNodeLeaf);
+
+        return bTreeNodeLeaf;
+    }
+
+    /**
+     * Copy the elements of an array, with a gap.
+     *
+     * @param src the source array
+     * @param dst the target array
+     * @param oldSize the size of the old array
+     * @param gapIndex the index of the gap
+     */
+    private static void copyWithGap(
+            final Object[] src,
+            final Object[] dst,
+            final int oldSize,
+            final int gapIndex)
+    {
+        if (gapIndex > 0)
+        {
+            System.arraycopy(src, 0, dst, 0, gapIndex);
+        }
+        if (gapIndex < oldSize)
+        {
+            System.arraycopy(src, gapIndex, dst, gapIndex + 1, oldSize
+                    - gapIndex);
+        }
+    }
+
+    /**
+     * Copy the elements of an array, and remove one element.
+     *
+     * @param src the source array
+     * @param dst the target array
+     * @param oldSize the size of the old array
+     * @param removeIndex the index of the entry to remove
+     */
+    private static void copyExcept(
+            final Object[] src,
+            final Object[] dst,
+            final int oldSize,
+            final int removeIndex)
+    {
+        if (removeIndex > 0 && oldSize > 0)
+        {
+            System.arraycopy(src, 0, dst, 0, removeIndex);
+        }
+        if (removeIndex < oldSize)
+        {
+            System.arraycopy(src, removeIndex + 1, dst, removeIndex, oldSize
+                    - removeIndex - 1);
+        }
     }
 }

@@ -1,7 +1,5 @@
 package org.borer.logdb;
 
-import java.nio.ByteBuffer;
-
 public class BTreePrinter
 {
     /**
@@ -38,11 +36,11 @@ public class BTreePrinter
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        for (int i = 0; i < node.keys.length; i++)
+        for (int i = 0; i < node.numberOfKeys; i++)
         {
-            final String key = new String(node.keys[i].array());
-            final String value = new String(node.values[i].array());
-            printer.append(String.format(" <%s> |%s| ", key, value));
+            final long key = node.getKey(i);
+            final long value = node.getValue(i);
+            printer.append(String.format(" <%d> |%d| ", key, value));
         }
 
         printer.append("\"];\n");
@@ -51,24 +49,24 @@ public class BTreePrinter
     private static void print(final StringBuilder printer, final BTreeNodeNonLeaf node)
     {
         final String id = String.valueOf(node.getId());
-        final String lastChildId = String.valueOf(node.children[node.keys.length].getId());
+        final String lastChildId = String.valueOf(node.children[node.numberOfKeys].getId());
 
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        for (ByteBuffer key : node.keys)
+        for (int i = 0; i < node.numberOfKeys; i++)
         {
-            final String keyLabel = new String(key.array());
-            printer.append(String.format(" <%s> |%s| ", keyLabel, keyLabel));
+            final long key = node.getKey(i);
+            printer.append(String.format(" <%d> |%d| ", key, key));
         }
         printer.append(" <lastChild> |Ls ");
         printer.append("\"];\n");
 
-        for (int i = 0; i < node.keys.length; i++)
+        for (int i = 0; i < node.numberOfKeys; i++)
         {
-            final String keyLabel = new String(node.keys[i].array());
+            final long key = node.getKey(i);
             final String childId = String.valueOf(node.children[i].getId());
-            printer.append(String.format("\"%s\":%s -> \"%s\"", id, keyLabel, childId));
+            printer.append(String.format("\"%s\":%d -> \"%s\"", id, key, childId));
             printer.append("\n");
         }
 

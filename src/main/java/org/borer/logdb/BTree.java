@@ -1,5 +1,9 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.MemoryAccess;
+import org.borer.logdb.bit.MemoryByteBufferImpl;
+import org.borer.logdb.bit.MemoryDirectImpl;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -28,7 +32,11 @@ public class BTree
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
 
-        final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(new ByteBuffer[0], new ByteBuffer[0], idSupplier);
+        final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(
+                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(4096))),
+                0,
+                0,
+                idSupplier);
         setNewRoot(null, emptyLeaf);
     }
 
@@ -37,9 +45,8 @@ public class BTree
      *
      * @param key the key (may not be null)
      */
-    public void remove(final ByteBuffer key)
+    public void remove(final long key)
     {
-        assert key != null;
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
@@ -78,9 +85,8 @@ public class BTree
      *
      * @param key the key (may not be null)
      */
-    public void removeWithRebalancing(final ByteBuffer key)
+    public void removeWithRebalancing(final long key)
     {
-        assert key != null;
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
@@ -143,11 +149,8 @@ public class BTree
      * @param key   the kay to insert/set
      * @param value the value
      */
-    public void put(final ByteBuffer key, final ByteBuffer value)
+    public void put(final long key, final long value)
     {
-        assert key != null;
-        assert value != null;
-
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
@@ -162,15 +165,28 @@ public class BTree
         {
             this.nodesCount++;
             final int at = keyCount >> 1;
-            final ByteBuffer keyAt = currentNode.getKey(at);
+            final long keyAt = currentNode.getKey(at);
             final BTreeNode split = currentNode.split(at);
 
             if (parentCursor == null)
             {
                 this.nodesCount++;
-                final ByteBuffer[] keys = {keyAt};
-                final BTreeNode[] children = {currentNode, split};
-                currentNode = new BTreeNodeNonLeaf(keys, children, idSupplier);
+
+                //TODO: extract memory allocation outside of here
+                final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(ByteBuffer.allocate(BTreeNodeAbstract.PAGE_SIZE));
+
+                BTreeNodeNonLeaf temp = new BTreeNodeNonLeaf(
+                        memory,
+                        0,
+                        1,
+                        new BTreeNode[1],
+                        idSupplier);
+
+                temp.insertChild(0, keyAt, currentNode);
+                temp.setChild(1, split);
+
+                currentNode = temp;
+
                 break;
             }
 
@@ -192,25 +208,22 @@ public class BTree
      * @param key     the key to search for
      * @param version the version that we are interested. Must be >= 0
      */
-    public ByteBuffer get(final ByteBuffer key, final int version)
+    public long get(final long key, final int version)
     {
-        assert key != null;
         assert version >= 0;
 
         RootReference rootReference = getRootReferenceForVersion(version);
         if (rootReference == null)
         {
-            return null;
+            return -1;
         }
 
         final BTreeNode rootNode = rootReference.root;
         return rootNode.get(key);
     }
 
-    public ByteBuffer get(final ByteBuffer key)
+    public long get(final long key)
     {
-        assert key != null;
-
         final BTreeNode rootNode = getCurrentRootNode();
         return rootNode.get(key);
     }
@@ -219,7 +232,7 @@ public class BTree
      * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(BiConsumer<ByteBuffer, ByteBuffer> consumer)
+    public void consumeAll(BiConsumer<Long, Long> consumer)
     {
         final BTreeNode rootNodeForVersion = getCurrentRootNode();
 
@@ -238,7 +251,7 @@ public class BTree
      * @param version Version that we want to scan for
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(final int version, BiConsumer<ByteBuffer, ByteBuffer> consumer)
+    public void consumeAll(final int version, BiConsumer<Long, Long> consumer)
     {
         assert version >= 0;
 
@@ -254,7 +267,7 @@ public class BTree
         }
     }
 
-    private void consumeNonLeafNode(BiConsumer<ByteBuffer, ByteBuffer> consumer, BTreeNodeNonLeaf nonLeaf)
+    private void consumeNonLeafNode(BiConsumer<Long, Long> consumer, BTreeNodeNonLeaf nonLeaf)
     {
         assert nonLeaf != null;
 
@@ -273,21 +286,21 @@ public class BTree
         }
     }
 
-    private void consumeLeafNode(BiConsumer<ByteBuffer, ByteBuffer> consumer, BTreeNodeLeaf leaf)
+    private void consumeLeafNode(BiConsumer<Long, Long> consumer, BTreeNodeLeaf leaf)
     {
         assert leaf != null;
 
         final int keyCount = leaf.getKeyCount();
         for (int i = 0; i < keyCount; i++)
         {
-            final ByteBuffer key = leaf.getKey(i);
-            final ByteBuffer value = leaf.getValueAtIndex(i);
+            final long key = leaf.getKey(i);
+            final long value = leaf.getValue(i);
 
             consumer.accept(key, value);
         }
     }
 
-    private static CursorPosition traverseDown(final BTreeNode root, final ByteBuffer key)
+    private static CursorPosition traverseDown(final BTreeNode root, final long key)
     {
         BTreeNode node = root;
         CursorPosition cursor = null;
@@ -298,7 +311,7 @@ public class BTree
             assert nonLeaf.getKeyCount() > 0
                     : String.format("non leaf node should always have at least 1 key. Current node had %d",
                                     nonLeaf.getKeyCount());
-            index = SearchUtils.binarySearch(key, nonLeaf.keys) + 1;
+            index = nonLeaf.binarySearch(key) + 1;
             if (index < 0)
             {
                 index = -index;
@@ -307,7 +320,7 @@ public class BTree
             node = nonLeaf.getChildAtIndex(index);
         }
 
-        index = SearchUtils.binarySearch(key, ((BTreeNodeLeaf)node).keys);
+        index = ((BTreeNodeLeaf)node).binarySearch(key);
         if (index < 0)
         {
             index = -index;

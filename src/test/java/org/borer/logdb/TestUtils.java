@@ -15,14 +15,11 @@ class TestUtils
 
     static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)
     {
-        final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf();
+        final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(startKey);
         for (int i = 0; i < numKeys; i++)
         {
-            final int keyNum = startKey + i;
-            final ByteBuffer key = createValue("key" + keyNum);
-            final ByteBuffer value = createValue("value" + keyNum);
-
-            bTreeNode.insert(key, value);
+            final int key = startKey + i;
+            bTreeNode.insert(key, key);
         }
 
         return bTreeNode;

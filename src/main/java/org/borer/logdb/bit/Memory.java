@@ -1,82 +1,30 @@
 package org.borer.logdb.bit;
 
-public class Memory
+public interface Memory
 {
-    private final long baseAddress;
+    void resetPosition();
 
-    private long position;
+    void putLong(long value);
 
-    public Memory(final long baseAddress)
-    {
-        this.baseAddress = baseAddress;
-        this.position = 0;
-    }
+    void putLong(long offset, long value);
 
-    public void resetPosition()
-    {
-        position = 0;
-    }
+    long getLong();
 
-    public void putLong(final long value)
-    {
-        putLong(position, value);
-        position += Long.BYTES;
-    }
+    long getLong(long offset);
 
-    public void putLong(final long offset, final long value)
-    {
-        MemoryAccess.putLong(baseAddress + offset, value);
-    }
+    void putInt(int value);
 
-    public long getLong()
-    {
-        return getLong(position);
-    }
+    void putInt(long offset, int value);
 
-    public long getLong(final long offset)
-    {
-        return MemoryAccess.getLong(baseAddress + offset);
-    }
+    int getInt();
 
-    public void putInt(final int value)
-    {
-        putInt(position, value);
-        position += Integer.BYTES;
-    }
+    int getInt(long offset);
 
-    public void putInt(final long offset, final int value)
-    {
-        MemoryAccess.putInt(baseAddress + offset, value);
-    }
+    void getBytes(byte[] array);
 
-    public int getInt()
-    {
-        return getInt(position);
-    }
+    void getBytes(long sourceOffset, byte[] destinationArray);
 
-    public int getInt(final long offset)
-    {
-        return MemoryAccess.getInt(baseAddress + offset);
-    }
+    void putBytes(byte[] sourceArray);
 
-    public void getBytes(final byte[] array)
-    {
-        getBytes(position, array);
-    }
-
-    public void getBytes(final long sourceOffset, final byte[] destinationArray)
-    {
-        MemoryAccess.getBytes(baseAddress + sourceOffset, destinationArray);
-    }
-
-    public void putBytes(final byte[] sourceArray)
-    {
-        putBytes(position, sourceArray);
-        position += sourceArray.length;
-    }
-
-    public void putBytes(final long destinationOffset, final byte[] sourceArray)
-    {
-        MemoryAccess.putBytes(baseAddress + destinationOffset, sourceArray);
-    }
+    void putBytes(long destinationOffset, byte[] sourceArray);
 }
