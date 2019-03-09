@@ -96,9 +96,10 @@ class BTreeNodeLeafTest
     }
 
     @Test
-    void shouldBeAbleToRemoveMultipleEntries()
+    void shouldBeAbleToRemoveEntriesFromFirstIndex()
     {
-        for (int i = 0; i < 10; i++)
+        final int numberOfElements = 10;
+        for (int i = 0; i < numberOfElements; i++)
         {
             bTreeLeaf.insert(i, i);
 
@@ -111,6 +112,39 @@ class BTreeNodeLeafTest
         {
             bTreeLeaf.remove(0);
             assertEquals(i, bTreeLeaf.getKeyCount());
+
+            for (int j = 0; j < bTreeLeaf.getKeyCount(); j++)
+            {
+                final long expectedKey = numberOfElements - i + j;
+                assertEquals(expectedKey, bTreeLeaf.getKey(j));
+                assertEquals(expectedKey, bTreeLeaf.getValue(j));
+            }
+        }
+    }
+
+    @Test
+    void shouldBeAbleToRemoveEntriesFromLastIndex()
+    {
+        final int numberOfElements = 10;
+        for (int i = 0; i < numberOfElements; i++)
+        {
+            bTreeLeaf.insert(i, i);
+
+            assertEquals(i, bTreeLeaf.getKey(i));
+            assertEquals(i, bTreeLeaf.getValue(i));
+            assertEquals(i + 1, bTreeLeaf.getKeyCount());
+        }
+
+        for (int i = 9; i >= 0; i--)
+        {
+            bTreeLeaf.remove(i);
+            assertEquals(i, bTreeLeaf.getKeyCount());
+
+            for (int j = 0; j < bTreeLeaf.getKeyCount(); j++)
+            {
+                assertEquals(j, bTreeLeaf.getKey(j));
+                assertEquals(j, bTreeLeaf.getValue(j));
+            }
         }
     }
 

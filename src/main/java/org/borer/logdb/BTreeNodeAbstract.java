@@ -271,15 +271,15 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     private void copyValuesExcept(final int removeIndex)
     {
-        if (numberOfValues > 0 && removeIndex < (numberOfValues - 1) && removeIndex > 0)
+        if (numberOfValues > 0 && removeIndex < (numberOfValues - 1))
         {
             final int elementsToMove = numberOfValues - removeIndex;
-            final long oldValueIndexOffset = getValueIndexOffset(elementsToMove - removeIndex);
-            final long newValueIndexOffset = getValueIndexOffset(elementsToMove - removeIndex + 1);
+            final long oldValueIndexOffset = getValueIndexOffset(numberOfValues);
+            final long newValueIndexOffset = getValueIndexOffset(numberOfValues - 1);
             byte[] bufferForElementsToMove = new byte[elementsToMove * VALUE_SIZE];
 
-            buffer.getBytes(newValueIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(oldValueIndexOffset, bufferForElementsToMove);
+            buffer.getBytes(oldValueIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(newValueIndexOffset, bufferForElementsToMove);
         }
     }
 
