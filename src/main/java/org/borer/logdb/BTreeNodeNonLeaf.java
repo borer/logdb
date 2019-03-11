@@ -15,7 +15,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     BTreeNodeNonLeaf(final BTreeNode child)
     {
         super(
-                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(200))),
+                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(PAGE_SIZE)), PAGE_SIZE),
                 0,
                 1, //there is always one child at least
                 new IdSupplier());

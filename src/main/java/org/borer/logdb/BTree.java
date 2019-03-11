@@ -33,7 +33,7 @@ public class BTree
         this.nodesCount = 1;
 
         final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(
-                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(4096))),
+                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(4096)), 4096),
                 0,
                 0,
                 idSupplier);
