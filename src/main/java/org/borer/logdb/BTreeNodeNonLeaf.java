@@ -1,12 +1,12 @@
 package org.borer.logdb;
 
 import org.borer.logdb.bit.Memory;
-import org.borer.logdb.bit.MemoryAccess;
-import org.borer.logdb.bit.MemoryByteBufferImpl;
-import org.borer.logdb.bit.MemoryDirectImpl;
+import org.borer.logdb.bit.MemoryFactory;
 
-import java.nio.ByteBuffer;
 import java.util.function.LongSupplier;
+
+import static org.borer.logdb.Config.BYTE_ORDER;
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
@@ -15,7 +15,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     BTreeNodeNonLeaf(final BTreeNode child)
     {
         super(
-                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(PAGE_SIZE)), PAGE_SIZE),
+                MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
                 new IdSupplier());
@@ -84,7 +84,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         children[index] = child;
     }
 
-    protected int getRawChildPageCount()
+    int getRawChildPageCount()
     {
         return getKeyCount() + 1;
     }
@@ -133,11 +133,10 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public BTreeNode copy()
     {
-        final byte[] array = new byte[PAGE_SIZE];
+        final byte[] array = new byte[PAGE_SIZE_BYTES];
         buffer.getBytes(0L, array);
 
-        final ByteBuffer buffer = ByteBuffer.wrap(array);
-        final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(buffer);
+        final Memory memory = MemoryFactory.allocateHeap(array, BYTE_ORDER);
 
         final BTreeNode[] copyChildren = new BTreeNode[children.length];
         System.arraycopy(children, 0, copyChildren, 0, children.length);
@@ -172,7 +171,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
         //TODO: allocate from other place
         final BTreeNodeNonLeaf bTreeNodeLeaf = new BTreeNodeNonLeaf(
-                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 bNumberOfKeys,
                 bNumberOfValues,
                 bChildren,

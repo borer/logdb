@@ -168,7 +168,7 @@ class BTreeNodeNonLeafTest
             final BTreeNode child = new BTreeNodeLeaf(i);
 
             bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
-        };
+        }
 
         final int at = totalKeys >> 1;
         final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at);

@@ -1,17 +1,18 @@
 package org.borer.logdb;
 
-import org.borer.logdb.bit.MemoryAccess;
-import org.borer.logdb.bit.MemoryByteBufferImpl;
-import org.borer.logdb.bit.MemoryDirectImpl;
+import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryFactory;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+
+import static org.borer.logdb.Config.BYTE_ORDER;
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 public class BTree
 {
     private static final int MAX_CHILDREN_PER_NODE = 10;
-    private static final int TRESHOLD_CHILDREN_PER_NODE = 4;
+    private static final int THRESHOLD_CHILDREN_PER_NODE = 4;
     /**
      * This designates the "last stored" version for a store which was
      * just open for the first time.
@@ -32,8 +33,9 @@ public class BTree
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
 
+        final Memory memory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
         final BTreeNodeLeaf emptyLeaf = new BTreeNodeLeaf(
-                new MemoryDirectImpl(MemoryAccess.getBaseAddressForDirectBuffer(ByteBuffer.allocateDirect(4096)), 4096),
+                memory,
                 0,
                 0,
                 idSupplier);
@@ -98,13 +100,13 @@ public class BTree
         currentNode.remove(index);
 
         //rebalance
-        if (currentNode.needRebalancing(TRESHOLD_CHILDREN_PER_NODE))
+        if (currentNode.needRebalancing(THRESHOLD_CHILDREN_PER_NODE))
         {
             final CursorPosition rightSiblingCursor = parentCursor.getRightSibling();
             if (rightSiblingCursor != null)
             {
                 final BTreeNodeLeaf rightSibling = (BTreeNodeLeaf) rightSiblingCursor.node;
-                if (rightSibling.getKeyCount() >= TRESHOLD_CHILDREN_PER_NODE + 2)
+                if (rightSibling.getKeyCount() >= THRESHOLD_CHILDREN_PER_NODE + 2)
                 {
                     // we can move one from there to here
                 }
@@ -123,7 +125,7 @@ public class BTree
             if (leftSiblingCursor != null)
             {
                 final BTreeNodeLeaf leftSibling = (BTreeNodeLeaf) leftSiblingCursor.node;
-                if (leftSibling.getKeyCount() >= TRESHOLD_CHILDREN_PER_NODE + 2)
+                if (leftSibling.getKeyCount() >= THRESHOLD_CHILDREN_PER_NODE + 2)
                 {
                     // we can move one from there to here
                 }
@@ -173,10 +175,8 @@ public class BTree
                 this.nodesCount++;
 
                 //TODO: extract memory allocation outside of here
-                final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(ByteBuffer.allocate(BTreeNodeAbstract.PAGE_SIZE));
-
                 BTreeNodeNonLeaf temp = new BTreeNodeNonLeaf(
-                        memory,
+                        MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER),
                         0,
                         1,
                         new BTreeNode[1],
@@ -304,7 +304,7 @@ public class BTree
     {
         BTreeNode node = root;
         CursorPosition cursor = null;
-        int index = -1;
+        int index;
         while (node instanceof BTreeNodeNonLeaf)
         {
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
@@ -373,7 +373,7 @@ public class BTree
         return root.get();
     }
 
-    protected BTreeNode getCurrentRootNode()
+    BTreeNode getCurrentRootNode()
     {
         RootReference rootReference = root.get();
         assert rootReference != null;
@@ -422,15 +422,15 @@ public class BTree
         /**
          * The root page.
          */
-        public final BTreeNode root;
+        final BTreeNode root;
         /**
          * The version used for writing.
          */
-        public final long version;
+        final long version;
         /**
          * Reference to the previous root in the chain.
          */
-        public volatile RootReference previous;
+        final RootReference previous;
 
         RootReference(BTreeNode root, long version, RootReference previous)
         {

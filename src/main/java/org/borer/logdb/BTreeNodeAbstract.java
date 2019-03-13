@@ -4,28 +4,29 @@ import org.borer.logdb.bit.Memory;
 
 import java.util.function.LongSupplier;
 
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
+
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    protected static int PAGE_SIZE = 4096; // default 4 KiBs
-    private static int PAGE_START_OFFSET = 0;
-    private static int NUMBER_OF_KEY_OFFSET = PAGE_START_OFFSET + Integer.BYTES;
-    private static int NUMBER_OF_VALUES_OFFSET = NUMBER_OF_KEY_OFFSET + Integer.BYTES;
-    private static int HEADER_SIZE_BYTES = NUMBER_OF_VALUES_OFFSET + Integer.BYTES;
-    private static int KEY_START_OFFSET = HEADER_SIZE_BYTES;
+    private static final int PAGE_START_OFFSET = 0;
+    private static final int NUMBER_OF_KEY_OFFSET = PAGE_START_OFFSET + Integer.BYTES;
+    private static final int NUMBER_OF_VALUES_OFFSET = NUMBER_OF_KEY_OFFSET + Integer.BYTES;
+    private static final int HEADER_SIZE_BYTES = NUMBER_OF_VALUES_OFFSET + Integer.BYTES;
+    private static final int KEY_START_OFFSET = HEADER_SIZE_BYTES;
 
-    protected static int KEY_SIZE = Long.BYTES;
-    protected static int VALUE_SIZE = Long.BYTES;
+    private static final int KEY_SIZE = Long.BYTES;
+    private static final int VALUE_SIZE = Long.BYTES;
 
 
     private final long id;
-    protected long freeSizeLeftBytes;
+    private long freeSizeLeftBytes;
 
-    protected Memory buffer;
+    final Memory buffer;
     protected long pageNumber;
-    protected int numberOfKeys;
-    protected int numberOfValues;
+    int numberOfKeys;
+    int numberOfValues;
 
-    LongSupplier idSupplier;
+    final LongSupplier idSupplier;
 
     /**
      * Index Page layout :
@@ -82,7 +83,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.numberOfValues = numberOfValues;
         this.idSupplier = idSupplier;
         final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
-        this.freeSizeLeftBytes = PAGE_SIZE - usedBytes;
+        this.freeSizeLeftBytes = PAGE_SIZE_BYTES - usedBytes;
     }
 
     @Override
@@ -111,7 +112,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     private static long getValueIndexOffset(final int index)
     {
-        return PAGE_SIZE - ((index + 1) * VALUE_SIZE);
+        return PAGE_SIZE_BYTES - ((index + 1) * VALUE_SIZE);
     }
 
     void insertKey(final int index, final long key)

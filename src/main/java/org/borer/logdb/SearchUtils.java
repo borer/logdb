@@ -2,7 +2,7 @@ package org.borer.logdb;
 
 import java.nio.ByteBuffer;
 
-public final class SearchUtils
+final class SearchUtils
 {
     private SearchUtils()
     {
@@ -25,7 +25,7 @@ public final class SearchUtils
      * @param existingKeys sorted array that is used for the search
      * @return the index in existing keys or negative
      */
-    public static int binarySearch(final ByteBuffer key, final ByteBuffer[] existingKeys)
+    static int binarySearch(final ByteBuffer key, final ByteBuffer[] existingKeys)
     {
         int low = 0;
         int high = existingKeys.length - 1;

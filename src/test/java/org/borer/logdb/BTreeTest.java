@@ -62,10 +62,7 @@ class BTreeTest
         expectedOrder.sort(Long::compareTo);
 
         final LinkedList<Long> actualOrder = new LinkedList<>();
-        bTree.consumeAll((key, value) ->
-        {
-            actualOrder.addLast(key);
-        });
+        bTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
         assertEquals(expectedOrder.size(), actualOrder.size());
 

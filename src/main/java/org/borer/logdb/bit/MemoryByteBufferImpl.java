@@ -6,7 +6,7 @@ public class MemoryByteBufferImpl implements Memory
 {
     private final ByteBuffer buffer;
 
-    public MemoryByteBufferImpl(final ByteBuffer buffer)
+    MemoryByteBufferImpl(final ByteBuffer buffer)
     {
         this.buffer = buffer;
     }

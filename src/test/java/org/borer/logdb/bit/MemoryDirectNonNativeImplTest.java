@@ -6,14 +6,14 @@ import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class MemoryDirectImplTest
+class MemoryDirectNonNativeImplTest
 {
     @Test
     void shouldPutAndGetLongIntoDirectAllocatedMemory()
     {
         final int sizeInBytes = Long.BYTES;
         final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeInBytes);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, sizeInBytes);
         final long expected = 14789L;
 
@@ -29,7 +29,7 @@ class MemoryDirectImplTest
     {
         final int sizeInBytes = Long.BYTES;
         final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeInBytes);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, sizeInBytes);
         final int expected = 98765;
 
@@ -47,7 +47,7 @@ class MemoryDirectImplTest
         final byte[] expected =  expectedMsg.getBytes();
         final byte[] actual = new byte[expected.length];
         final ByteBuffer buffer = ByteBuffer.allocateDirect(expected.length);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, expected.length);
 
         memory.putBytes(expected);
@@ -67,7 +67,7 @@ class MemoryDirectImplTest
     {
         final int sizeInBytes = Long.BYTES;
         final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeInBytes);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, sizeInBytes);
 
         try
@@ -112,7 +112,7 @@ class MemoryDirectImplTest
     {
         final int sizeInBytes = Long.BYTES;
         final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeInBytes);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, sizeInBytes);
 
         try
@@ -157,7 +157,7 @@ class MemoryDirectImplTest
     {
         final int sizeInBytes = Long.BYTES;
         final ByteBuffer buffer = ByteBuffer.allocateDirect(sizeInBytes);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final long baseAddress = NonNativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
         final Memory memory = new MemoryDirectImpl(baseAddress, sizeInBytes);
 
         final byte[] actual = new byte[Long.BYTES + 1];

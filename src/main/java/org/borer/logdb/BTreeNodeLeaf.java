@@ -1,17 +1,19 @@
 package org.borer.logdb;
 
 import org.borer.logdb.bit.Memory;
-import org.borer.logdb.bit.MemoryByteBufferImpl;
+import org.borer.logdb.bit.MemoryFactory;
 
-import java.nio.ByteBuffer;
 import java.util.function.LongSupplier;
+
+import static org.borer.logdb.Config.BYTE_ORDER;
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
     public BTreeNodeLeaf(final int id)
     {
         super(
-                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 0,
                 new IdSupplier(id));
@@ -58,11 +60,10 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     @Override
     public BTreeNode copy()
     {
-        final byte[] array = new byte[PAGE_SIZE];
+        final byte[] array = new byte[PAGE_SIZE_BYTES];
         buffer.getBytes(0L, array);
 
-        final ByteBuffer buffer = ByteBuffer.wrap(array);
-        final MemoryByteBufferImpl memory = new MemoryByteBufferImpl(buffer);
+        final Memory memory = MemoryFactory.allocateHeap(array, BYTE_ORDER);
 
         return new BTreeNodeLeaf(getId(), memory, numberOfKeys, numberOfValues, idSupplier);
     }
@@ -81,7 +82,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
 
         //TODO: allocate from other place
         final BTreeNodeLeaf bTreeNodeLeaf = new BTreeNodeLeaf(
-                new MemoryByteBufferImpl(ByteBuffer.allocate(PAGE_SIZE)),
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 bNumberOfKeys,
                 bNumberOfValues,
                 idSupplier);

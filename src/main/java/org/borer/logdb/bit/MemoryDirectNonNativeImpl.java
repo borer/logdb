@@ -1,13 +1,13 @@
 package org.borer.logdb.bit;
 
-public class MemoryDirectImpl implements Memory
+public class MemoryDirectNonNativeImpl implements Memory
 {
     private final long baseAddress;
     private final long capacity;
 
     private long position;
 
-    MemoryDirectImpl(final long baseAddress, final long capacity)
+    MemoryDirectNonNativeImpl(final long baseAddress, final long capacity)
     {
         this.baseAddress = baseAddress;
         this.capacity = capacity;
@@ -34,7 +34,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(offset, Long.BYTES);
 
-        NativeMemoryAccess.putLong(baseAddress + offset, value);
+        NonNativeMemoryAccess.putLong(baseAddress + offset, value);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(offset, Long.BYTES);
 
-        return NativeMemoryAccess.getLong(baseAddress + offset);
+        return NonNativeMemoryAccess.getLong(baseAddress + offset);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(offset, Integer.BYTES);
 
-        NativeMemoryAccess.putInt(baseAddress + offset, value);
+        NonNativeMemoryAccess.putInt(baseAddress + offset, value);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(offset, Integer.BYTES);
 
-        return NativeMemoryAccess.getInt(baseAddress + offset);
+        return NonNativeMemoryAccess.getInt(baseAddress + offset);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(sourceOffset, destinationArray.length);
 
-        NativeMemoryAccess.getBytes(baseAddress + sourceOffset, destinationArray);
+        NonNativeMemoryAccess.getBytes(baseAddress + sourceOffset, destinationArray);
     }
 
     @Override
@@ -110,7 +110,7 @@ public class MemoryDirectImpl implements Memory
     {
         assertBounds(destinationOffset, sourceArray.length);
 
-        NativeMemoryAccess.putBytes(baseAddress + destinationOffset, sourceArray);
+        NonNativeMemoryAccess.putBytes(baseAddress + destinationOffset, sourceArray);
     }
 
     private void assertBounds(final long requestOffset, final int requestLength)
