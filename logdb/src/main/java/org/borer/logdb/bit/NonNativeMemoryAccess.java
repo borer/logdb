@@ -30,7 +30,18 @@ final class NonNativeMemoryAccess extends MemoryAccess
 
     public static void putBytes(final long destinationAddress, final byte[] sourceArray)
     {
-        THE_UNSAFE.copyMemory(reverse(sourceArray), Unsafe.ARRAY_BYTE_BASE_OFFSET, null, destinationAddress, sourceArray.length);
+        long srcAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;
+        long dstAdd = destinationAddress;
+        final byte[] reverseSourceArray = reverse(sourceArray);
+        long lengthBytes = reverseSourceArray.length;
+        while (lengthBytes > 0)
+        {
+            final long chunk = Math.min(lengthBytes, UNSAFE_COPY_THRESHOLD_BYTES);
+            THE_UNSAFE.copyMemory(reverseSourceArray, srcAdd, null, dstAdd, chunk);
+            lengthBytes -= chunk;
+            srcAdd += chunk;
+            dstAdd += chunk;
+        }
     }
 
     public static void getBytes(final long sourceAddress, final byte[] destinationArray)
@@ -39,7 +50,18 @@ final class NonNativeMemoryAccess extends MemoryAccess
         //unsafe.copyMemory(src, dst, size);
         //don't try to get the address of the msgBytes array or any other java object as it may be invalidated by GC
         //unsafe.setMemory(src, srcOffset, size, (byte)val); - set from address to address+size to val -- an easy fill
-        THE_UNSAFE.copyMemory(null, sourceAddress, destinationArray, Unsafe.ARRAY_BYTE_BASE_OFFSET, destinationArray.length);
+        long srcAdd = sourceAddress;
+        long dstAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;
+        long lengthBytes = destinationArray.length;
+        while (lengthBytes > 0)
+        {
+            final long chunk = Math.min(lengthBytes, UNSAFE_COPY_THRESHOLD_BYTES);
+            THE_UNSAFE.copyMemory(null, srcAdd, destinationArray, dstAdd, chunk);
+            lengthBytes -= chunk;
+            srcAdd += chunk;
+            dstAdd += chunk;
+        }
+
         reverseInPlace(destinationArray);
     }
 
@@ -64,5 +86,15 @@ final class NonNativeMemoryAccess extends MemoryAccess
         }
 
         return reverseArray;
+    }
+
+    public static void putByte(final long address, final byte b)
+    {
+        THE_UNSAFE.putByte(address, b);
+    }
+
+    public static byte getByte(final long address)
+    {
+        return THE_UNSAFE.getByte(address);
     }
 }

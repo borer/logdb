@@ -1,5 +1,7 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.Memory;
+
 public interface BTreeNode
 {
     /**
@@ -46,15 +48,17 @@ public interface BTreeNode
      * Splits the current node into 2 nodes.
      * Current node with all the keys from 0...at-1 and a new one from at+1...end.
      * @param at the key index that we are going to split by
+     * @param memoryForNewNode the memory used for backing the content of the new node
      * @return a new node containing from at+1...end children
      */
-    BTreeNode split(int at);
+    BTreeNode split(int at, Memory memoryForNewNode);
 
     /**
      * Creates a copy of the node. The copy has the same id as the original.
+     * @param memoryForCopy memory gto backed the content of the copy node
      * @return a deep copy of the this node
      */
-    BTreeNode copy();
+    BTreeNode copy(Memory memoryForCopy);
 
     boolean needRebalancing(int threshold);
 }

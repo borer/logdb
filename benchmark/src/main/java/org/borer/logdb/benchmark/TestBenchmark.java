@@ -15,7 +15,7 @@ public class TestBenchmark
     public static class BenchmarkState
     {
         long key = 1L;
-        private final BTree btree = new BTree();
+        private final BTree btree = new BTree(null);
 
         void putKey()
         {

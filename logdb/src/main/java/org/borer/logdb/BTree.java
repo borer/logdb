@@ -2,6 +2,7 @@ package org.borer.logdb;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
+import org.borer.logdb.storage.FileStorage;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -24,11 +25,13 @@ public class BTree
      */
     private final AtomicReference<RootReference> root;
     private final IdSupplier idSupplier;
+    private final FileStorage fileStorage;
 
     private long nodesCount;
 
-    public BTree()
+    public BTree(final FileStorage fileStorage)
     {
+        this.fileStorage = fileStorage;
         this.idSupplier = new IdSupplier();
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
@@ -76,7 +79,7 @@ public class BTree
             assert currentNode.getKeyCount() > 1;
         }
 
-        currentNode = currentNode.copy();
+        currentNode = currentNode.copy(fileStorage.getWritableMemory());
         currentNode.remove(index);
 
         updatePathToRoot(parentCursor, currentNode);
@@ -96,7 +99,7 @@ public class BTree
         int index = cursorPosition.index;
         CursorPosition parentCursor = cursorPosition.parent;
 
-        currentNode = currentNode.copy();
+        currentNode = currentNode.copy(fileStorage.getWritableMemory());
         currentNode.remove(index);
 
         //rebalance
@@ -159,7 +162,8 @@ public class BTree
         BTreeNode currentNode = cursorPosition.node;
         CursorPosition parentCursor = cursorPosition.parent;
 
-        currentNode = currentNode.copy();
+        final Memory writableMemory = fileStorage.getWritableMemory();
+        currentNode = currentNode.copy(writableMemory);
         currentNode.insert(key, value);
 
         int keyCount = currentNode.getKeyCount();
@@ -168,7 +172,7 @@ public class BTree
             this.nodesCount++;
             final int at = keyCount >> 1;
             final long keyAt = currentNode.getKey(at);
-            final BTreeNode split = currentNode.split(at);
+            final BTreeNode split = currentNode.split(at, fileStorage.getWritableMemory());
 
             if (parentCursor == null)
             {
@@ -176,7 +180,7 @@ public class BTree
 
                 //TODO: extract memory allocation outside of here
                 BTreeNodeNonLeaf temp = new BTreeNodeNonLeaf(
-                        MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER),
+                        fileStorage.getWritableMemory(),
                         0,
                         1,
                         new BTreeNode[1],
@@ -190,7 +194,8 @@ public class BTree
                 break;
             }
 
-            final BTreeNodeNonLeaf parentNode = (BTreeNodeNonLeaf) parentCursor.node.copy();
+            final BTreeNodeNonLeaf parentNode =
+                    (BTreeNodeNonLeaf) parentCursor.node.copy(fileStorage.getWritableMemory());
             parentNode.setChild(parentCursor.index, split);
             parentNode.insertChild(parentCursor.index, keyAt, currentNode);
 
@@ -337,7 +342,7 @@ public class BTree
         while (parentCursor != null)
         {
             BTreeNode c = currentNode;
-            currentNode = parentCursor.node.copy();
+            currentNode = parentCursor.node.copy(fileStorage.getWritableMemory());
             ((BTreeNodeNonLeaf) currentNode).setChild(parentCursor.index, c);
             parentCursor = parentCursor.parent;
         }

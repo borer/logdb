@@ -1,5 +1,7 @@
 package org.borer.logdb.bit;
 
+import sun.misc.Unsafe;
+
 import java.nio.ByteBuffer;
 
 public class MemoryByteBufferImpl implements Memory
@@ -12,9 +14,27 @@ public class MemoryByteBufferImpl implements Memory
     }
 
     @Override
+    public Object unsafeObject()
+    {
+        return buffer.array();
+    }
+
+    @Override
+    public long getBaseAddress()
+    {
+        return Unsafe.ARRAY_BYTE_BASE_OFFSET;
+    }
+
+    @Override
     public void resetPosition()
     {
         buffer.position(0);
+    }
+
+    @Override
+    public long getCapacity()
+    {
+        return buffer.capacity();
     }
 
     @Override
@@ -93,5 +113,43 @@ public class MemoryByteBufferImpl implements Memory
         {
             buffer.put((int)destinationOffset + i, sourceArray[i]);
         }
+    }
+
+    @Override
+    public void putByte(final byte b)
+    {
+        buffer.put(b);
+    }
+
+    @Override
+    public byte getByte()
+    {
+        return buffer.get();
+    }
+
+    @Override
+    public byte getByte(final long offset)
+    {
+        return buffer.get((int) offset);
+    }
+
+    @Override
+    public void assertBounds(long requestOffset, int requestLength)
+    {
+        assert ((requestOffset | requestLength | (requestOffset + requestLength)
+                | (buffer.capacity() - (requestOffset + requestLength))) >= 0) :
+                "requestOffset: " + requestOffset + ", requestLength: " + requestLength
+                        + ", (requestOffset + requestLength): " + (requestOffset + requestLength)
+                        + ", allocSize: " + buffer.capacity();
+    }
+
+    @Override
+    public void assertBounds(long requestOffset, long requestLength)
+    {
+        assert ((requestOffset | requestLength | (requestOffset + requestLength)
+                | (buffer.capacity() - (requestOffset + requestLength))) >= 0) :
+                "requestOffset: " + requestOffset + ", requestLength: " + requestLength
+                        + ", (requestOffset + requestLength): " + (requestOffset + requestLength)
+                        + ", allocSize: " + buffer.capacity();
     }
 }

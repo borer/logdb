@@ -1,6 +1,7 @@
 package org.borer.logdb;
 
 import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryCopy;
 import org.borer.logdb.bit.MemoryFactory;
 
 import java.util.function.LongSupplier;
@@ -58,18 +59,15 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public BTreeNode copy()
+    public BTreeNode copy(final Memory memoryForCopy)
     {
-        final byte[] array = new byte[PAGE_SIZE_BYTES];
-        buffer.getBytes(0L, array);
+        MemoryCopy.copy(buffer, memoryForCopy);
 
-        final Memory memory = MemoryFactory.allocateHeap(array, BYTE_ORDER);
-
-        return new BTreeNodeLeaf(getId(), memory, numberOfKeys, numberOfValues, idSupplier);
+        return new BTreeNodeLeaf(getId(), memoryForCopy, numberOfKeys, numberOfValues, idSupplier);
     }
 
     @Override
-    public BTreeNode split(final int at)
+    public BTreeNode split(final int at, final Memory memoryForNewNode)
     {
         final int keyCount = getKeyCount();
         if (keyCount <= 0)
@@ -82,7 +80,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
 
         //TODO: allocate from other place
         final BTreeNodeLeaf bTreeNodeLeaf = new BTreeNodeLeaf(
-                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                memoryForNewNode,
                 bNumberOfKeys,
                 bNumberOfValues,
                 idSupplier);

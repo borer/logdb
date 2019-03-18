@@ -15,9 +15,27 @@ public class MemoryDirectNonNativeImpl implements Memory
     }
 
     @Override
+    public Object unsafeObject()
+    {
+        return null;
+    }
+
+    @Override
+    public long getBaseAddress()
+    {
+        return baseAddress;
+    }
+
+    @Override
     public void resetPosition()
     {
         position = 0;
+    }
+
+    @Override
+    public long getCapacity()
+    {
+        return capacity;
     }
 
     @Override
@@ -113,10 +131,44 @@ public class MemoryDirectNonNativeImpl implements Memory
         NonNativeMemoryAccess.putBytes(baseAddress + destinationOffset, sourceArray);
     }
 
-    private void assertBounds(final long requestOffset, final int requestLength)
+    @Override
+    public void putByte(byte b)
     {
-        assert ((requestOffset | requestLength | (requestOffset + requestLength) | (capacity - (requestOffset + requestLength))) >= 0) :
+        assertBounds(position, Byte.BYTES);
+
+        NonNativeMemoryAccess.putByte(baseAddress + position, b);
+        position += Byte.BYTES;
+    }
+
+    @Override
+    public byte getByte()
+    {
+        return getByte(position);
+    }
+
+    @Override
+    public byte getByte(final long offset)
+    {
+        assertBounds(baseAddress + offset, Byte.BYTES);
+
+        return NonNativeMemoryAccess.getByte(baseAddress + offset);
+    }
+
+    @Override
+    public void assertBounds(final long requestOffset, final int requestLength)
+    {
+        assert ((requestOffset | requestLength | (requestOffset + requestLength)
+                | (capacity - (requestOffset + requestLength))) >= 0) :
                 "requestOffset: " + requestOffset + ", requestLength: " + requestLength
                  + ", (requestOffset + requestLength): " + (requestOffset + requestLength) + ", allocSize: " + capacity;
+    }
+
+    @Override
+    public void assertBounds(final long requestOffset, final long requestLength)
+    {
+        assert ((requestOffset | requestLength | (requestOffset + requestLength)
+                | (capacity - (requestOffset + requestLength))) >= 0) :
+                "requestOffset: " + requestOffset + ", requestLength: " + requestLength
+                        + ", (requestOffset + requestLength): " + (requestOffset + requestLength) + ", allocSize: " + capacity;
     }
 }

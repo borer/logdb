@@ -1,8 +1,12 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.borer.logdb.Config.BYTE_ORDER;
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BTreeNodeLeafTest
@@ -197,7 +201,7 @@ class BTreeNodeLeafTest
         assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
         final int at = totalElements >> 1;
-        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at);
+        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
 
         assertEquals(at, bTreeLeaf.getKeyCount());
         for (int i = 0; i < at; i++)
@@ -228,7 +232,7 @@ class BTreeNodeLeafTest
 
         assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
-        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at);
+        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
 
         assertEquals(at, bTreeLeaf.getKeyCount());
         for (int i = 0; i < at; i++)
@@ -256,7 +260,8 @@ class BTreeNodeLeafTest
             bTreeLeaf.insert(i, i);
         }
 
-        final BTreeNodeLeaf copy = (BTreeNodeLeaf)bTreeLeaf.copy();
+        final Memory memoryForCopy = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
+        final BTreeNodeLeaf copy = (BTreeNodeLeaf)bTreeLeaf.copy(memoryForCopy);
 
         for (int i = 0; i < 10; i++)
         {

@@ -1,8 +1,12 @@
 package org.borer.logdb;
 
+import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.borer.logdb.Config.BYTE_ORDER;
+import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 import static org.borer.logdb.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -109,7 +113,7 @@ class BTreeNodeNonLeafTest
         }
 
         final int at = totalKeys >> 1;
-        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at);
+        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());
@@ -171,7 +175,7 @@ class BTreeNodeNonLeafTest
         }
 
         final int at = totalKeys >> 1;
-        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at);
+        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());
@@ -222,7 +226,8 @@ class BTreeNodeNonLeafTest
             assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
         }
 
-        BTreeNode copy = bTreeNonLeaf.copy();
+        final Memory memoryForCopy = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
+        BTreeNode copy = bTreeNonLeaf.copy(memoryForCopy);
 
         final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * 10));
         final long key = numKeysPerChild * 10;

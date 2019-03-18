@@ -1,5 +1,6 @@
 package org.borer.logdb;
 
+import org.borer.logdb.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +17,11 @@ class BTreeTest
     @BeforeEach
     void setUp()
     {
-        bTree = new BTree();
+        final FileStorage fileStorage = new FileStorage(
+                "test.db",
+                Config.MAPPED_CHUNK_SIZE,
+                Config.BYTE_ORDER);
+        bTree = new BTree(fileStorage);
     }
 
     @Test
