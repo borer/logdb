@@ -2,7 +2,7 @@ package org.borer.logdb.bit;
 
 public interface Memory
 {
-    Object unsafeObject();
+    byte[] getSupportByteArrayIfAny();
 
     long getBaseAddress();
 

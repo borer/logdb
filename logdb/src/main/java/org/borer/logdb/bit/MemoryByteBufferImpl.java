@@ -14,7 +14,7 @@ public class MemoryByteBufferImpl implements Memory
     }
 
     @Override
-    public Object unsafeObject()
+    public byte[] getSupportByteArrayIfAny()
     {
         return buffer.array();
     }

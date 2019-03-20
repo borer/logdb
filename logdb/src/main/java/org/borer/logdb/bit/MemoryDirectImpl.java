@@ -15,7 +15,7 @@ public class MemoryDirectImpl implements Memory
     }
 
     @Override
-    public Object unsafeObject()
+    public byte[] getSupportByteArrayIfAny()
     {
         return null;
     }

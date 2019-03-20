@@ -63,9 +63,9 @@ final class NativeMemoryAccess extends MemoryAccess
     }
 
     static void copyBytes(
-            final Object sourceUnsafeObject,
+            final byte[] sourceArray,
             final long sourceAddress,
-            final Object destinationUnsafeObject,
+            final byte[] destinationArray,
             final long destinationAddress,
             final long sizeBytes)
     {
@@ -80,7 +80,7 @@ final class NativeMemoryAccess extends MemoryAccess
         while (lengthBytes > 0)
         {
             final long chunk = Math.min(lengthBytes, UNSAFE_COPY_THRESHOLD_BYTES);
-            THE_UNSAFE.copyMemory(sourceUnsafeObject, srcAdd, destinationUnsafeObject, dstAdd, chunk);
+            THE_UNSAFE.copyMemory(sourceArray, srcAdd, destinationArray, dstAdd, chunk);
             lengthBytes -= chunk;
             srcAdd += chunk;
             dstAdd += chunk;

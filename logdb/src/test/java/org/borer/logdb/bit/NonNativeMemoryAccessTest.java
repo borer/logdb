@@ -68,6 +68,7 @@ class NonNativeMemoryAccessTest
         final long addressForByteBufferNative = NativeMemoryAccess.getBaseAddressForDirectBuffer(bufferNonNative);
         final long actualNative = NativeMemoryAccess.getLong(addressForByteBufferNative);
 
+        assertEquals(target, actualNonNative);
         assertNotEquals(actualNative, actualNonNative);
     }
 }

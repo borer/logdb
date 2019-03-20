@@ -15,7 +15,7 @@ public class MemoryDirectNonNativeImpl implements Memory
     }
 
     @Override
-    public Object unsafeObject()
+    public byte[] getSupportByteArrayIfAny()
     {
         return null;
     }

@@ -4,8 +4,8 @@ import java.nio.ByteOrder;
 
 class MemoryOrder
 {
-    private static final ByteOrder nativeOrder = ByteOrder.nativeOrder();
-    private static final ByteOrder nonNativeOrder = (nativeOrder == ByteOrder.LITTLE_ENDIAN)
+    public static final ByteOrder nativeOrder = ByteOrder.nativeOrder();
+    public static final ByteOrder nonNativeOrder = (nativeOrder == ByteOrder.LITTLE_ENDIAN)
             ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
 
     static boolean isNativeOrder(final ByteOrder byteOrder)
