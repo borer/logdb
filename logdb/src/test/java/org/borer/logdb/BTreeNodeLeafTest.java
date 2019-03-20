@@ -16,7 +16,11 @@ class BTreeNodeLeafTest
     @BeforeEach
     void setUp()
     {
-        bTreeLeaf = new BTreeNodeLeaf(0);
+        bTreeLeaf = new BTreeNodeLeaf(
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                new IdSupplier(0));
     }
 
     /////////////////////////////////Add/Update

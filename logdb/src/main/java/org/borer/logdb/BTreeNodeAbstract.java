@@ -17,7 +17,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private static final int KEY_SIZE = Long.BYTES;
     private static final int VALUE_SIZE = Long.BYTES;
 
-
     private final long id;
     private long freeSizeLeftBytes;
 

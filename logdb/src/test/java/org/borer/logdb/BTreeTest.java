@@ -21,7 +21,8 @@ class BTreeTest
         final FileStorage fileStorage = new FileStorage(
                 "test.db",
                 Config.MAPPED_CHUNK_SIZE,
-                Config.BYTE_ORDER);
+                Config.BYTE_ORDER,
+                Config.PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(fileStorage);
 

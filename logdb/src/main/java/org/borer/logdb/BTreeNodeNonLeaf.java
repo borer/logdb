@@ -2,28 +2,12 @@ package org.borer.logdb;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
-import org.borer.logdb.bit.MemoryFactory;
 
 import java.util.function.LongSupplier;
-
-import static org.borer.logdb.Config.BYTE_ORDER;
-import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
     BTreeNode[] children;
-
-    BTreeNodeNonLeaf(final BTreeNode child)
-    {
-        super(
-                MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER),
-                0,
-                1, //there is always one child at least
-                new IdSupplier());
-        this.children = new BTreeNode[1]; //there is always one child at least
-
-        setChild(0, child);
-    }
 
     /**
      * split constructor.

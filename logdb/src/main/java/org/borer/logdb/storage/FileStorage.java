@@ -1,6 +1,5 @@
 package org.borer.logdb.storage;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 
@@ -25,14 +24,17 @@ public class FileStorage
 
     private RandomAccessFile dbFile;
     private FileChannel channel;
+    private int pageSizeBytes;
 
     public FileStorage(final String filename,
                        final long memoryMappedChunkSizeBytes,
-                       final ByteOrder byteOrder)
+                       final ByteOrder byteOrder,
+                       final int pageSizeBytes)
     {
         this.filename = filename;
         this.memoryMappedChunkSizeBytes = memoryMappedChunkSizeBytes;
         this.byteOrder = byteOrder;
+        this.pageSizeBytes = pageSizeBytes;
         this.mappedBuffers = new ArrayList<>();
         this.availableWritableMemory = new ArrayDeque<>();
     }
@@ -70,7 +72,7 @@ public class FileStorage
         }
         else
         {
-            return MemoryFactory.allocateHeap(Config.PAGE_SIZE_BYTES, byteOrder);
+            return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
         }
     }
 
