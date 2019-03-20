@@ -28,7 +28,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     /**
      * split constructor.
      */
-    BTreeNodeNonLeaf(
+    public BTreeNodeNonLeaf(
             final Memory memory,
             final int numberOfKeys,
             final int numberOfValues,

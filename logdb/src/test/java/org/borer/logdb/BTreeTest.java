@@ -1,6 +1,7 @@
 package org.borer.logdb;
 
 import org.borer.logdb.storage.FileStorage;
+import org.borer.logdb.storage.NodesManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,10 @@ class BTreeTest
                 "test.db",
                 Config.MAPPED_CHUNK_SIZE,
                 Config.BYTE_ORDER);
-        bTree = new BTree(fileStorage);
+
+        final NodesManager nodesManager = new NodesManager(fileStorage);
+
+        bTree = new BTree(nodesManager);
     }
 
     @Test

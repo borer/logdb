@@ -34,7 +34,7 @@ public class FileStorage
         this.memoryMappedChunkSizeBytes = memoryMappedChunkSizeBytes;
         this.byteOrder = byteOrder;
         this.mappedBuffers = new ArrayList<>();
-        availableWritableMemory = new ArrayDeque<>();
+        this.availableWritableMemory = new ArrayDeque<>();
     }
 
     private void init()
@@ -61,7 +61,7 @@ public class FileStorage
         }
     }
 
-    public Memory getWritableMemory()
+    public Memory allocateWritableMemory()
     {
         final Memory writableMemory = availableWritableMemory.poll();
         if (writableMemory != null)
@@ -72,5 +72,10 @@ public class FileStorage
         {
             return MemoryFactory.allocateHeap(Config.PAGE_SIZE_BYTES, byteOrder);
         }
+    }
+
+    public void returnWritableMemory(final Memory writableMemory)
+    {
+        availableWritableMemory.add(writableMemory);
     }
 }
