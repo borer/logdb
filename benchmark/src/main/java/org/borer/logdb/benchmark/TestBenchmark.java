@@ -1,6 +1,6 @@
 package org.borer.logdb.benchmark;
 
-import org.borer.logdb.BTree;
+import org.borer.logdb.bbtree.BTree;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;

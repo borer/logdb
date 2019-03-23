@@ -1,5 +1,6 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
+import org.borer.logdb.Config;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
 import org.junit.jupiter.api.BeforeEach;

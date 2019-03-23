@@ -1,4 +1,4 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.MemoryFactory;
 
@@ -20,12 +20,17 @@ class TestUtils
 
     static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child)
     {
+        return createNonLeafNodeWithChild(child, 0);
+    }
+
+    static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child, final int startId)
+    {
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
                 new BTreeNode[1],
-                new IdSupplier());
+                new IdSupplier(startId));
 
         nonLeaf.setChild(0, child);
 

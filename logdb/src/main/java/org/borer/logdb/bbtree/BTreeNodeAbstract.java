@@ -1,4 +1,4 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 
@@ -117,7 +117,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
     void insertKey(final int index, final long key)
     {
         final int keyCount = getKeyCount();
-        assert index <= keyCount : index + " > " + keyCount;
+        assert index <= keyCount
+                : String.format("index to insert %d > node key cound %d ", index, keyCount);
 
         copyKeysWithGap(index);
 

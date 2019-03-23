@@ -1,4 +1,4 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
 public class BTreePrinter
 {

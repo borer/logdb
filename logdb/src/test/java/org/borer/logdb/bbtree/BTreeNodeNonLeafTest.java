@@ -1,4 +1,4 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.borer.logdb.Config.BYTE_ORDER;
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
-import static org.borer.logdb.TestUtils.createLeafNodeWithKeys;
+import static org.borer.logdb.bbtree.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 

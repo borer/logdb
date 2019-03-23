@@ -1,11 +1,11 @@
-package org.borer.logdb;
+package org.borer.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.borer.logdb.TestUtils.createValue;
+import static org.borer.logdb.bbtree.TestUtils.createValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SearchUtilsTest

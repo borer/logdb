@@ -1,9 +1,9 @@
 package org.borer.logdb.storage;
 
-import org.borer.logdb.BTreeNode;
-import org.borer.logdb.BTreeNodeLeaf;
-import org.borer.logdb.BTreeNodeNonLeaf;
-import org.borer.logdb.IdSupplier;
+import org.borer.logdb.bbtree.BTreeNode;
+import org.borer.logdb.bbtree.BTreeNodeLeaf;
+import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
+import org.borer.logdb.bbtree.IdSupplier;
 
 import java.util.ArrayList;
 import java.util.List;
