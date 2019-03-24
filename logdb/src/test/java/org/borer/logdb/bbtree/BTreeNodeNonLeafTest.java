@@ -2,12 +2,13 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
+import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.borer.logdb.Config.BYTE_ORDER;
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
-import static org.borer.logdb.bbtree.TestUtils.createLeafNodeWithKeys;
+import static org.borer.logdb.support.TestUtils.BYTE_ORDER;
+import static org.borer.logdb.support.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -113,7 +114,8 @@ class BTreeNodeNonLeafTest
         }
 
         final int at = totalKeys >> 1;
-        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
+        final BTreeNodeNonLeaf split =
+                (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());

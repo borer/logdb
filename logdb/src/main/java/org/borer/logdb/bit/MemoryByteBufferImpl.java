@@ -122,6 +122,12 @@ public class MemoryByteBufferImpl implements Memory
     }
 
     @Override
+    public void putByte(final long offset, final byte b)
+    {
+        buffer.put((int)offset, b);
+    }
+
+    @Override
     public byte getByte()
     {
         return buffer.get();

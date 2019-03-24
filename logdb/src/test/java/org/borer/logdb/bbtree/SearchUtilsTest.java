@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.borer.logdb.bbtree.TestUtils.createValue;
+import static org.borer.logdb.support.TestUtils.createValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SearchUtilsTest

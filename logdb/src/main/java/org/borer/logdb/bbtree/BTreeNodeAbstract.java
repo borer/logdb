@@ -9,21 +9,30 @@ import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 abstract class BTreeNodeAbstract implements BTreeNode
 {
     private static final int PAGE_START_OFFSET = 0;
-    private static final int NUMBER_OF_KEY_OFFSET = PAGE_START_OFFSET + Integer.BYTES;
-    private static final int NUMBER_OF_VALUES_OFFSET = NUMBER_OF_KEY_OFFSET + Integer.BYTES;
-    private static final int HEADER_SIZE_BYTES = NUMBER_OF_VALUES_OFFSET + Integer.BYTES;
+
+    private static final int PAGE_HEADER_OFFSET = PAGE_START_OFFSET;
+    private static final int PAGE_HEADER_SIZE = Long.BYTES;
+
+    private static final int NUMBER_OF_KEY_OFFSET = PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE;
+    private static final int NUMBER_OF_KEY_SIZE = Integer.BYTES;
+
+    private static final int NUMBER_OF_VALUES_OFFSET = PAGE_START_OFFSET + PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE;
+    private static final int NUMBER_OF_VALUES_SIZE = Integer.BYTES;
+
+    private static final int HEADER_SIZE_BYTES = PAGE_HEADER_SIZE + PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE + NUMBER_OF_VALUES_SIZE;
     private static final int KEY_START_OFFSET = HEADER_SIZE_BYTES;
 
     private static final int KEY_SIZE = Long.BYTES;
     private static final int VALUE_SIZE = Long.BYTES;
 
-    private final long id;
+    private long id;
     private long freeSizeLeftBytes;
 
+    long pageNumber;
     final Memory buffer;
-    protected long pageNumber;
     int numberOfKeys;
     int numberOfValues;
+    boolean isDirty;
 
     final LongSupplier idSupplier;
 
@@ -77,19 +86,26 @@ abstract class BTreeNodeAbstract implements BTreeNode
                       final LongSupplier idSupplier)
     {
         this.id = id;
+        this.pageNumber = -1;
         this.buffer = buffer;
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
         this.idSupplier = idSupplier;
         final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
         this.freeSizeLeftBytes = PAGE_SIZE_BYTES - usedBytes;
+        this.isDirty = true;
+    }
+
+    //TODO: call this function after creation of the node ?? or before ?? or during??
+    protected void setNodePage(final BtreeNodeType type)
+    {
+        buffer.putByte(0, type.getType());
     }
 
     @Override
     public long getId()
     {
-        //TODO: use page offset
-        return id;
+        return pageNumber != -1 ? pageNumber : id;
     }
 
     @Override
@@ -216,6 +232,17 @@ abstract class BTreeNodeAbstract implements BTreeNode
         freeSizeLeftBytes += (numberOfValues - aNumberOfValues) * VALUE_SIZE;
         numberOfValues = aNumberOfValues;
         updateNumberOfValues(numberOfValues);
+    }
+
+    protected void setDirty()
+    {
+        isDirty = true;
+    }
+
+    @Override
+    public boolean isDirty()
+    {
+        return isDirty;
     }
 
     /**

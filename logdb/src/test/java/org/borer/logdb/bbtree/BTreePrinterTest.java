@@ -1,8 +1,9 @@
 package org.borer.logdb.bbtree;
 
+import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.Test;
 
-import static org.borer.logdb.bbtree.TestUtils.createLeafNodeWithKeys;
+import static org.borer.logdb.support.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BTreePrinterTest

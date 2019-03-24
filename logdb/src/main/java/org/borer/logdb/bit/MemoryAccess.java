@@ -22,6 +22,7 @@ abstract class MemoryAccess
     static final int UNSAFE_COPY_THRESHOLD_BYTES = 1024 * 1024;
 
     static final Unsafe THE_UNSAFE;
+    static int PAGE_SIZE_BYTES;
 
     static
     {
@@ -35,6 +36,7 @@ abstract class MemoryAccess
             };
 
             THE_UNSAFE = AccessController.doPrivileged(action);
+            PAGE_SIZE_BYTES = THE_UNSAFE.pageSize();
         }
         catch (Exception e)
         {

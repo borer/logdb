@@ -134,10 +134,16 @@ public class MemoryDirectImpl implements Memory
     @Override
     public void putByte(final byte b)
     {
-        assertBounds(position, Byte.BYTES);
-
-        NativeMemoryAccess.putByte(baseAddress + position, b);
+        putByte(position, b);
         position += Byte.BYTES;
+    }
+
+    @Override
+    public void putByte(final long offset, final byte b)
+    {
+        assertBounds(offset, Byte.BYTES);
+
+        NativeMemoryAccess.putByte(baseAddress + offset, b);
     }
 
     @Override

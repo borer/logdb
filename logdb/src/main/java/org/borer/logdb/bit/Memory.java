@@ -36,6 +36,8 @@ public interface Memory
 
     void putByte(byte b);
 
+    void putByte(long offset, byte b);
+
     byte getByte();
 
     byte getByte(long offset);

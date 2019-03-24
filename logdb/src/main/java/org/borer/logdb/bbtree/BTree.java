@@ -30,7 +30,8 @@ public class BTree
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
 
-        setNewRoot(null, nodesManager.createEmptyLeafNode());
+        final BTreeNode currentRoot = nodesManager.loadLastRoot();
+        setNewRoot(null, currentRoot);
     }
 
     /**
@@ -251,6 +252,12 @@ public class BTree
         }
     }
 
+    public void commit()
+    {
+        nodesManager.commitDirtyNodes();
+        nodesManager.commitLastRoot(getCurrentRootNode().getId());
+    }
+
     private void consumeNonLeafNode(BiConsumer<Long, Long> consumer, BTreeNodeNonLeaf nonLeaf)
     {
         assert nonLeaf != null;
@@ -393,7 +400,16 @@ public class BTree
 
         RootReference updatedRootReference = new RootReference(newRootPage, newVersion, currentRoot);
         boolean success = root.compareAndSet(currentRoot, updatedRootReference);
-        return success ? updatedRootReference : null;
+
+        if (success)
+        {
+            nodesManager.addDirtyRoot(newRootPage);
+            return updatedRootReference;
+        }
+        else
+        {
+            return null;
+        }
     }
 
     public long getNodesCount()

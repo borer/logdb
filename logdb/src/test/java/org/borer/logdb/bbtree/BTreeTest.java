@@ -1,8 +1,10 @@
 package org.borer.logdb.bbtree;
 
 import org.borer.logdb.Config;
-import org.borer.logdb.storage.FileStorage;
+import org.borer.logdb.storage.MemoryStorage;
 import org.borer.logdb.storage.NodesManager;
+import org.borer.logdb.storage.Storage;
+import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,13 +21,12 @@ class BTreeTest
     @BeforeEach
     void setUp()
     {
-        final FileStorage fileStorage = new FileStorage(
-                "test.db",
-                Config.MAPPED_CHUNK_SIZE,
-                Config.BYTE_ORDER,
+        final Storage storage = new MemoryStorage(
+                TestUtils.MAPPED_CHUNK_SIZE,
+                TestUtils.BYTE_ORDER,
                 Config.PAGE_SIZE_BYTES);
 
-        final NodesManager nodesManager = new NodesManager(fileStorage);
+        final NodesManager nodesManager = new NodesManager(storage);
 
         bTree = new BTree(nodesManager);
     }

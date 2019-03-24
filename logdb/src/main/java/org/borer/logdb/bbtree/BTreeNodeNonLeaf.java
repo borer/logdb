@@ -2,6 +2,7 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
+import org.borer.logdb.storage.Storage;
 
 import java.util.function.LongSupplier;
 
@@ -48,25 +49,30 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         }
 
         children[index].insert(key, value);
+        setDirty();
     }
 
-    void setChild(final int index, final BTreeNode child)
+    public void setChild(final int index, final BTreeNode child)
     {
+        //this will be replaced once we commit the child page
         setValue(index, child.getId());
 
         children[index] = child;
+        setDirty();
     }
 
     void insertChild(final int index, final long key, final BTreeNode child)
     {
         final int rawChildPageCount = getRawChildPageCount();
         insertKey(index, key);
-        insertValue(index, child.getId()); //TODO: store the page number of the child
+        //this will be replaced once we commit the child page
+        insertValue(index, child.getId());
 
         BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
         copyWithGap(children, newChildren, rawChildPageCount, index);
         children = newChildren;
         children[index] = child;
+        setDirty();
     }
 
     int getRawChildPageCount()
@@ -91,6 +97,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         removeValue(index, keyCount);
 
         removeChild(index);
+        setDirty();
     }
 
     private void removeChild(final int index)
@@ -164,7 +171,32 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         splitKeys(at, bNumberOfKeys, bTreeNodeLeaf);
         splitValues(aNumberOfValues, bNumberOfValues, bTreeNodeLeaf);
 
+        setDirty();
+
         return bTreeNodeLeaf;
+    }
+
+    @Override
+    public long commit(final Storage storage)
+    {
+        if (isDirty)
+        {
+            for (int index = 0; index < children.length; index++)
+            {
+                final BTreeNode child = children[index];
+
+                if (child.isDirty())
+                {
+                    final long pageNumber = child.commit(storage);
+                    setValue(index, pageNumber);
+                }
+            }
+
+            pageNumber = storage.commitNode(buffer);
+            isDirty = false;
+        }
+
+        return pageNumber;
     }
 
     /**

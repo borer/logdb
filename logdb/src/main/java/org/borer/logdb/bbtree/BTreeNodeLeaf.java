@@ -2,6 +2,7 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
+import org.borer.logdb.storage.Storage;
 
 import java.util.function.LongSupplier;
 
@@ -113,5 +114,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         {
             setValue(index, value);
         }
+    }
+
+    @Override
+    public long commit(final Storage storage)
+    {
+        if (isDirty)
+        {
+            pageNumber = storage.commitNode(buffer);
+            isDirty = false;
+        }
+
+        return pageNumber;
     }
 }

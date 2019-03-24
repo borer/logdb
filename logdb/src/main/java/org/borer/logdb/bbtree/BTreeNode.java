@@ -1,6 +1,7 @@
 package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
+import org.borer.logdb.storage.Storage;
 
 public interface BTreeNode
 {
@@ -59,6 +60,14 @@ public interface BTreeNode
      * @return a deep copy of the this node
      */
     BTreeNode copy(Memory memoryForCopy);
+
+    /**
+     * Commits this node to a storage.
+     * @return the address offset where the node was stored
+     */
+    long commit(Storage storage);
+
+    boolean isDirty();
 
     boolean needRebalancing(int threshold);
 }

@@ -1,15 +1,23 @@
-package org.borer.logdb.bbtree;
+package org.borer.logdb.support;
 
+import org.borer.logdb.bbtree.BTreeNode;
+import org.borer.logdb.bbtree.BTreeNodeLeaf;
+import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
+import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.MemoryFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
-import static org.borer.logdb.Config.BYTE_ORDER;
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
-class TestUtils
+public class TestUtils
 {
-    static ByteBuffer createValue(final String value)
+    public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+
+    public static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
+
+    public static ByteBuffer createValue(final String value)
     {
         final ByteBuffer buffer = ByteBuffer.allocate(value.length());
         buffer.put(value.getBytes());
@@ -18,12 +26,12 @@ class TestUtils
         return buffer;
     }
 
-    static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child)
+    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child)
     {
         return createNonLeafNodeWithChild(child, 0);
     }
 
-    static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child, final int startId)
+    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child, final int startId)
     {
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
@@ -37,7 +45,7 @@ class TestUtils
         return nonLeaf;
     }
 
-    static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)
+    public static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)
     {
         final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),

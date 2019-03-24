@@ -4,33 +4,32 @@ import org.borer.logdb.bbtree.BTreeNode;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.IdSupplier;
+import org.borer.logdb.bit.Memory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class NodesManager
 {
-    private final FileStorage fileStorage;
+    private final Storage storage;
     private final IdSupplier idSupplier;
 
-    private final List<BTreeNode> dirtyNodes;
+    private final List<BTreeNode> dirtyRootNodes;
 
-    public NodesManager(FileStorage fileStorage)
+    public NodesManager(final Storage storage)
     {
-        this.fileStorage = fileStorage;
+        this.storage = storage;
         this.idSupplier = new IdSupplier();
-        this.dirtyNodes = new ArrayList<>();
+        this.dirtyRootNodes = new ArrayList<>();
     }
 
     public BTreeNodeLeaf createEmptyLeafNode()
     {
         final BTreeNodeLeaf leaf = new BTreeNodeLeaf(
-                fileStorage.allocateWritableMemory(),
+                storage.allocateWritableMemory(),
                 0,
                 0,
                 idSupplier);
-
-        dirtyNodes.add(leaf);
 
         return leaf;
     }
@@ -38,31 +37,59 @@ public class NodesManager
     public BTreeNodeNonLeaf createEmptyNonLeafNode()
     {
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
-                fileStorage.allocateWritableMemory(),
+                storage.allocateWritableMemory(),
                 0,
                 1,
                 new BTreeNode[1],
                 idSupplier);
-
-        dirtyNodes.add(nonLeaf);
 
         return nonLeaf;
     }
 
     public BTreeNode splitNode(final BTreeNode originalNode, final int at)
     {
-        final BTreeNode split = originalNode.split(at, fileStorage.allocateWritableMemory());
-
-        dirtyNodes.add(split);
-
+        final BTreeNode split = originalNode.split(at, storage.allocateWritableMemory());
         return split;
     }
 
     public BTreeNode copyNode(final BTreeNode originalNode)
     {
-        final BTreeNode copy = originalNode.copy(fileStorage.allocateWritableMemory());
-        dirtyNodes.add(copy);
-
+        final BTreeNode copy = originalNode.copy(storage.allocateWritableMemory());
         return copy;
+    }
+
+    public void addDirtyRoot(final BTreeNode rootNode)
+    {
+        dirtyRootNodes.add(rootNode);
+    }
+
+    public void commitDirtyNodes()
+    {
+        for (final BTreeNode dirtyRootNode : dirtyRootNodes)
+        {
+            dirtyRootNode.commit(storage);
+        }
+
+        storage.flush();
+    }
+
+    public void commitLastRoot(final long offsetLastRoot)
+    {
+        storage.commitMetadata(offsetLastRoot);
+    }
+
+    public BTreeNode loadLastRoot()
+    {
+        final Memory memory = storage.loadLastRoot();
+        if (memory == null)
+        {
+            return createEmptyLeafNode();
+        }
+        else
+        {
+
+        }
+
+        return null;
     }
 }
