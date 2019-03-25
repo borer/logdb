@@ -11,6 +11,15 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     BTreeNode[] children;
 
     /**
+     * load constructor.
+     */
+    public BTreeNodeNonLeaf(final Memory memory, final IdSupplier idSupplier)
+    {
+        super(memory, idSupplier);
+        this.children = new BTreeNode[0];
+    }
+
+    /**
      * split constructor.
      */
     public BTreeNodeNonLeaf(
@@ -192,6 +201,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
                 }
             }
 
+            setNodePage(BtreeNodeType.NonLeaf);
             pageNumber = storage.commitNode(buffer);
             isDirty = false;
         }

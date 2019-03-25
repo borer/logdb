@@ -3,22 +3,22 @@ package org.borer.logdb.storage;
 import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.support.TestUtils;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FileStorageTest
 {
-//    @Test
-    void shouldBeABleToCreateNewDBFile() throws IOException
+    @Test
+    void shouldBeABleToCreateNewDbFileAndReadLeafNode() throws IOException
     {
         final String filename = "test.logdb";
 
         final File file = new File(filename);
-        Files.deleteIfExists(file.toPath());
+        file.delete();
 
         final FileStorage newFileDB = FileStorage.createNewFileDb(
                 filename,
@@ -30,6 +30,8 @@ class FileStorageTest
         final BTree bTree = new BTree(nodesManager);
 
         bTree.put(1, 1);
+        bTree.put(10, 10);
+        bTree.put(5, 5);
         bTree.commit();
 
         newFileDB.close();
@@ -41,5 +43,7 @@ class FileStorageTest
         final BTree readBTree = new BTree(readNodesManager);
 
         assertEquals(1, readBTree.get(1));
+        assertEquals(10, readBTree.get(10));
+        assertEquals(5, readBTree.get(5));
     }
 }

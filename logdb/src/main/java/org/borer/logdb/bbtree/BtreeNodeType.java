@@ -17,7 +17,7 @@ public enum BtreeNodeType
         return type;
     }
 
-    public BtreeNodeType fromByte(final byte type)
+    public static BtreeNodeType fromByte(final byte type)
     {
         if (type == 0)
         {

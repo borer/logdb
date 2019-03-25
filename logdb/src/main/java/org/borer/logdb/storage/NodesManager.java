@@ -3,6 +3,7 @@ package org.borer.logdb.storage;
 import org.borer.logdb.bbtree.BTreeNode;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
+import org.borer.logdb.bbtree.BtreeNodeType;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 
@@ -87,9 +88,16 @@ public class NodesManager
         }
         else
         {
+            final BtreeNodeType nodeType = BtreeNodeType.fromByte(memory.getByte(0));
 
+            if (BtreeNodeType.Leaf == nodeType)
+            {
+                return new BTreeNodeLeaf(memory, idSupplier);
+            }
+            else
+            {
+                return new BTreeNodeNonLeaf(memory, idSupplier);
+            }
         }
-
-        return null;
     }
 }

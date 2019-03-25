@@ -64,8 +64,22 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * For internal index nodes the values are pointer in the index file to the page that has the child
      * Values are always 8 bytes (long)
      *
-     *
+     */
+
+    /**
+     * Load constructor.
+     * @param memory the memory to load from
+     * @param idSupplier the id generator used to assign id to this node and splitted nodes
+     */
+    BTreeNodeAbstract(final Memory memory, final IdSupplier idSupplier)
+    {
+        this(memory, memory.getInt(NUMBER_OF_KEY_OFFSET), memory.getInt(NUMBER_OF_VALUES_OFFSET), idSupplier);
+    }
+
+    /** Split constructor.
      * @param buffer the buffer used as a content for this node
+     * @param numberOfKeys number of keys in this node
+     * @param numberOfValues number of values in this node
      * @param idSupplier the id generator used to assign id to this node and splitted nodes
      */
     BTreeNodeAbstract(final Memory buffer,
@@ -96,7 +110,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.isDirty = true;
     }
 
-    //TODO: call this function after creation of the node ?? or before ?? or during??
     protected void setNodePage(final BtreeNodeType type)
     {
         buffer.putByte(0, type.getType());

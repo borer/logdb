@@ -9,6 +9,14 @@ import java.util.function.LongSupplier;
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
     /**
+     * load constructor.
+     */
+    public BTreeNodeLeaf(final Memory memory, final IdSupplier idSupplier)
+    {
+        super(memory, idSupplier);
+    }
+
+    /**
      * split constructor.
      */
     public BTreeNodeLeaf(
@@ -121,6 +129,8 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     {
         if (isDirty)
         {
+            setNodePage(BtreeNodeType.Leaf);
+
             pageNumber = storage.commitNode(buffer);
             isDirty = false;
         }

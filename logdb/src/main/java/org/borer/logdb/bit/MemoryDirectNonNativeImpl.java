@@ -163,8 +163,10 @@ public class MemoryDirectNonNativeImpl implements Memory
     @Override
     public void assertBounds(final long requestOffset, final int requestLength)
     {
-        assert ((requestOffset | requestLength | (requestOffset + requestLength)
-                | (capacity - (requestOffset + requestLength))) >= 0) :
+        assert ((requestOffset
+                | requestLength
+                | (requestOffset + requestLength)
+                | (capacity - (requestOffset + requestLength - baseAddress))) >= 0) :
                 "requestOffset: " + requestOffset + ", requestLength: " + requestLength
                  + ", (requestOffset + requestLength): " + (requestOffset + requestLength) + ", allocSize: " + capacity;
     }
@@ -172,8 +174,10 @@ public class MemoryDirectNonNativeImpl implements Memory
     @Override
     public void assertBounds(final long requestOffset, final long requestLength)
     {
-        assert ((requestOffset | requestLength | (requestOffset + requestLength)
-                | (capacity - (requestOffset + requestLength))) >= 0) :
+        assert ((requestOffset
+                | requestLength
+                | (requestOffset + requestLength)
+                | (capacity - (requestOffset + requestLength - baseAddress))) >= 0) :
                 "requestOffset: " + requestOffset + ", requestLength: " + requestLength
                         + ", (requestOffset + requestLength): " + (requestOffset + requestLength) + ", allocSize: " + capacity;
     }
