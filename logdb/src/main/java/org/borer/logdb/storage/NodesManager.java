@@ -68,10 +68,21 @@ public class NodesManager
     {
         for (final BTreeNode dirtyRootNode : dirtyRootNodes)
         {
+            //TODO: After commit, change node memory to direct mapped and return the heap memory
             dirtyRootNode.commit(storage);
         }
 
         storage.flush();
+
+        //TODO: maybe extend storage mapped areas.
+
+        dirtyRootNodes.clear();
+    }
+
+    public BTreeNode loadNode(final long pageNumber)
+    {
+        //TODO: load from mapped buffers this node
+        return null;
     }
 
     public void commitLastRoot(final long offsetLastRoot)

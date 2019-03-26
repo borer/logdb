@@ -110,7 +110,14 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.isDirty = true;
     }
 
-    protected void setNodePage(final BtreeNodeType type)
+    protected abstract BtreeNodeType getNodeType();
+
+    protected void preCommit()
+    {
+        setNodePage(getNodeType());
+    }
+
+    private void setNodePage(final BtreeNodeType type)
     {
         buffer.putByte(0, type.getType());
     }
@@ -391,6 +398,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
             }
         }
 
-        return String.format("BTreeNodeLeaf{ %s }", contentBuilder.toString());
+        return String.format("%s{ %s }", getNodeType().name(), contentBuilder.toString());
     }
 }

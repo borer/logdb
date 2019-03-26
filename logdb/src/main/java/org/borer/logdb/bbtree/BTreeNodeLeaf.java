@@ -129,12 +129,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     {
         if (isDirty)
         {
-            setNodePage(BtreeNodeType.Leaf);
-
+            preCommit();
             pageNumber = storage.commitNode(buffer);
             isDirty = false;
         }
 
         return pageNumber;
+    }
+
+    @Override
+    protected BtreeNodeType getNodeType()
+    {
+        return BtreeNodeType.Leaf;
     }
 }

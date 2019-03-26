@@ -68,7 +68,7 @@ public final class FileStorage implements Storage, Closeable
 
             headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
             fileDbHeader.writeTo(headerBuffer);
-            headerBuffer.flip();
+            headerBuffer.rewind();
 
             channel.write(headerBuffer);
             channel.position(FileDbHeader.getSizeBytes());
@@ -135,18 +135,10 @@ public final class FileStorage implements Storage, Closeable
     {
         try
         {
-            final long numberOfMaps = channel.size() / fileDbHeader.memoryMappedChunkSizeBytes;
-
-            if (numberOfMaps == 0)
+            final long numberOfMaps = (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
+            for (long i = 0; i < numberOfMaps; i++)
             {
-                mapMemory(0);
-            }
-            else
-            {
-                for (long i = 0; i < numberOfMaps; i++)
-                {
-                    mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
-                }
+                mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
             }
         }
         catch (IOException e)
@@ -207,6 +199,7 @@ public final class FileStorage implements Storage, Closeable
             long currentFilePosition = -1;
             try
             {
+                //TODO actually use pageNumber instead of offset ((pos-header) / pageSize)
                 currentFilePosition = channel.position();
                 channel.write(ByteBuffer.wrap(nodeSupportArray));
             }
@@ -228,7 +221,7 @@ public final class FileStorage implements Storage, Closeable
     {
         try
         {
-            dbFile.seek(FileDbHeader.getHeaderOffsetForCurrentRoot());
+            dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
             //this is big-endind, that is why we need to invert, as the header is always little endian
             dbFile.writeLong(Long.reverseBytes(lastRootPageNumber));
         }
@@ -244,7 +237,7 @@ public final class FileStorage implements Storage, Closeable
         long currentRootOffset;
         try
         {
-            dbFile.seek(FileDbHeader.getHeaderOffsetForCurrentRoot());
+            dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
             //this is big-endind, that is why we need to invert, as the header is always little endian
             currentRootOffset = Long.reverseBytes(dbFile.readLong());
         }

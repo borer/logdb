@@ -194,19 +194,31 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
             {
                 final BTreeNode child = children[index];
 
+                final long pageNumber;
                 if (child.isDirty())
                 {
-                    final long pageNumber = child.commit(storage);
-                    setValue(index, pageNumber);
+                    pageNumber = child.commit(storage);
                 }
+                else
+                {
+                    pageNumber = child.getId();
+                }
+
+                setValue(index, pageNumber);
             }
 
-            setNodePage(BtreeNodeType.NonLeaf);
+            preCommit();
             pageNumber = storage.commitNode(buffer);
             isDirty = false;
         }
 
         return pageNumber;
+    }
+
+    @Override
+    protected BtreeNodeType getNodeType()
+    {
+        return BtreeNodeType.NonLeaf;
     }
 
     /**
