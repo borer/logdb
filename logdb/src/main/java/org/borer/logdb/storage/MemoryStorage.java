@@ -4,57 +4,52 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 
 import java.nio.ByteOrder;
-import java.nio.MappedByteBuffer;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Queue;
 
 public class MemoryStorage implements Storage
 {
-    private final long memoryMappedChunkSizeBytes;
     private final ByteOrder byteOrder;
-    private final List<MappedByteBuffer> mappedBuffers;
-    private final Queue<Memory> availableWritableMemory;
+    private final int pageSizeBytes;
+    private final List<Memory> memories;
+    private final HashMap<Long, Memory> maps;
 
-    private int pageSizeBytes;
+    private long allocatedMemoryOffset;
+    private long lastPageRootNumber;
 
-    public MemoryStorage(final long memoryMappedChunkSizeBytes,
-                         final ByteOrder byteOrder,
+    public MemoryStorage(final ByteOrder byteOrder,
                          final int pageSizeBytes)
     {
-        this.memoryMappedChunkSizeBytes = memoryMappedChunkSizeBytes;
         this.byteOrder = byteOrder;
         this.pageSizeBytes = pageSizeBytes;
-        this.mappedBuffers = new ArrayList<>();
-        this.availableWritableMemory = new ArrayDeque<>();
+        this.memories = new ArrayList<>();
+        this.maps = new HashMap<>();
+        this.allocatedMemoryOffset = 0L;
+        this.lastPageRootNumber = 0L;
     }
 
     @Override
     public Memory allocateWritableMemory()
     {
-        final Memory writableMemory = availableWritableMemory.poll();
-        if (writableMemory != null)
-        {
-            return writableMemory;
-        }
-        else
-        {
-            return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
-        }
+        return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
     }
 
     @Override
     public void returnWritableMemory(final Memory writableMemory)
     {
-        availableWritableMemory.add(writableMemory);
+        memories.add(writableMemory);
     }
 
     @Override
     public long commitNode(final Memory node)
     {
-        //NO-OP
-        return -1;
+        final long currentOffset = this.allocatedMemoryOffset;
+        allocatedMemoryOffset += node.getCapacity();
+
+        maps.put(currentOffset, node);
+
+        return currentOffset;
     }
 
     @Override
@@ -66,12 +61,18 @@ public class MemoryStorage implements Storage
     @Override
     public void commitMetadata(final long lastRootPageNumber)
     {
-        //NO-OP
+        this.lastPageRootNumber = lastRootPageNumber;
     }
 
     @Override
     public Memory loadLastRoot()
     {
-        return null;
+        return loadPage(lastPageRootNumber);
+    }
+
+    @Override
+    public Memory loadPage(final long pageOffset)
+    {
+        return maps.get(pageOffset);
     }
 }

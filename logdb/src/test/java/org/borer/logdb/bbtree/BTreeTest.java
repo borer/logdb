@@ -22,7 +22,6 @@ class BTreeTest
     void setUp()
     {
         final Storage storage = new MemoryStorage(
-                TestUtils.MAPPED_CHUNK_SIZE,
                 TestUtils.BYTE_ORDER,
                 Config.PAGE_SIZE_BYTES);
 

@@ -209,6 +209,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 
             preCommit();
             pageNumber = storage.commitNode(buffer);
+            storage.returnWritableMemory(buffer);
+            buffer = storage.loadPage(pageNumber);
             isDirty = false;
         }
 

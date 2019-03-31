@@ -73,16 +73,13 @@ public class NodesManager
         }
 
         storage.flush();
-
-        //TODO: maybe extend storage mapped areas.
-
         dirtyRootNodes.clear();
     }
 
     public BTreeNode loadNode(final long pageNumber)
     {
-        //TODO: load from mapped buffers this node
-        return null;
+        final Memory nodeMemory = storage.loadPage(pageNumber);
+        return constructBtreeNode(nodeMemory);
     }
 
     public void commitLastRoot(final long offsetLastRoot)
@@ -93,6 +90,11 @@ public class NodesManager
     public BTreeNode loadLastRoot()
     {
         final Memory memory = storage.loadLastRoot();
+        return constructBtreeNode(memory);
+    }
+
+    private BTreeNode constructBtreeNode(Memory memory)
+    {
         if (memory == null)
         {
             return createEmptyLeafNode();

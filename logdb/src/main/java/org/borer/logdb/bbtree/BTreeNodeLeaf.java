@@ -131,6 +131,9 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         {
             preCommit();
             pageNumber = storage.commitNode(buffer);
+            storage.returnWritableMemory(buffer);
+            //TODO: maybe after usage gc leaf nodes
+            buffer = storage.loadPage(pageNumber);
             isDirty = false;
         }
 

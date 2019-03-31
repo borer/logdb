@@ -29,7 +29,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private long freeSizeLeftBytes;
 
     long pageNumber;
-    final Memory buffer;
+    Memory buffer;
     int numberOfKeys;
     int numberOfValues;
     boolean isDirty;
@@ -114,10 +114,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     protected void preCommit()
     {
-        setNodePage(getNodeType());
+        setNodePageType(getNodeType());
     }
 
-    private void setNodePage(final BtreeNodeType type)
+    private void setNodePageType(final BtreeNodeType type)
     {
         buffer.putByte(0, type.getType());
     }

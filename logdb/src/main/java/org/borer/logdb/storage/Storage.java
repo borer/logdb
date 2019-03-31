@@ -2,6 +2,21 @@ package org.borer.logdb.storage;
 
 import org.borer.logdb.bit.Memory;
 
+/**
+ * <p>
+ *     A storage normally is split in 2 types:
+ *  <ul>
+ *      <li>
+ *          Writable memory, that is used only temporary for dirty nodes and is returned to the pool
+ *          once the node is been written to persistent storage
+ *      </li>
+ *      <li>
+ *          ReadOnly memory, returned by the load methods.
+ *          Normally is read only memory mapped region of the underlying persistent storage.
+ *      </li>
+ *  </ul>
+ *  </p>
+ */
 public interface Storage
 {
     Memory allocateWritableMemory();
@@ -15,4 +30,6 @@ public interface Storage
     void commitMetadata(long lastRootPageNumber);
 
     Memory loadLastRoot();
+
+    Memory loadPage(final long pageOffset);
 }

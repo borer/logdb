@@ -135,7 +135,7 @@ public final class FileStorage implements Storage, Closeable
     {
         try
         {
-            final long numberOfMaps = (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
+            final long numberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
             for (long i = 0; i < numberOfMaps; i++)
             {
                 mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
@@ -145,6 +145,27 @@ public final class FileStorage implements Storage, Closeable
         {
             e.printStackTrace();
         }
+    }
+
+    private void extendMaps()
+    {
+        try
+        {
+            final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
+            for (long i = mappedBuffers.size(); i < requiredNumberOfMaps; i++)
+            {
+                mapMemory((i - 1) * fileDbHeader.memoryMappedChunkSizeBytes);
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private long calculateRequiredNumberOfMapMemoryRegions() throws IOException
+    {
+        return (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
     }
 
     private void mapMemory(final long offset)
@@ -281,6 +302,8 @@ public final class FileStorage implements Storage, Closeable
         try
         {
             channel.force(true);
+
+            extendMaps();
         }
         catch (IOException e)
         {
