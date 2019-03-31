@@ -13,6 +13,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 
@@ -30,6 +31,7 @@ public final class FileStorage implements Storage, Closeable
     private final RandomAccessFile dbFile;
     private final FileChannel channel;
     private final FileDbHeader fileDbHeader;
+    private long lastRootPageNumber;
 
     private FileStorage(
             final String filename,
@@ -43,6 +45,7 @@ public final class FileStorage implements Storage, Closeable
         this.channel = channel;
         this.mappedBuffers = new ArrayList<>();
         this.availableWritableMemory = new ArrayDeque<>();
+        this.lastRootPageNumber = -1;
     }
 
     public static FileStorage createNewFileDb(
@@ -208,6 +211,13 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public void returnWritableMemory(final Memory writableMemory)
     {
+        final byte[] byteArray = writableMemory.getSupportByteArrayIfAny();
+        if (byteArray != null)
+        {
+            //Only reset the byte array for heap memories
+            Arrays.fill(byteArray, (byte) 0);
+        }
+
         availableWritableMemory.add(writableMemory);
     }
 
@@ -220,7 +230,7 @@ public final class FileStorage implements Storage, Closeable
             long currentFilePosition = -1;
             try
             {
-                //TODO actually use pageNumber instead of offset ((pos-header) / pageSize)
+                //TODO: actually use pageNumber instead of offset ((pos-header) / pageSize)
                 currentFilePosition = channel.position();
                 channel.write(ByteBuffer.wrap(nodeSupportArray));
             }
@@ -240,6 +250,7 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public void commitMetadata(final long lastRootPageNumber)
     {
+        this.lastRootPageNumber = lastRootPageNumber;
         try
         {
             dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
@@ -250,6 +261,12 @@ public final class FileStorage implements Storage, Closeable
         {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public long getLastRootPageNumber()
+    {
+        return lastRootPageNumber;
     }
 
     @Override

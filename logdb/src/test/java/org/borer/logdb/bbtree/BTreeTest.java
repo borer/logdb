@@ -17,16 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BTreeTest
 {
     private BTree bTree;
+    private NodesManager nodesManager;
 
     @BeforeEach
     void setUp()
     {
-        final Storage storage = new MemoryStorage(
-                TestUtils.BYTE_ORDER,
-                Config.PAGE_SIZE_BYTES);
+        final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, Config.PAGE_SIZE_BYTES);
 
-        final NodesManager nodesManager = new NodesManager(storage);
-
+        nodesManager = new NodesManager(storage);
         bTree = new BTree(nodesManager);
     }
 
@@ -69,6 +67,31 @@ class BTreeTest
             expectedOrder.add(i);
             bTree.put(i, i);
         }
+
+        expectedOrder.sort(Long::compareTo);
+
+        final LinkedList<Long> actualOrder = new LinkedList<>();
+        bTree.consumeAll((key, value) -> actualOrder.addLast(key));
+
+        assertEquals(expectedOrder.size(), actualOrder.size());
+
+        for (int i = 0; i < expectedOrder.size(); i++)
+        {
+            assertEquals(expectedOrder.get(i), actualOrder.get(i));
+        }
+    }
+
+    @Test
+    void shouldConsumeKeyValuesInOrderAfterCommit()
+    {
+        final List<Long> expectedOrder = new ArrayList<>();
+        for (long i = 0; i < 100; i++)
+        {
+            expectedOrder.add(i);
+            bTree.put(i, i);
+        }
+
+        bTree.commit();
 
         expectedOrder.sort(Long::compareTo);
 
@@ -184,6 +207,6 @@ class BTreeTest
                 "\"22\"[label = \" <90> |90|  <91> |91|  <92> |92|  <93> |93|  <94> |94|  <95> |95|  <96> |96|  <97> |97|  <98> |98|  <99> |99| \"];\n" +
                 "}\n";
 
-        assertEquals(expectedTree, BTreePrinter.print(bTree));
+        assertEquals(expectedTree, BTreePrinter.print(bTree, nodesManager));
     }
 }

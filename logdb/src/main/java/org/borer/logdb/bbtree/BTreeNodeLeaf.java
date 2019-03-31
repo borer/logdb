@@ -2,7 +2,7 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
-import org.borer.logdb.storage.Storage;
+import org.borer.logdb.storage.NodesManager;
 
 import java.util.function.LongSupplier;
 
@@ -125,15 +125,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public long commit(final Storage storage)
+    public long commit(final NodesManager nodesManager)
     {
         if (isDirty)
         {
             preCommit();
-            pageNumber = storage.commitNode(buffer);
-            storage.returnWritableMemory(buffer);
-            //TODO: maybe after usage gc leaf nodes
-            buffer = storage.loadPage(pageNumber);
+            pageNumber = nodesManager.commitNode(this);
             isDirty = false;
         }
 

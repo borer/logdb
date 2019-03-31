@@ -1,15 +1,27 @@
 package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
-import org.borer.logdb.storage.Storage;
+import org.borer.logdb.storage.NodesManager;
 
 public interface BTreeNode
 {
     /**
      * unique id of this node.
-      * @return
+      * @return id
      */
     long getId();
+
+    /**
+     * Gets the underlying buffer that stores the content of this node. Changes to that buffer will change the node content.
+     * @return nodes buffer
+     */
+    Memory getBuffer();
+
+    /**
+     * Changes the underlying buffer to the new one. This is a dangerous non thread safe operation.
+     * @param newBuffer the buffer to use for this node underlying content
+     */
+    void updateBuffer(Memory newBuffer);
 
     /**
      * Inserts key/value pair in the current leaf.
@@ -65,7 +77,7 @@ public interface BTreeNode
      * Commits this node to a storage.
      * @return the address offset where the node was stored
      */
-    long commit(Storage storage);
+    long commit(NodesManager nodesManager);
 
     boolean isDirty();
 

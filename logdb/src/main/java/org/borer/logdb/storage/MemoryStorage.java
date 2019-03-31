@@ -4,15 +4,12 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class MemoryStorage implements Storage
 {
     private final ByteOrder byteOrder;
     private final int pageSizeBytes;
-    private final List<Memory> memories;
     private final HashMap<Long, Memory> maps;
 
     private long allocatedMemoryOffset;
@@ -23,7 +20,6 @@ public class MemoryStorage implements Storage
     {
         this.byteOrder = byteOrder;
         this.pageSizeBytes = pageSizeBytes;
-        this.memories = new ArrayList<>();
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = 0L;
         this.lastPageRootNumber = 0L;
@@ -38,7 +34,7 @@ public class MemoryStorage implements Storage
     @Override
     public void returnWritableMemory(final Memory writableMemory)
     {
-        memories.add(writableMemory);
+        //NO-OP
     }
 
     @Override
@@ -56,6 +52,12 @@ public class MemoryStorage implements Storage
     public void flush()
     {
         //NO-OP
+    }
+
+    @Override
+    public long getLastRootPageNumber()
+    {
+        return lastPageRootNumber;
     }
 
     @Override

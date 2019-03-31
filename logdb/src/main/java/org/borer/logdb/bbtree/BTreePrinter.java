@@ -1,5 +1,7 @@
 package org.borer.logdb.bbtree;
 
+import org.borer.logdb.storage.NodesManager;
+
 public class BTreePrinter
 {
     /**
@@ -7,9 +9,9 @@ public class BTreePrinter
      * @param bTree uses the current root node of the btree
      * @return a graphivz string formatted representation of the btree
      */
-    public static String print(final BTree bTree)
+    public static String print(final BTree bTree, final NodesManager nodesManager)
     {
-        return print(bTree.getCurrentRootNode());
+        return print(bTree.getCurrentRootNode(), nodesManager);
     }
 
     /**
@@ -17,13 +19,13 @@ public class BTreePrinter
      * @param root the root node to start printing.
      * @return a graphivz string formatted representation of the btree
      */
-    public static String print(final BTreeNode root)
+    static String print(final BTreeNode root, final NodesManager nodesManager)
     {
         final StringBuilder printer = new StringBuilder();
         printer.append("digraph g {\n");
         printer.append("node [shape = record,height=.1];\n");
 
-        print(printer, root);
+        print(printer, root, nodesManager);
 
         printer.append("}\n");
 
@@ -46,10 +48,10 @@ public class BTreePrinter
         printer.append("\"];\n");
     }
 
-    private static void print(final StringBuilder printer, final BTreeNodeNonLeaf node)
+    private static void print(final StringBuilder printer, final BTreeNodeNonLeaf node, final NodesManager nodesManager)
     {
         final String id = String.valueOf(node.getId());
-        final String lastChildId = String.valueOf(node.children[node.numberOfKeys].getId());
+        final String lastChildId = getPageUniqueId(node.numberOfKeys, node);
 
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
@@ -65,7 +67,7 @@ public class BTreePrinter
         for (int i = 0; i < node.numberOfKeys; i++)
         {
             final long key = node.getKey(i);
-            final String childId = String.valueOf(node.children[i].getId());
+            final String childId = getPageUniqueId(i, node);
             printer.append(String.format("\"%s\":%d -> \"%s\"", id, key, childId));
             printer.append("\n");
         }
@@ -73,21 +75,30 @@ public class BTreePrinter
         printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
         printer.append("\n");
 
-        for (final BTreeNode child : node.children)
+        for (int i = 0; i < node.numberOfValues; i++)
         {
-            print(printer, child);
+            final BTreeNode child = nodesManager.loadNode(i, node);
+            print(printer, child, nodesManager);
         }
     }
 
-    private static void print(final StringBuilder printer, final BTreeNode node)
+    private static void print(final StringBuilder printer, final BTreeNode node, final NodesManager nodesManager)
     {
         if (node instanceof BTreeNodeNonLeaf)
         {
-            print(printer, (BTreeNodeNonLeaf)node);
+            print(printer, (BTreeNodeNonLeaf)node, nodesManager);
         }
         else
         {
             print(printer, (BTreeNodeLeaf) node);
         }
+    }
+
+    private static String getPageUniqueId(final int index, BTreeNodeNonLeaf node)
+    {
+        return String.valueOf(
+                node.getValue(index) == BTreeNodeNonLeaf.NON_COMMITTED_CHILD
+                ? node.getChildAt(index).getId()
+                : node.getValue(index));
     }
 }

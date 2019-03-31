@@ -2,13 +2,15 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
-import org.borer.logdb.storage.Storage;
+import org.borer.logdb.storage.NodesManager;
 
 import java.util.function.LongSupplier;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
-    BTreeNode[] children;
+    public static final int NON_COMMITTED_CHILD = -1;
+
+    private BTreeNode[] children;
 
     /**
      * load constructor.
@@ -16,7 +18,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     public BTreeNodeNonLeaf(final Memory memory, final IdSupplier idSupplier)
     {
         super(memory, idSupplier);
-        this.children = new BTreeNode[0];
+        this.children =  new BTreeNode[0];
     }
 
     /**
@@ -51,23 +53,22 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public void insert(final long key, final long value)
     {
-        int index = binarySearch(key) + 1;
-        if (index < 0)
-        {
-            index = -index;
-        }
-
-        children[index].insert(key, value);
-        setDirty();
+        throw new RuntimeException(
+                String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
     }
 
     public void setChild(final int index, final BTreeNode child)
     {
-        //this will be replaced once we commit the child page
-        setValue(index, child.getId());
+        //TODO (handle this better) : this will be replaced once we commit the child page
+        setValue(index, NON_COMMITTED_CHILD);
 
         children[index] = child;
         setDirty();
+    }
+
+    public BTreeNode getChildAt(final int index)
+    {
+        return children[index];
     }
 
     void insertChild(final int index, final long key, final BTreeNode child)
@@ -75,7 +76,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         final int rawChildPageCount = getRawChildPageCount();
         insertKey(index, key);
         //this will be replaced once we commit the child page
-        insertValue(index, child.getId());
+        insertValue(index, NON_COMMITTED_CHILD);
 
         BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
         copyWithGap(children, newChildren, rawChildPageCount, index);
@@ -89,11 +90,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         return getKeyCount() + 1;
     }
 
-    BTreeNode getChildAtIndex(final int index)
-    {
-        return children[index];
-    }
-
     @Override
     public void remove(final int index)
     {
@@ -105,11 +101,11 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         removeKey(index, keyCount);
         removeValue(index, keyCount);
 
-        removeChild(index);
+        removeChildReference(index);
         setDirty();
     }
 
-    private void removeChild(final int index)
+    private void removeChildReference(final int index)
     {
         final int oldChildrenSize = children.length;
         final BTreeNode[] newChildren = new BTreeNode[oldChildrenSize - 1];
@@ -186,31 +182,32 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public long commit(final Storage storage)
+    public long commit(final NodesManager nodesManager)
     {
         if (isDirty)
         {
             for (int index = 0; index < children.length; index++)
             {
                 final BTreeNode child = children[index];
-
-                final long pageNumber;
-                if (child.isDirty())
+                if (child != null)
                 {
-                    pageNumber = child.commit(storage);
-                }
-                else
-                {
-                    pageNumber = child.getId();
-                }
+                    final long pageNumber;
+                    if (child.isDirty())
+                    {
+                        pageNumber = child.commit(nodesManager);
+                    }
+                    else
+                    {
+                        pageNumber = child.getId();
+                    }
 
-                setValue(index, pageNumber);
+                    setValue(index, pageNumber);
+                    children[index] = null;
+                }
             }
 
             preCommit();
-            pageNumber = storage.commitNode(buffer);
-            storage.returnWritableMemory(buffer);
-            buffer = storage.loadPage(pageNumber);
+            pageNumber = nodesManager.commitNode(this);
             isDirty = false;
         }
 

@@ -1,5 +1,6 @@
 package org.borer.logdb.bbtree;
 
+import org.borer.logdb.Config;
 import org.borer.logdb.storage.NodesManager;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -7,7 +8,6 @@ import java.util.function.BiConsumer;
 
 public class BTree
 {
-    private static final int MAX_CHILDREN_PER_NODE = 10;
     private static final int THRESHOLD_CHILDREN_PER_NODE = 4;
     /**
      * This designates the "last stored" version for a store which was
@@ -57,10 +57,13 @@ public class BTree
 
             if (currentNode.getKeyCount() == 1)
             {
+                assert currentNode instanceof BTreeNodeNonLeaf :
+                        "Parent of the node that trying to remove is not non leaf";
+
                 this.nodesCount--;
                 assert index <= 1;
                 final BTreeNodeNonLeaf currentNonLeafNode = (BTreeNodeNonLeaf) currentNode;
-                currentNode = currentNonLeafNode.getChildAtIndex(1 - index);
+                currentNode = nodesManager.loadNode(1 - index, currentNonLeafNode);
 
                 updatePathToRoot(parentCursor, currentNode);
                 return;
@@ -94,7 +97,7 @@ public class BTree
         //rebalance
         if (currentNode.needRebalancing(THRESHOLD_CHILDREN_PER_NODE))
         {
-            final CursorPosition rightSiblingCursor = parentCursor.getRightSibling();
+            final CursorPosition rightSiblingCursor = parentCursor.getRightSibling(nodesManager);
             if (rightSiblingCursor != null)
             {
                 final BTreeNodeLeaf rightSibling = (BTreeNodeLeaf) rightSiblingCursor.node;
@@ -113,7 +116,7 @@ public class BTree
                 return;
             }
 
-            final CursorPosition leftSiblingCursor = parentCursor.getLeftSibling();
+            final CursorPosition leftSiblingCursor = parentCursor.getLeftSibling(nodesManager);
             if (leftSiblingCursor != null)
             {
                 final BTreeNodeLeaf leftSibling = (BTreeNodeLeaf) leftSiblingCursor.node;
@@ -155,7 +158,7 @@ public class BTree
         currentNode.insert(key, value);
 
         int keyCount = currentNode.getKeyCount();
-        while (keyCount > MAX_CHILDREN_PER_NODE)
+        while (keyCount > Config.MAX_CHILDREN_PER_NODE)
         {
             this.nodesCount++;
             final int at = keyCount >> 1;
@@ -203,21 +206,21 @@ public class BTree
             return -1;
         }
 
-        final BTreeNode rootNode = rootReference.root;
-        return rootNode.get(key);
+        final CursorPosition cursorPosition = traverseDown(rootReference.root, key);
+        return cursorPosition.node.get(key);
     }
 
     public long get(final long key)
     {
-        final BTreeNode rootNode = getCurrentRootNode();
-        return rootNode.get(key);
+        final CursorPosition cursorPosition = traverseDown(getCurrentRootNode(), key);
+        return cursorPosition.node.get(key);
     }
 
     /**
      * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(BiConsumer<Long, Long> consumer)
+    public void consumeAll(final BiConsumer<Long, Long> consumer)
     {
         final BTreeNode rootNodeForVersion = getCurrentRootNode();
 
@@ -236,7 +239,7 @@ public class BTree
      * @param version Version that we want to scan for
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(final int version, BiConsumer<Long, Long> consumer)
+    public void consumeAll(final int version, final BiConsumer<Long, Long> consumer)
     {
         assert version >= 0;
 
@@ -255,17 +258,17 @@ public class BTree
     public void commit()
     {
         nodesManager.commitDirtyNodes();
-        nodesManager.commitLastRoot(getCurrentRootNode().getId());
+        nodesManager.commitLastRootPage(getCurrentRootNode().getId());
     }
 
-    private void consumeNonLeafNode(BiConsumer<Long, Long> consumer, BTreeNodeNonLeaf nonLeaf)
+    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNodeNonLeaf nonLeaf)
     {
         assert nonLeaf != null;
 
         final int childPageCount = nonLeaf.getRawChildPageCount();
         for (int i = 0; i < childPageCount; i++)
         {
-            final BTreeNode childPage = nonLeaf.getChildAtIndex(i);
+            final BTreeNode childPage = nodesManager.loadNode(i, nonLeaf);
             if (childPage instanceof BTreeNodeNonLeaf)
             {
                 consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) childPage);
@@ -291,7 +294,7 @@ public class BTree
         }
     }
 
-    private static CursorPosition traverseDown(final BTreeNode root, final long key)
+    private CursorPosition traverseDown(final BTreeNode root, final long key)
     {
         BTreeNode node = root;
         CursorPosition cursor = null;
@@ -308,7 +311,7 @@ public class BTree
                 index = -index;
             }
             cursor = new CursorPosition(node, index, cursor);
-            node = nonLeaf.getChildAtIndex(index);
+            node = nodesManager.loadNode(index, nonLeaf);
         }
 
         index = ((BTreeNodeLeaf)node).binarySearch(key);

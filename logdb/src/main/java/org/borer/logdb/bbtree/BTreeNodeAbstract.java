@@ -105,8 +105,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
         this.idSupplier = idSupplier;
-        final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
-        this.freeSizeLeftBytes = PAGE_SIZE_BYTES - usedBytes;
+        this.freeSizeLeftBytes = calculateFreeSpaceLeft();
         this.isDirty = true;
     }
 
@@ -126,6 +125,27 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public long getId()
     {
         return pageNumber != -1 ? pageNumber : id;
+    }
+
+    @Override
+    public Memory getBuffer()
+    {
+        return buffer;
+    }
+
+    @Override
+    public void updateBuffer(final Memory newBuffer)
+    {
+        this.buffer = newBuffer;
+        numberOfKeys = buffer.getInt(NUMBER_OF_KEY_OFFSET);
+        numberOfValues = buffer.getInt(NUMBER_OF_VALUES_OFFSET);
+        freeSizeLeftBytes = calculateFreeSpaceLeft();
+    }
+
+    private long calculateFreeSpaceLeft()
+    {
+        final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
+        return PAGE_SIZE_BYTES - usedBytes;
     }
 
     @Override
@@ -193,7 +213,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * @param index Index inside the btree leaf
      * @return The value or null if it doesn't exist
      */
-    long getValue(final int index)
+    public long getValue(final int index)
     {
         return buffer.getLong(getValueIndexOffset(index));
     }

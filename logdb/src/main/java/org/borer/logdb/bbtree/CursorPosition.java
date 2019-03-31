@@ -1,5 +1,7 @@
 package org.borer.logdb.bbtree;
 
+import org.borer.logdb.storage.NodesManager;
+
 public final class CursorPosition
 {
     final BTreeNode node;
@@ -19,7 +21,7 @@ public final class CursorPosition
         this.parent = parent;
     }
 
-    public CursorPosition getRightSibling()
+    public CursorPosition getRightSibling(final NodesManager nodesManager)
     {
         if (parent == null || parent.node == null)
         {
@@ -45,7 +47,7 @@ public final class CursorPosition
 
 
         //traverse down the leftest child
-        BTreeNode rightSiblingNode = parentNode.getChildAtIndex(siblingIndex);
+        BTreeNode rightSiblingNode = nodesManager.loadNode(siblingIndex, parentNode);
         CursorPosition siblingCursorPosition = new CursorPosition(
                 rightSiblingNode,
                 siblingIndex,
@@ -57,11 +59,11 @@ public final class CursorPosition
         }
         else
         {
-            return buildLeftestPathToLeaf(siblingCursorPosition);
+            return buildLeftestPathToLeaf(siblingCursorPosition, nodesManager);
         }
     }
 
-    private CursorPosition buildLeftestPathToLeaf(final CursorPosition cursorPosition)
+    private CursorPosition buildLeftestPathToLeaf(final CursorPosition cursorPosition, final NodesManager nodesManager)
     {
         CursorPosition parentCursor = cursorPosition;
         BTreeNode node = cursorPosition.node;
@@ -70,13 +72,13 @@ public final class CursorPosition
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
             parentCursor = new CursorPosition(nonLeaf, 0, parentCursor);
 
-            node = nonLeaf.getChildAtIndex(0);
+            node = nodesManager.loadNode(0, nonLeaf);
         }
 
         return new CursorPosition(node, 0, parentCursor);
     }
 
-    public CursorPosition getLeftSibling()
+    public CursorPosition getLeftSibling(final NodesManager nodesManager)
     {
         if (parent == null || parent.node == null)
         {
@@ -102,7 +104,7 @@ public final class CursorPosition
 
 
         //traverse down the rightest child
-        BTreeNode leftSiblingNode = parentNode.getChildAtIndex(siblingIndex);
+        BTreeNode leftSiblingNode = nodesManager.loadNode(siblingIndex, parentNode);
         CursorPosition siblingCursorPosition = new CursorPosition(
                 leftSiblingNode,
                 siblingIndex,
@@ -114,11 +116,11 @@ public final class CursorPosition
         }
         else
         {
-            return buildRightestPathToLeaf(siblingCursorPosition);
+            return buildRightestPathToLeaf(siblingCursorPosition, nodesManager);
         }
     }
 
-    private CursorPosition buildRightestPathToLeaf(final CursorPosition cursorPosition)
+    private CursorPosition buildRightestPathToLeaf(final CursorPosition cursorPosition, final NodesManager nodesManager)
     {
         CursorPosition parentCursor = cursorPosition;
         BTreeNode node = cursorPosition.node;
@@ -130,7 +132,7 @@ public final class CursorPosition
             parentCursor = new CursorPosition(nonLeaf, parentIndex, parentCursor);
 
             parentIndex = nonLeaf.getRawChildPageCount();
-            node = nonLeaf.getChildAtIndex(parentIndex);
+            node = nodesManager.loadNode(parentIndex, nonLeaf);
         }
 
         return new CursorPosition(node, parentIndex, parentCursor);

@@ -3,6 +3,7 @@ package org.borer.logdb.storage;
 import org.borer.logdb.bit.Memory;
 
 /**
+ * Storage interface for the underlying persistence of the btree.
  * <p>
  *     A storage normally is split in 2 types:
  *  <ul>
@@ -29,7 +30,9 @@ public interface Storage
 
     void commitMetadata(long lastRootPageNumber);
 
+    long getLastRootPageNumber();
+
     Memory loadLastRoot();
 
-    Memory loadPage(final long pageOffset);
+    Memory loadPage(long pageOffset);
 }

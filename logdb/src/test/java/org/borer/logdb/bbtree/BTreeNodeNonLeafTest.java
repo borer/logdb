@@ -48,7 +48,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 11; i++)
         {
             final int expectedValue = (i == 10) ? 0 : numKeysPerChild * i; // the first value when crete bTreeNonLeaf is 0
-            assertEquals(expectedValue, bTreeNonLeaf.getValue(i));
+            assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
         }
     }
 
@@ -72,7 +72,7 @@ class BTreeNodeNonLeafTest
         {
             final int expectedValue = numKeysPerChild * i;
             assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
-            assertEquals(expectedValue, bTreeNonLeaf.getValue(i));
+            assertEquals(BTreeNodeNonLeaf.NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(i));
         }
 
         bTreeNonLeaf.remove(2);

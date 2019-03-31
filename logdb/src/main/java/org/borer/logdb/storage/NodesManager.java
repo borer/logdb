@@ -8,7 +8,9 @@ import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class NodesManager
 {
@@ -16,12 +18,15 @@ public class NodesManager
     private final IdSupplier idSupplier;
 
     private final List<BTreeNode> dirtyRootNodes;
+    //TODO: use an LRU bounded cache
+    private final Map<Long, BTreeNodeNonLeaf> nonLeafNodesCache;
 
     public NodesManager(final Storage storage)
     {
         this.storage = storage;
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
+        this.nonLeafNodesCache = new HashMap<>();
     }
 
     public BTreeNodeLeaf createEmptyLeafNode()
@@ -49,14 +54,12 @@ public class NodesManager
 
     public BTreeNode splitNode(final BTreeNode originalNode, final int at)
     {
-        final BTreeNode split = originalNode.split(at, storage.allocateWritableMemory());
-        return split;
+        return originalNode.split(at, storage.allocateWritableMemory());
     }
 
     public BTreeNode copyNode(final BTreeNode originalNode)
     {
-        final BTreeNode copy = originalNode.copy(storage.allocateWritableMemory());
-        return copy;
+        return originalNode.copy(storage.allocateWritableMemory());
     }
 
     public void addDirtyRoot(final BTreeNode rootNode)
@@ -68,21 +71,50 @@ public class NodesManager
     {
         for (final BTreeNode dirtyRootNode : dirtyRootNodes)
         {
-            //TODO: After commit, change node memory to direct mapped and return the heap memory
-            dirtyRootNode.commit(storage);
+            dirtyRootNode.commit(this);
         }
 
         storage.flush();
         dirtyRootNodes.clear();
     }
 
-    public BTreeNode loadNode(final long pageNumber)
+    public long commitNode(final BTreeNode node)
     {
-        final Memory nodeMemory = storage.loadPage(pageNumber);
-        return constructBtreeNode(nodeMemory);
+        final Memory buffer = node.getBuffer();
+        final long pageNumber = storage.commitNode(buffer);
+        storage.returnWritableMemory(buffer);
+
+        node.updateBuffer(storage.loadPage(pageNumber));
+        return pageNumber;
     }
 
-    public void commitLastRoot(final long offsetLastRoot)
+    public BTreeNode loadNode(final int index, final BTreeNodeNonLeaf node)
+    {
+        final long childPageNumber = node.getValue(index);
+        if (childPageNumber != BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
+        {
+            return loadNode(childPageNumber);
+        }
+        else
+        {
+            return node.getChildAt(index);
+        }
+    }
+
+    public BTreeNode loadNode(final long pageNumber)
+    {
+        if (nonLeafNodesCache.containsKey(pageNumber))
+        {
+            return nonLeafNodesCache.get(pageNumber);
+        }
+        else
+        {
+            final Memory nodeMemory = storage.loadPage(pageNumber);
+            return constructBTreeNode(nodeMemory, pageNumber);
+        }
+    }
+
+    public void commitLastRootPage(final long offsetLastRoot)
     {
         storage.commitMetadata(offsetLastRoot);
     }
@@ -90,27 +122,36 @@ public class NodesManager
     public BTreeNode loadLastRoot()
     {
         final Memory memory = storage.loadLastRoot();
-        return constructBtreeNode(memory);
+        return constructBTreeNode(memory, storage.getLastRootPageNumber());
     }
 
-    private BTreeNode constructBtreeNode(Memory memory)
+    /**
+     * Wraps the memory buffer in the appropriate node.
+     * @param memory the memory buffer to wrap. It's the backing storage and content of the btree node
+     * @param pageNumber the page number of that memory buffer
+     * @return btree node wrapping the content of the memory buffer
+     */
+    private BTreeNode constructBTreeNode(final Memory memory, final long pageNumber)
     {
-        if (memory == null)
-        {
-            return createEmptyLeafNode();
-        }
-        else
+        if (memory != null)
         {
             final BtreeNodeType nodeType = BtreeNodeType.fromByte(memory.getByte(0));
 
             if (BtreeNodeType.Leaf == nodeType)
             {
+                //TODO: create a pool of those
                 return new BTreeNodeLeaf(memory, idSupplier);
             }
             else
             {
-                return new BTreeNodeNonLeaf(memory, idSupplier);
+                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(memory, idSupplier);
+                nonLeafNodesCache.put(pageNumber, bTreeNodeNonLeaf);
+                return bTreeNodeNonLeaf;
             }
+        }
+        else //Condition used when creating new btree
+        {
+            return createEmptyLeafNode();
         }
     }
 }

@@ -22,7 +22,7 @@ class MemoryStorageTest
             originalBTree.put(i, i);
         }
 
-        final String originalBtreePrint = BTreePrinter.print(originalBTree);
+        final String originalBtreePrint = BTreePrinter.print(originalBTree, nodesManager);
 
         originalBTree.commit();
 
@@ -30,7 +30,7 @@ class MemoryStorageTest
         final NodesManager readNodesManager = new NodesManager(memoryStorage);
         final BTree loadedBTree = new BTree(readNodesManager);
 
-        final String loadedBtreePrint = BTreePrinter.print(loadedBTree);
+        final String loadedBtreePrint = BTreePrinter.print(loadedBTree, readNodesManager);
 
         assertEquals(originalBtreePrint, loadedBtreePrint);
     }
