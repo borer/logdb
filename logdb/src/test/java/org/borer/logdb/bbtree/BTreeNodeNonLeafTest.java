@@ -1,6 +1,5 @@
 package org.borer.logdb.bbtree;
 
-import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,14 +18,14 @@ class BTreeNodeNonLeafTest
     @BeforeEach
     void setUp()
     {
-        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0);
+        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
         bTreeNonLeaf = TestUtils.createNonLeafNodeWithChild(bTreeNode);
     }
 
     @Test
     void shouldBeAbleToInsertChild()
     {
-        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0);
+        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
 
         bTreeNonLeaf.insertChild(0, 0, bTreeNode);
     }
@@ -37,8 +36,8 @@ class BTreeNodeNonLeafTest
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final long key = numKeysPerChild * i;
+            final int key = numKeysPerChild * i;
+            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
@@ -58,8 +57,8 @@ class BTreeNodeNonLeafTest
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final long key = numKeysPerChild * i;
+            final int key = numKeysPerChild * i;
+            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
         }
@@ -108,14 +107,19 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < totalKeys; i++)
         {
             final long key = numKeysPerChild * i;
-            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i);
+            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
 
             bTreeNonLeaf.insertChild(i, key, child); //there is something funky with the byte order
         }
 
         final int at = totalKeys >> 1;
-        final BTreeNodeNonLeaf split =
-                (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                1, //there is always one child at least
+                new BTreeNode[1],
+                new IdSupplier(0));
+        bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());
@@ -171,13 +175,19 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < totalKeys; i++)
         {
             final long key = numKeysPerChild * i;
-            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i);
+            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
 
             bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
         }
 
         final int at = totalKeys >> 1;
-        final BTreeNodeNonLeaf split = (BTreeNodeNonLeaf) bTreeNonLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                1, //there is always one child at least
+                new BTreeNode[1],
+                new IdSupplier(0));
+        bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
         assertEquals(expectedKeysInSplit, split.getKeyCount());
@@ -220,19 +230,26 @@ class BTreeNodeNonLeafTest
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * i));
-            final long key = numKeysPerChild * i;
+            final int key = numKeysPerChild * i;
+            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
             assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
         }
 
-        final Memory memoryForCopy = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
-        BTreeNode copy = bTreeNonLeaf.copy(memoryForCopy);
+        final BTreeNodeNonLeaf copy = new BTreeNodeNonLeaf(
+                bTreeNonLeaf.getId(),
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0, //there is always one child at least
+                null,
+                new IdSupplier(0));
 
-        final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, (numKeysPerChild * 10));
-        final long key = numKeysPerChild * 10;
+        bTreeNonLeaf.copy(copy);
+
+        final int key = numKeysPerChild * 10;
+        final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
         bTreeNonLeaf.insertChild(8, key, child);
 
         assertEquals(11, bTreeNonLeaf.getKeyCount());

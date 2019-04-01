@@ -10,7 +10,7 @@ class BTreePrinterTest
     @Test
     void shouldPrintLeafNode()
     {
-        final BTreeNodeLeaf bTreeLeaf = TestUtils.createLeafNodeWithKeys(0, 0);
+        final BTreeNodeLeaf bTreeLeaf = TestUtils.createLeafNodeWithKeys(0, 0, new IdSupplier(0));
 
         for (int i = 0; i < 10; i++)
         {

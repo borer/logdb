@@ -200,11 +200,13 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void updateNumberOfKeys(final int numberOfKeys)
     {
+        this.numberOfKeys = numberOfKeys;
         buffer.putInt(NUMBER_OF_KEY_OFFSET, numberOfKeys);
     }
 
     void updateNumberOfValues(final int numberOfValues)
     {
+        this.numberOfValues = numberOfValues;
         buffer.putInt(NUMBER_OF_VALUES_OFFSET, numberOfValues);
     }
 

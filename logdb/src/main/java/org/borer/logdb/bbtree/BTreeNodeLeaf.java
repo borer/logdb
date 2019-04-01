@@ -31,7 +31,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     /**
      * Copy constructor.
      */
-    private BTreeNodeLeaf(
+    public BTreeNodeLeaf(
             final long id,
             final Memory memory,
             final int numberOfKeys,
@@ -55,38 +55,33 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public BTreeNode copy(final Memory memoryForCopy)
+    public void copy(final BTreeNode copyNode)
     {
-        MemoryCopy.copy(buffer, memoryForCopy);
+        assert copyNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
 
-        return new BTreeNodeLeaf(getId(), memoryForCopy, numberOfKeys, numberOfValues, idSupplier);
+        final BTreeNodeLeaf bTreeNodeLeaf = (BTreeNodeLeaf) copyNode;
+        MemoryCopy.copy(buffer, bTreeNodeLeaf.getBuffer());
+
+        bTreeNodeLeaf.updateBuffer(bTreeNodeLeaf.getBuffer());
     }
 
     @Override
-    public BTreeNode split(final int at, final Memory memoryForNewNode)
+    public void split(final int at, final BTreeNode splitNode)
     {
-        final int keyCount = getKeyCount();
-        if (keyCount <= 0)
-        {
-            return null;
-        }
+        assert getKeyCount() > 0 : "cannot split node with less than 2 nodes";
+        assert splitNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
 
         final int bNumberOfKeys = numberOfKeys - at;
         final int bNumberOfValues = numberOfValues - at;
 
-        //TODO: allocate from other place
-        final BTreeNodeLeaf bTreeNodeLeaf = new BTreeNodeLeaf(
-                memoryForNewNode,
-                bNumberOfKeys,
-                bNumberOfValues,
-                idSupplier);
-        bTreeNodeLeaf.updateNumberOfKeys(bTreeNodeLeaf.numberOfKeys);
-        bTreeNodeLeaf.updateNumberOfValues(bTreeNodeLeaf.numberOfValues);
+        final BTreeNodeLeaf bTreeNodeLeaf = (BTreeNodeLeaf) splitNode;
+        bTreeNodeLeaf.updateNumberOfKeys(bNumberOfKeys);
+        bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
 
         splitKeys(at, bNumberOfKeys,  bTreeNodeLeaf);
         splitValues(at, bNumberOfValues, bTreeNodeLeaf);
 
-        return bTreeNodeLeaf;
+        setDirty();
     }
 
     @Override

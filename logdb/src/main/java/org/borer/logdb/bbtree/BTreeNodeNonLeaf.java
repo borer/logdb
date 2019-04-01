@@ -38,7 +38,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     /**
      * Copy constructor.
      */
-    private BTreeNodeNonLeaf(
+    public BTreeNodeNonLeaf(
             final long id,
             final Memory memory,
             final int numberOfKeys,
@@ -128,14 +128,19 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public BTreeNode copy(final Memory memoryForCopy)
+    public void copy(final BTreeNode copyNode)
     {
-        MemoryCopy.copy(buffer, memoryForCopy);
+        assert copyNode instanceof BTreeNodeNonLeaf : "when splitting a non leaf node, needs same type";
+
+        final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) copyNode;
+        MemoryCopy.copy(buffer, bTreeNodeNonLeaf.getBuffer());
+
+        bTreeNodeNonLeaf.updateBuffer(bTreeNodeNonLeaf.getBuffer());
 
         final BTreeNode[] copyChildren = new BTreeNode[children.length];
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        return new BTreeNodeNonLeaf(getId(), memoryForCopy, numberOfKeys, numberOfValues, copyChildren, idSupplier);
+        bTreeNodeNonLeaf.setChildren(copyChildren);
     }
 
     @Override
@@ -145,13 +150,10 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public BTreeNode split(final int at, final Memory memoryForNewNode)
+    public void split(final int at, final BTreeNode splitNode)
     {
-        final int keyCount = getKeyCount();
-        if (keyCount <= 0)
-        {
-            return null;
-        }
+        assert getKeyCount() > 0 : "cannot split node with less than 2 nodes";
+        assert splitNode instanceof BTreeNodeNonLeaf : "when splitting a non leaf node, needs same type";
 
         final int aNumberOfValues = at + 1;
         final int bNumberOfKeys = numberOfKeys - aNumberOfValues;
@@ -163,22 +165,20 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         System.arraycopy(children, aNumberOfValues, bChildren, 0, bNumberOfValues);
         children = aChildren;
 
-        //TODO: allocate from other place
-        final BTreeNodeNonLeaf bTreeNodeLeaf = new BTreeNodeNonLeaf(
-                memoryForNewNode,
-                bNumberOfKeys,
-                bNumberOfValues,
-                bChildren,
-                idSupplier);
-        bTreeNodeLeaf.updateNumberOfKeys(bTreeNodeLeaf.numberOfKeys);
-        bTreeNodeLeaf.updateNumberOfValues(bTreeNodeLeaf.numberOfValues);
+        final BTreeNodeNonLeaf bTreeNodeLeaf = (BTreeNodeNonLeaf) splitNode;
+        bTreeNodeLeaf.setChildren(bChildren);
+        bTreeNodeLeaf.updateNumberOfKeys(bNumberOfKeys);
+        bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
 
         splitKeys(at, bNumberOfKeys, bTreeNodeLeaf);
         splitValues(aNumberOfValues, bNumberOfValues, bTreeNodeLeaf);
 
         setDirty();
+    }
 
-        return bTreeNodeLeaf;
+    private void setChildren(final BTreeNode[] children)
+    {
+        this.children = children;
     }
 
     @Override

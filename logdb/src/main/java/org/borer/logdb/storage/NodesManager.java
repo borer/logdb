@@ -29,37 +29,41 @@ public class NodesManager
         this.nonLeafNodesCache = new HashMap<>();
     }
 
-    public BTreeNodeLeaf createEmptyLeafNode()
+    private BTreeNodeLeaf createEmptyLeafNode()
     {
-        final BTreeNodeLeaf leaf = new BTreeNodeLeaf(
+        return new BTreeNodeLeaf(
                 storage.allocateWritableMemory(),
                 0,
                 0,
                 idSupplier);
-
-        return leaf;
     }
 
     public BTreeNodeNonLeaf createEmptyNonLeafNode()
     {
-        final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
+        return new BTreeNodeNonLeaf(
                 storage.allocateWritableMemory(),
                 0,
                 1,
                 new BTreeNode[1],
                 idSupplier);
-
-        return nonLeaf;
     }
 
     public BTreeNode splitNode(final BTreeNode originalNode, final int at)
     {
-        return originalNode.split(at, storage.allocateWritableMemory());
+        final BTreeNode splitNode = (originalNode instanceof BTreeNodeLeaf)
+                ? new BTreeNodeLeaf(storage.allocateWritableMemory(), 0, 0, idSupplier)
+                : new BTreeNodeNonLeaf(storage.allocateWritableMemory(), 0, 0, null, idSupplier);
+        originalNode.split(at, splitNode);
+        return splitNode;
     }
 
     public BTreeNode copyNode(final BTreeNode originalNode)
     {
-        return originalNode.copy(storage.allocateWritableMemory());
+        final BTreeNode copyNode = (originalNode instanceof BTreeNodeLeaf)
+                ? new BTreeNodeLeaf(originalNode.getId(), storage.allocateWritableMemory(), 0, 0, idSupplier)
+                : new BTreeNodeNonLeaf(originalNode.getId(), storage.allocateWritableMemory(), 0, 0, null, idSupplier);
+        originalNode.copy(copyNode);
+        return copyNode;
     }
 
     public void addDirtyRoot(final BTreeNode rootNode)

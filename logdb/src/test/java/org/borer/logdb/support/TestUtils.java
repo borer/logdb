@@ -45,13 +45,13 @@ public class TestUtils
         return nonLeaf;
     }
 
-    public static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey)
+    public static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey, IdSupplier idSupplier)
     {
         final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 0,
-                new IdSupplier(startKey));
+                idSupplier);
         for (int i = 0; i < numKeys; i++)
         {
             final int key = startKey + i;

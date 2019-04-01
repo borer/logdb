@@ -1,6 +1,5 @@
 package org.borer.logdb.bbtree;
 
-import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,15 +11,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BTreeNodeLeafTest
 {
     private BTreeNodeLeaf bTreeLeaf;
+    private IdSupplier idSupplier;
 
     @BeforeEach
     void setUp()
     {
+        idSupplier = new IdSupplier(0);
+
         bTreeLeaf = new BTreeNodeLeaf(
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 0,
-                new IdSupplier(0));
+                idSupplier);
     }
 
     /////////////////////////////////Add/Update
@@ -205,7 +207,13 @@ class BTreeNodeLeafTest
         assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
         final int at = totalElements >> 1;
-        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
+
+        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                idSupplier);
+        bTreeLeaf.split(at, newBtree);
 
         assertEquals(at, bTreeLeaf.getKeyCount());
         for (int i = 0; i < at; i++)
@@ -236,7 +244,12 @@ class BTreeNodeLeafTest
 
         assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
-        final BTreeNodeLeaf newBtree = (BTreeNodeLeaf)bTreeLeaf.split(at, MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER));
+        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                idSupplier);
+        bTreeLeaf.split(at, newBtree);
 
         assertEquals(at, bTreeLeaf.getKeyCount());
         for (int i = 0; i < at; i++)
@@ -264,8 +277,13 @@ class BTreeNodeLeafTest
             bTreeLeaf.insert(i, i);
         }
 
-        final Memory memoryForCopy = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
-        final BTreeNodeLeaf copy = (BTreeNodeLeaf)bTreeLeaf.copy(memoryForCopy);
+        final BTreeNodeLeaf copy = new BTreeNodeLeaf(
+                bTreeLeaf.getId(),
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                idSupplier);
+        bTreeLeaf.copy(copy);
 
         for (int i = 0; i < 10; i++)
         {
