@@ -227,11 +227,10 @@ public final class FileStorage implements Storage, Closeable
         final byte[] nodeSupportArray = node.getSupportByteArrayIfAny();
         if (nodeSupportArray != null)
         {
-            long currentFilePosition = -1;
+            long pageNumber = -1;
             try
             {
-                //TODO: actually use pageNumber instead of offset ((pos-header) / pageSize)
-                currentFilePosition = channel.position();
+                pageNumber = (channel.position() - FileDbHeader.getSizeBytes()) / fileDbHeader.pageSize;
                 channel.write(ByteBuffer.wrap(nodeSupportArray));
             }
             catch (IOException e)
@@ -239,7 +238,7 @@ public final class FileStorage implements Storage, Closeable
                 e.printStackTrace();
             }
 
-            return currentFilePosition;
+            return pageNumber;
         }
         else
         {
@@ -293,13 +292,15 @@ public final class FileStorage implements Storage, Closeable
         return null;
     }
 
-    public Memory loadPage(final long pageOffset)
+    public Memory loadPage(final long pageNumber)
     {
         //TODO: make this search logN
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
             final long offsetMappedBuffer = i * fileDbHeader.memoryMappedChunkSizeBytes;
+            final int fileHeaderSize = (i == 0) ? FileDbHeader.getSizeBytes() : 0;
+            final long pageOffset = (pageNumber * fileDbHeader.pageSize) + fileHeaderSize;
             if (pageOffset > offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.mapDirect(

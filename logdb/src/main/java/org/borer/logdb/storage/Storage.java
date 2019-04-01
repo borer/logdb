@@ -34,5 +34,5 @@ public interface Storage
 
     Memory loadLastRoot();
 
-    Memory loadPage(long pageOffset);
+    Memory loadPage(long pageNumber);
 }
