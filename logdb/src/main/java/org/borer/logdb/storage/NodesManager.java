@@ -50,20 +50,23 @@ public class NodesManager
 
     public BTreeNode splitNode(final BTreeNode originalNode, final int at)
     {
-        final BTreeNode splitNode = (originalNode instanceof BTreeNodeLeaf)
-                ? new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0)
-                : new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0, null);
+        final BTreeNode splitNode = createSameNodeType(originalNode, storage.allocateWritableMemory());
         originalNode.split(at, splitNode);
         return splitNode;
     }
 
     public BTreeNode copyNode(final BTreeNode originalNode)
     {
-        final BTreeNode copyNode = (originalNode instanceof BTreeNodeLeaf)
-                ? new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0)
-                : new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0, null);
+        final BTreeNode copyNode = createSameNodeType(originalNode, storage.allocateWritableMemory());
         originalNode.copy(copyNode);
         return copyNode;
+    }
+
+    private BTreeNode createSameNodeType(final BTreeNode originalNode, final Memory memory)
+    {
+        return (originalNode instanceof BTreeNodeLeaf)
+                ? new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0, 0)
+                : new BTreeNodeNonLeaf(idSupplier.getAsLong(), memory, 0, 0, null);
     }
 
     public void addDirtyRoot(final BTreeNode rootNode)
