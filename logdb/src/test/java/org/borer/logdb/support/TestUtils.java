@@ -34,11 +34,11 @@ public class TestUtils
     public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child, final int startId)
     {
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
+                startId,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1],
-                new IdSupplier(startId));
+                new BTreeNode[1]);
 
         nonLeaf.setChild(0, child);
 
@@ -48,10 +48,10 @@ public class TestUtils
     public static BTreeNodeLeaf createLeafNodeWithKeys(final int numKeys, final int startKey, IdSupplier idSupplier)
     {
         final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(
+                idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
-                idSupplier);
+                0);
         for (int i = 0; i < numKeys; i++)
         {
             final int key = startKey + i;

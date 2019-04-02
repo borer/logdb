@@ -2,8 +2,6 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 
-import java.util.function.LongSupplier;
-
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 abstract class BTreeNodeAbstract implements BTreeNode
@@ -25,7 +23,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private static final int KEY_SIZE = Long.BYTES;
     private static final int VALUE_SIZE = Long.BYTES;
 
-    private long id;
     private long freeSizeLeftBytes;
 
     long pageNumber;
@@ -33,8 +30,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     int numberOfKeys;
     int numberOfValues;
     boolean isDirty;
-
-    final LongSupplier idSupplier;
 
     /**
      * Index Page layout :
@@ -69,42 +64,28 @@ abstract class BTreeNodeAbstract implements BTreeNode
     /**
      * Load constructor.
      * @param memory the memory to load from
-     * @param idSupplier the id generator used to assign id to this node and splitted nodes
      */
-    BTreeNodeAbstract(final Memory memory, final IdSupplier idSupplier)
+    BTreeNodeAbstract(final long pageNumber, final Memory memory)
     {
-        this(memory, memory.getInt(NUMBER_OF_KEY_OFFSET), memory.getInt(NUMBER_OF_VALUES_OFFSET), idSupplier);
-    }
-
-    /** Split constructor.
-     * @param buffer the buffer used as a content for this node
-     * @param numberOfKeys number of keys in this node
-     * @param numberOfValues number of values in this node
-     * @param idSupplier the id generator used to assign id to this node and splitted nodes
-     */
-    BTreeNodeAbstract(final Memory buffer,
-                      final int numberOfKeys,
-                      final int numberOfValues,
-                      final LongSupplier idSupplier)
-    {
-        this(idSupplier.getAsLong(), buffer, numberOfKeys, numberOfValues, idSupplier);
+        this(pageNumber, memory, memory.getInt(NUMBER_OF_KEY_OFFSET), memory.getInt(NUMBER_OF_VALUES_OFFSET));
     }
 
     /**
-     * Copy constructor.
+     * Copy/Split constructor.
+     * @param pageNumber the page number of this node or an id generated for not yet persisted nodes
+     * @param buffer the buffer used as a content for this node
+     * @param numberOfKeys number of keys in this node
+     * @param numberOfValues number of values in this node
      */
-    BTreeNodeAbstract(final long id,
+    BTreeNodeAbstract(final long pageNumber,
                       final Memory buffer,
                       final int numberOfKeys,
-                      final int numberOfValues,
-                      final LongSupplier idSupplier)
+                      final int numberOfValues)
     {
-        this.id = id;
-        this.pageNumber = -1;
+        this.pageNumber = pageNumber;
         this.buffer = buffer;
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
-        this.idSupplier = idSupplier;
         this.freeSizeLeftBytes = calculateFreeSpaceLeft();
         this.isDirty = true;
     }
@@ -122,9 +103,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public long getId()
+    public long getPageNumber()
     {
-        return pageNumber != -1 ? pageNumber : id;
+        return pageNumber;
     }
 
     @Override

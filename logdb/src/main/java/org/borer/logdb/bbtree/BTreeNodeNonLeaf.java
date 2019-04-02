@@ -4,8 +4,6 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
 import org.borer.logdb.storage.NodesManager;
 
-import java.util.function.LongSupplier;
-
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract
 {
     public static final int NON_COMMITTED_CHILD = -1;
@@ -13,40 +11,25 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     private BTreeNode[] children;
 
     /**
-     * load constructor.
+     * Load constructor.
      */
-    public BTreeNodeNonLeaf(final Memory memory, final IdSupplier idSupplier)
+    public BTreeNodeNonLeaf(final long pageNumber, final Memory memory)
     {
-        super(memory, idSupplier);
+        super(pageNumber, memory);
         this.children =  new BTreeNode[0];
     }
 
     /**
-     * split constructor.
+     * Copy/Split constructor.
      */
     public BTreeNodeNonLeaf(
+            final long pageNumber,
             final Memory memory,
             final int numberOfKeys,
             final int numberOfValues,
-            final BTreeNode[] children,
-            final LongSupplier idSupplier)
+            final BTreeNode[] children)
     {
-        super(memory, numberOfKeys, numberOfValues, idSupplier);
-        this.children = children;
-    }
-
-    /**
-     * Copy constructor.
-     */
-    public BTreeNodeNonLeaf(
-            final long id,
-            final Memory memory,
-            final int numberOfKeys,
-            final int numberOfValues,
-            final BTreeNode[] children,
-            final LongSupplier idSupplier)
-    {
-        super(id, memory, numberOfKeys, numberOfValues, idSupplier);
+        super(pageNumber, memory, numberOfKeys, numberOfValues);
         this.children = children;
     }
 
@@ -198,7 +181,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
                     }
                     else
                     {
-                        pageNumber = child.getId();
+                        pageNumber = child.getPageNumber();
                     }
 
                     setValue(index, pageNumber);

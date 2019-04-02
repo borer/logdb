@@ -32,27 +32,27 @@ public class NodesManager
     private BTreeNodeLeaf createEmptyLeafNode()
     {
         return new BTreeNodeLeaf(
+                idSupplier.getAsLong(),
                 storage.allocateWritableMemory(),
                 0,
-                0,
-                idSupplier);
+                0);
     }
 
     public BTreeNodeNonLeaf createEmptyNonLeafNode()
     {
         return new BTreeNodeNonLeaf(
+                idSupplier.getAsLong(),
                 storage.allocateWritableMemory(),
                 0,
                 1,
-                new BTreeNode[1],
-                idSupplier);
+                new BTreeNode[1]);
     }
 
     public BTreeNode splitNode(final BTreeNode originalNode, final int at)
     {
         final BTreeNode splitNode = (originalNode instanceof BTreeNodeLeaf)
-                ? new BTreeNodeLeaf(storage.allocateWritableMemory(), 0, 0, idSupplier)
-                : new BTreeNodeNonLeaf(storage.allocateWritableMemory(), 0, 0, null, idSupplier);
+                ? new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0)
+                : new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0, null);
         originalNode.split(at, splitNode);
         return splitNode;
     }
@@ -60,8 +60,8 @@ public class NodesManager
     public BTreeNode copyNode(final BTreeNode originalNode)
     {
         final BTreeNode copyNode = (originalNode instanceof BTreeNodeLeaf)
-                ? new BTreeNodeLeaf(originalNode.getId(), storage.allocateWritableMemory(), 0, 0, idSupplier)
-                : new BTreeNodeNonLeaf(originalNode.getId(), storage.allocateWritableMemory(), 0, 0, null, idSupplier);
+                ? new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0)
+                : new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateWritableMemory(), 0, 0, null);
         originalNode.copy(copyNode);
         return copyNode;
     }
@@ -144,11 +144,11 @@ public class NodesManager
             if (BtreeNodeType.Leaf == nodeType)
             {
                 //TODO: create a pool of those
-                return new BTreeNodeLeaf(memory, idSupplier);
+                return new BTreeNodeLeaf(idSupplier.getAsLong(), memory);
             }
             else
             {
-                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(memory, idSupplier);
+                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), memory);
                 nonLeafNodesCache.put(pageNumber, bTreeNodeNonLeaf);
                 return bTreeNodeNonLeaf;
             }

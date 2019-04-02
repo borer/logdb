@@ -34,7 +34,7 @@ public class BTreePrinter
 
     private static void print(final StringBuilder printer, final BTreeNodeLeaf node)
     {
-        final String id = String.valueOf(node.getId());
+        final String id = String.valueOf(node.getPageNumber());
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
@@ -50,7 +50,7 @@ public class BTreePrinter
 
     private static void print(final StringBuilder printer, final BTreeNodeNonLeaf node, final NodesManager nodesManager)
     {
-        final String id = String.valueOf(node.getId());
+        final String id = String.valueOf(node.getPageNumber());
         final String lastChildId = getPageUniqueId(node.numberOfKeys, node);
 
         printer.append(String.format("\"%s\"", id));
@@ -98,7 +98,7 @@ public class BTreePrinter
     {
         return String.valueOf(
                 node.getValue(index) == BTreeNodeNonLeaf.NON_COMMITTED_CHILD
-                ? node.getChildAt(index).getId()
+                ? node.getChildAt(index).getPageNumber()
                 : node.getValue(index));
     }
 }

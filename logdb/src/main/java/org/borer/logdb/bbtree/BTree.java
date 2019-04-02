@@ -258,7 +258,7 @@ public class BTree
     public void commit()
     {
         nodesManager.commitDirtyNodes();
-        nodesManager.commitLastRootPage(getCurrentRootNode().getId());
+        nodesManager.commitLastRootPage(getCurrentRootNode().getPageNumber());
     }
 
     private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNodeNonLeaf nonLeaf)

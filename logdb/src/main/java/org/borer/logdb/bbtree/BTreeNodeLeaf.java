@@ -4,41 +4,27 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
 import org.borer.logdb.storage.NodesManager;
 
-import java.util.function.LongSupplier;
-
 public class BTreeNodeLeaf extends BTreeNodeAbstract
 {
     /**
-     * load constructor.
+     * Load constructor.
      */
-    public BTreeNodeLeaf(final Memory memory, final IdSupplier idSupplier)
+    public BTreeNodeLeaf(final long pageNumber, final Memory memory)
     {
-        super(memory, idSupplier);
+        super(pageNumber, memory);
     }
 
-    /**
-     * split constructor.
-     */
-    public BTreeNodeLeaf(
-            final Memory memory,
-            final int numberOfKeys,
-            final int numberOfValues,
-            final LongSupplier idSupplier)
-    {
-        super(memory, numberOfKeys, numberOfValues, idSupplier);
-    }
 
     /**
-     * Copy constructor.
+     * Copy/Split constructor.
      */
     public BTreeNodeLeaf(
-            final long id,
+            final long pageNumber,
             final Memory memory,
             final int numberOfKeys,
-            final int numberOfValues,
-            final LongSupplier idSupplier)
+            final int numberOfValues)
     {
-        super(id, memory, numberOfKeys, numberOfValues, idSupplier);
+        super(pageNumber, memory, numberOfKeys, numberOfValues);
     }
 
     @Override

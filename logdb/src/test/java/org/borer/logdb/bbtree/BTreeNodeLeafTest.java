@@ -19,10 +19,10 @@ class BTreeNodeLeafTest
         idSupplier = new IdSupplier(0);
 
         bTreeLeaf = new BTreeNodeLeaf(
+                idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
-                idSupplier);
+                0);
     }
 
     /////////////////////////////////Add/Update
@@ -209,10 +209,10 @@ class BTreeNodeLeafTest
         final int at = totalElements >> 1;
 
         final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
+                idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
-                idSupplier);
+                0);
         bTreeLeaf.split(at, newBtree);
 
         assertEquals(at, bTreeLeaf.getKeyCount());
@@ -245,10 +245,10 @@ class BTreeNodeLeafTest
         assertEquals(totalElements, bTreeLeaf.getKeyCount());
 
         final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
+                idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
-                idSupplier);
+                0);
         bTreeLeaf.split(at, newBtree);
 
         assertEquals(at, bTreeLeaf.getKeyCount());
@@ -278,11 +278,11 @@ class BTreeNodeLeafTest
         }
 
         final BTreeNodeLeaf copy = new BTreeNodeLeaf(
-                bTreeLeaf.getId(),
+                bTreeLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
-                idSupplier);
+                0
+        );
         bTreeLeaf.copy(copy);
 
         for (int i = 0; i < 10; i++)

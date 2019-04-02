@@ -114,11 +114,11 @@ class BTreeNodeNonLeafTest
 
         final int at = totalKeys >> 1;
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1],
-                new IdSupplier(0));
+                new BTreeNode[1]);
         bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
@@ -182,11 +182,11 @@ class BTreeNodeNonLeafTest
 
         final int at = totalKeys >> 1;
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1],
-                new IdSupplier(0));
+                new BTreeNode[1]);
         bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
@@ -239,12 +239,11 @@ class BTreeNodeNonLeafTest
         }
 
         final BTreeNodeNonLeaf copy = new BTreeNodeNonLeaf(
-                bTreeNonLeaf.getId(),
+                bTreeNonLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 0, //there is always one child at least
-                null,
-                new IdSupplier(0));
+                null);
 
         bTreeNonLeaf.copy(copy);
 

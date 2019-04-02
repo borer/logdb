@@ -6,10 +6,10 @@ import org.borer.logdb.storage.NodesManager;
 public interface BTreeNode
 {
     /**
-     * unique id of this node.
-      * @return id
+     * The page number where this node is persisted or a generated id if it's not yet persisted.
+      * @return pagenumber
      */
-    long getId();
+    long getPageNumber();
 
     /**
      * Gets the underlying buffer that stores the content of this node. Changes to that buffer will change the node content.
