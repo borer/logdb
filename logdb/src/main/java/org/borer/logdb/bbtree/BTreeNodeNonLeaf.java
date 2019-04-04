@@ -223,8 +223,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         }
         if (gapIndex < oldSize)
         {
-            System.arraycopy(src, gapIndex, dst, gapIndex + 1, oldSize
-                    - gapIndex);
+            System.arraycopy(src, gapIndex, dst, gapIndex + 1, oldSize - gapIndex);
         }
     }
 
@@ -248,8 +247,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         }
         if (removeIndex < oldSize)
         {
-            System.arraycopy(src, removeIndex + 1, dst, removeIndex, oldSize
-                    - removeIndex - 1);
+            System.arraycopy(src, removeIndex + 1, dst, removeIndex, oldSize - removeIndex - 1);
         }
     }
 }

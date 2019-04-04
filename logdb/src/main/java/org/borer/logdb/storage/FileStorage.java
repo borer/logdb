@@ -22,7 +22,7 @@ import static org.borer.logdb.Config.LOG_DB_VERSION;
 public final class FileStorage implements Storage, Closeable
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
-    public static final int NO_CURRENT_ROOT_OFFSET = -1;
+    public static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
 
     private final String filename;
     private final List<MappedByteBuffer> mappedBuffers;
@@ -66,7 +66,7 @@ public final class FileStorage implements Storage, Closeable
                     LOG_DB_VERSION,
                     pageSizeBytes,
                     memoryMappedChunkSizeBytes,
-                    NO_CURRENT_ROOT_OFFSET
+                    NO_CURRENT_ROOT_PAGE_NUMBER
             );
 
             headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
@@ -74,9 +74,8 @@ public final class FileStorage implements Storage, Closeable
             headerBuffer.rewind();
 
             channel.write(headerBuffer);
-            channel.position(FileDbHeader.getSizeBytes());
-
             channel.force(true);
+            channel.position(fileDbHeader.headerSizeInPages * pageSizeBytes);
 
             fileStorage = new FileStorage(
                     filename,
@@ -84,7 +83,7 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            fileStorage.initMaps();
+            fileStorage.extendMapsIfRequired();
         }
         catch (FileNotFoundException e)
         {
@@ -109,10 +108,10 @@ public final class FileStorage implements Storage, Closeable
             final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
             headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
             channel.read(headerBuffer);
-            channel.position(FileDbHeader.getSizeBytes());
             headerBuffer.rewind();
 
             final FileDbHeader fileDbHeader = FileDbHeader.readFrom(headerBuffer);
+            channel.position(fileDbHeader.headerSizeInPages * fileDbHeader.pageSize);
 
             fileStorage = new FileStorage(
                     filename,
@@ -120,7 +119,7 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            fileStorage.initMaps();
+            fileStorage.extendMapsIfRequired();
         }
         catch (FileNotFoundException e)
         {
@@ -134,31 +133,20 @@ public final class FileStorage implements Storage, Closeable
         return fileStorage;
     }
 
-    private void initMaps()
+    private void extendMapsIfRequired()
     {
         try
         {
-            final long numberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
-            for (long i = 0; i < numberOfMaps; i++)
+            long originalChannelPosition = channel.position();
+
+            final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
+            final long regionsToMap = (requiredNumberOfMaps == 0 ? 1 : requiredNumberOfMaps) - mappedBuffers.size();
+            for (long i = 0; i < regionsToMap; i++)
             {
                 mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
             }
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
 
-    private void extendMaps()
-    {
-        try
-        {
-            final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
-            for (long i = mappedBuffers.size(); i < requiredNumberOfMaps; i++)
-            {
-                mapMemory((i - 1) * fileDbHeader.memoryMappedChunkSizeBytes);
-            }
+            channel.position(originalChannelPosition);
         }
         catch (IOException e)
         {
@@ -168,7 +156,7 @@ public final class FileStorage implements Storage, Closeable
 
     private long calculateRequiredNumberOfMapMemoryRegions() throws IOException
     {
-        return (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
+        return channel.size() / fileDbHeader.memoryMappedChunkSizeBytes;
     }
 
     private void mapMemory(final long offset)
@@ -230,8 +218,9 @@ public final class FileStorage implements Storage, Closeable
             long pageNumber = -1;
             try
             {
-                pageNumber = (channel.position() - FileDbHeader.getSizeBytes()) / fileDbHeader.pageSize;
+                pageNumber = channel.position() / fileDbHeader.pageSize;
                 channel.write(ByteBuffer.wrap(nodeSupportArray));
+                extendMapsIfRequired();
             }
             catch (IOException e)
             {
@@ -252,9 +241,11 @@ public final class FileStorage implements Storage, Closeable
         this.lastRootPageNumber = lastRootPageNumber;
         try
         {
+            final long currentChanelPosition = channel.position();
             dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
             //this is big-endind, that is why we need to invert, as the header is always little endian
             dbFile.writeLong(Long.reverseBytes(lastRootPageNumber));
+            channel.position(currentChanelPosition);
         }
         catch (IOException e)
         {
@@ -271,12 +262,14 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public Memory loadLastRoot()
     {
-        long currentRootOffset;
+        long currentRootPageNumber;
         try
         {
+            final long currentChanelPosition = channel.position();
             dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
             //this is big-endind, that is why we need to invert, as the header is always little endian
-            currentRootOffset = Long.reverseBytes(dbFile.readLong());
+            currentRootPageNumber = Long.reverseBytes(dbFile.readLong());
+            channel.position(currentChanelPosition);
         }
         catch (IOException e)
         {
@@ -284,9 +277,9 @@ public final class FileStorage implements Storage, Closeable
             return null;
         }
 
-        if (currentRootOffset != NO_CURRENT_ROOT_OFFSET)
+        if (currentRootPageNumber != NO_CURRENT_ROOT_PAGE_NUMBER)
         {
-            return loadPage(currentRootOffset);
+            return loadPage(currentRootPageNumber);
         }
 
         return null;
@@ -299,9 +292,8 @@ public final class FileStorage implements Storage, Closeable
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
             final long offsetMappedBuffer = i * fileDbHeader.memoryMappedChunkSizeBytes;
-            final int fileHeaderSize = (i == 0) ? FileDbHeader.getSizeBytes() : 0;
-            final long pageOffset = (pageNumber * fileDbHeader.pageSize) + fileHeaderSize;
-            if (pageOffset > offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
+            final long pageOffset = pageNumber * fileDbHeader.pageSize;
+            if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.mapDirect(
                         mappedBuffer,
@@ -320,8 +312,7 @@ public final class FileStorage implements Storage, Closeable
         try
         {
             channel.force(true);
-
-            extendMaps();
+            extendMapsIfRequired();
         }
         catch (IOException e)
         {

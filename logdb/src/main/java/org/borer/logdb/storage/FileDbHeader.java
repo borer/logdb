@@ -19,6 +19,7 @@ public class FileDbHeader
 
     final ByteOrder byteOrder;
     final int pageSize; // Must be a power of two
+    final int headerSizeInPages;
     final long memoryMappedChunkSizeBytes;
 
     FileDbHeader(
@@ -31,6 +32,7 @@ public class FileDbHeader
         this.byteOrder = byteOrder;
         this.version = version;
         this.pageSize = pageSize;
+        this.headerSizeInPages = (FileDbHeader.getSizeBytes() / pageSize) + 1;
         this.memoryMappedChunkSizeBytes = memoryMappedChunkSizeBytes;
         this.lastRootOffset = lastRootOffset;
     }
@@ -38,13 +40,14 @@ public class FileDbHeader
     @Override
     public String toString()
     {
-        return "FileDbHeader{"
-                + "byteOrder=" + byteOrder
-                + ", version=" + version
-                + ", pageSize=" + pageSize
-                + ", memoryMappedChunkSizeBytes=" + memoryMappedChunkSizeBytes
-                + ", lastRootOffset=" + lastRootOffset
-                + '}';
+        return "FileDbHeader{" +
+                "version=" + version +
+                ", lastRootOffset=" + lastRootOffset +
+                ", byteOrder=" + byteOrder +
+                ", pageSize=" + pageSize +
+                ", headerSizeInPages=" + headerSizeInPages +
+                ", memoryMappedChunkSizeBytes=" + memoryMappedChunkSizeBytes +
+                '}';
     }
 
     @Override
@@ -59,17 +62,18 @@ public class FileDbHeader
             return false;
         }
         FileDbHeader that = (FileDbHeader) o;
-        return version == that.version
-                && pageSize == that.pageSize
-                && memoryMappedChunkSizeBytes == that.memoryMappedChunkSizeBytes
-                && lastRootOffset == that.lastRootOffset
-                && byteOrder.equals(that.byteOrder);
+        return version == that.version &&
+                lastRootOffset == that.lastRootOffset &&
+                pageSize == that.pageSize &&
+                headerSizeInPages == that.headerSizeInPages &&
+                memoryMappedChunkSizeBytes == that.memoryMappedChunkSizeBytes &&
+                Objects.equals(byteOrder, that.byteOrder);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(byteOrder, version, pageSize, memoryMappedChunkSizeBytes, lastRootOffset);
+        return Objects.hash(version, lastRootOffset, byteOrder, pageSize, headerSizeInPages, memoryMappedChunkSizeBytes);
     }
 
     static FileDbHeader readFrom(final ByteBuffer buffer)

@@ -142,20 +142,20 @@ public class MemoryByteBufferImpl implements Memory
     @Override
     public void assertBounds(long requestOffset, int requestLength)
     {
-        assert ((requestOffset | requestLength | (requestOffset + requestLength)
-                | (buffer.capacity() - (requestOffset + requestLength))) >= 0) :
-                "requestOffset: " + requestOffset + ", requestLength: " + requestLength
-                        + ", (requestOffset + requestLength): " + (requestOffset + requestLength)
-                        + ", allocSize: " + buffer.capacity();
+        assert ((requestOffset | requestLength | (requestOffset + requestLength) |
+                (buffer.capacity() - (requestOffset + requestLength))) >= 0)
+                : "requestOffset: " + requestOffset + ", requestLength: " + requestLength +
+                    ", (requestOffset + requestLength): " + (requestOffset + requestLength) +
+                    ", allocSize: " + buffer.capacity();
     }
 
     @Override
     public void assertBounds(long requestOffset, long requestLength)
     {
-        assert ((requestOffset | requestLength | (requestOffset + requestLength)
-                | (buffer.capacity() - (requestOffset + requestLength))) >= 0) :
-                "requestOffset: " + requestOffset + ", requestLength: " + requestLength
-                        + ", (requestOffset + requestLength): " + (requestOffset + requestLength)
-                        + ", allocSize: " + buffer.capacity();
+        assert ((requestOffset | requestLength | (requestOffset + requestLength) |
+                (buffer.capacity() - (requestOffset + requestLength))) >= 0)
+                    : "requestOffset: " + requestOffset + ", requestLength: " + requestLength +
+                        ", (requestOffset + requestLength): " + (requestOffset + requestLength) +
+                        ", allocSize: " + buffer.capacity();
     }
 }

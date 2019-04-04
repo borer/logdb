@@ -76,9 +76,11 @@ public class NodesManager
 
     public void commitDirtyNodes()
     {
+        int i = 0;
         for (final BTreeNode dirtyRootNode : dirtyRootNodes)
         {
             dirtyRootNode.commit(this);
+            i++;
         }
 
         storage.flush();

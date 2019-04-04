@@ -30,6 +30,7 @@ public class BTree
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
 
+        //TODO: pass the root in the constructor
         final BTreeNode currentRoot = nodesManager.loadLastRoot();
         setNewRoot(null, currentRoot);
     }
@@ -57,8 +58,8 @@ public class BTree
 
             if (currentNode.getKeyCount() == 1)
             {
-                assert currentNode instanceof BTreeNodeNonLeaf :
-                        "Parent of the node that trying to remove is not non leaf";
+                assert currentNode instanceof BTreeNodeNonLeaf
+                        : "Parent of the node that trying to remove is not non leaf";
 
                 this.nodesCount--;
                 assert index <= 1;
