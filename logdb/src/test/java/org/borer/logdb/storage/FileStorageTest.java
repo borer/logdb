@@ -4,7 +4,6 @@ import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
-import org.borer.logdb.bbtree.BTreePrinter;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.support.TestUtils;
@@ -103,18 +102,17 @@ class FileStorageTest
         assertEquals(5, readBTree.get(5));
     }
 
-//    @Test
+    @Test
     void shouldBeABleToPersistAndReadABBtree() throws IOException
     {
         final NodesManager nodesManager = new NodesManager(storage);
         final BTree originalBTree = new BTree(nodesManager);
 
-        for (int i = 0; i < 100; i++)
+        final int numKeys = 100;
+        for (int i = 0; i < numKeys; i++)
         {
             originalBTree.put(i, i);
         }
-
-        final String originalBtreePrint = BTreePrinter.print(originalBTree, nodesManager);
 
         originalBTree.commit();
 
@@ -126,8 +124,9 @@ class FileStorageTest
         final NodesManager readNodesManager = new NodesManager(oldFileDB);
         final BTree loadedBTree = new BTree(readNodesManager);
 
-        final String loadedBtreePrint = BTreePrinter.print(loadedBTree, readNodesManager);
-
-        assertEquals(originalBtreePrint, loadedBtreePrint);
+        for (int i = 0; i < numKeys; i++)
+        {
+            assertEquals(i, loadedBTree.get(i));
+        }
     }
 }

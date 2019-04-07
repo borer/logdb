@@ -140,7 +140,7 @@ public final class FileStorage implements Storage, Closeable
             long originalChannelPosition = channel.position();
 
             final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
-            final long regionsToMap = (requiredNumberOfMaps == 0 ? 1 : requiredNumberOfMaps) - mappedBuffers.size();
+            final long regionsToMap = requiredNumberOfMaps - mappedBuffers.size();
             for (long i = 0; i < regionsToMap; i++)
             {
                 mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
@@ -156,7 +156,7 @@ public final class FileStorage implements Storage, Closeable
 
     private long calculateRequiredNumberOfMapMemoryRegions() throws IOException
     {
-        return channel.size() / fileDbHeader.memoryMappedChunkSizeBytes;
+        return (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
     }
 
     private void mapMemory(final long offset)
