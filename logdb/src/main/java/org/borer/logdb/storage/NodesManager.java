@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class NodesManager
 {
@@ -23,7 +24,7 @@ public class NodesManager
 
     public NodesManager(final Storage storage)
     {
-        this.storage = storage;
+        this.storage = Objects.requireNonNull(storage, "storage cannot be null");
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
         this.nonLeafNodesCache = new HashMap<>();

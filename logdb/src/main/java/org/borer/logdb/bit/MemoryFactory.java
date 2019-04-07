@@ -2,6 +2,7 @@ package org.borer.logdb.bit;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 public class MemoryFactory
 {
@@ -11,6 +12,8 @@ public class MemoryFactory
             final int capacity,
             final ByteOrder byteOrder)
     {
+        Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
+
         final long baseAddress =
                 NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset;
 

@@ -2,6 +2,8 @@ package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
 
+import java.util.Objects;
+
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
 abstract class BTreeNodeAbstract implements BTreeNode
@@ -83,7 +85,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
                       final int numberOfValues)
     {
         this.pageNumber = pageNumber;
-        this.buffer = buffer;
+        this.buffer = Objects.requireNonNull(buffer, "buffer must not be null");
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
         this.freeSizeLeftBytes = calculateFreeSpaceLeft();
@@ -117,7 +119,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public void updateBuffer(final Memory newBuffer)
     {
-        this.buffer = newBuffer;
+        this.buffer = Objects.requireNonNull(newBuffer, "new buffer must not be null");
         numberOfKeys = buffer.getInt(NUMBER_OF_KEY_OFFSET);
         numberOfValues = buffer.getInt(NUMBER_OF_VALUES_OFFSET);
         freeSizeLeftBytes = calculateFreeSpaceLeft();

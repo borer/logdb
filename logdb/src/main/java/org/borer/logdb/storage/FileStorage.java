@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 
 import static org.borer.logdb.Config.LOG_DB_VERSION;
@@ -39,10 +40,10 @@ public final class FileStorage implements Storage, Closeable
             final RandomAccessFile dbFile,
             final FileChannel channel)
     {
-        this.filename = filename;
-        this.fileDbHeader = fileDbHeader;
-        this.dbFile = dbFile;
-        this.channel = channel;
+        this.filename = Objects.requireNonNull(filename, "db filename cannot be null");
+        this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
+        this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
+        this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
         this.mappedBuffers = new ArrayList<>();
         this.availableWritableMemory = new ArrayDeque<>();
         this.lastRootPageNumber = -1;

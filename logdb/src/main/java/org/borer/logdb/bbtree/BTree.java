@@ -3,6 +3,7 @@ package org.borer.logdb.bbtree;
 import org.borer.logdb.Config;
 import org.borer.logdb.storage.NodesManager;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
@@ -26,12 +27,14 @@ public class BTree
 
     public BTree(final NodesManager nodesManager)
     {
-        this.nodesManager = nodesManager;
+        this.nodesManager = Objects.requireNonNull(
+                nodesManager, "nodesManager must not be null");
         this.root = new AtomicReference<>(null);
         this.nodesCount = 1;
 
         //TODO: pass the root in the constructor
-        final BTreeNode currentRoot = nodesManager.loadLastRoot();
+        final BTreeNode currentRoot = Objects.requireNonNull(
+                nodesManager.loadLastRoot(), "current root cannot be null");
         setNewRoot(null, currentRoot);
     }
 

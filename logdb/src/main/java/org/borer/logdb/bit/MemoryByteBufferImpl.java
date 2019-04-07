@@ -3,6 +3,7 @@ package org.borer.logdb.bit;
 import sun.misc.Unsafe;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class MemoryByteBufferImpl implements Memory
 {
@@ -10,7 +11,8 @@ public class MemoryByteBufferImpl implements Memory
 
     MemoryByteBufferImpl(final ByteBuffer buffer)
     {
-        this.buffer = buffer;
+        assert buffer != null && !buffer.isDirect() : "buffer has to be heap allocated and not null";
+        this.buffer = Objects.requireNonNull(buffer, "buffer cannot be null");
     }
 
     @Override
