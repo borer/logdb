@@ -18,14 +18,14 @@ class BTreeNodeNonLeafTest
     @BeforeEach
     void setUp()
     {
-        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
+        final BTreeNodeLeaf bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
         bTreeNonLeaf = TestUtils.createNonLeafNodeWithChild(bTreeNode);
     }
 
     @Test
     void shouldBeAbleToInsertChild()
     {
-        final BTreeNode bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
+        final BTreeNodeLeaf bTreeNode = createLeafNodeWithKeys(10, 0, new IdSupplier(0));
 
         bTreeNonLeaf.insertChild(0, 0, bTreeNode);
     }
@@ -37,7 +37,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
+            final BTreeNodeLeaf bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
@@ -58,7 +58,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
+            final BTreeNodeLeaf bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
         }
@@ -107,7 +107,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < totalKeys; i++)
         {
             final long key = numKeysPerChild * i;
-            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
 
             bTreeNonLeaf.insertChild(i, key, child); //there is something funky with the byte order
         }
@@ -175,7 +175,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < totalKeys; i++)
         {
             final long key = numKeysPerChild * i;
-            final BTreeNode child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
 
             bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
         }
@@ -231,7 +231,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
-            final BTreeNode bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
+            final BTreeNodeLeaf bTreeNode = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             bTreeNonLeaf.insertChild(i, key, bTreeNode);
 
@@ -248,7 +248,7 @@ class BTreeNodeNonLeafTest
         bTreeNonLeaf.copy(copy);
 
         final int key = numKeysPerChild * 10;
-        final BTreeNode child = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
+        final BTreeNodeLeaf child = createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
         bTreeNonLeaf.insertChild(8, key, child);
 
         assertEquals(11, bTreeNonLeaf.getKeyCount());

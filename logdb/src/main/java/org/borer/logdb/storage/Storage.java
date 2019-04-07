@@ -1,6 +1,8 @@
 package org.borer.logdb.storage;
 
+import org.borer.logdb.bit.DirectMemory;
 import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.ReadMemory;
 
 import java.io.Closeable;
 
@@ -22,11 +24,15 @@ import java.io.Closeable;
  */
 public interface Storage extends Closeable
 {
-    Memory allocateWritableMemory();
+    Memory allocateHeapMemory();
 
     void returnWritableMemory(Memory writableMemory);
 
-    long commitNode(Memory node);
+    DirectMemory getDirectMemory(long pageNumber);
+
+    long getPageSize();
+
+    long commitNode(ReadMemory node);
 
     void flush();
 
@@ -37,4 +43,6 @@ public interface Storage extends Closeable
     Memory loadLastRoot();
 
     Memory loadPage(long pageNumber);
+
+    long getBaseOffsetForPageNumber(long pageNumber);
 }

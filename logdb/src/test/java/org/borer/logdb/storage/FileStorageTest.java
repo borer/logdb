@@ -64,11 +64,11 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        leaf.updateBuffer(persistedMemory);
+        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemory);
 
         for (int i = 0; i < numKeys; i++)
         {
-            assertEquals(i, leaf.get(i));
+            assertEquals(i, loadedLeaf.get(i));
         }
     }
 
@@ -84,15 +84,15 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        nonLeaf.updateBuffer(persistedMemory);
+        final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, persistedMemory);
 
-        final long pageNumberLeaf = nonLeaf.getValue(0);
+        final long pageNumberLeaf = loadedNonLeaf.getValue(0);
         final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
-        leaf.updateBuffer(persistedMemoryLeaf);
+        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemoryLeaf);
 
         for (int i = 0; i < numKeys; i++)
         {
-            assertEquals(i, leaf.get(i));
+            assertEquals(i, loadedLeaf.get(i));
         }
     }
 }

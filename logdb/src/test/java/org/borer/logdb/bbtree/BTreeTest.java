@@ -82,31 +82,6 @@ class BTreeTest
     }
 
     @Test
-    void shouldConsumeKeyValuesInOrderAfterCommit()
-    {
-        final List<Long> expectedOrder = new ArrayList<>();
-        for (long i = 0; i < 100; i++)
-        {
-            expectedOrder.add(i);
-            bTree.put(i, i);
-        }
-
-        bTree.commit();
-
-        expectedOrder.sort(Long::compareTo);
-
-        final LinkedList<Long> actualOrder = new LinkedList<>();
-        bTree.consumeAll((key, value) -> actualOrder.addLast(key));
-
-        assertEquals(expectedOrder.size(), actualOrder.size());
-
-        for (int i = 0; i < expectedOrder.size(); i++)
-        {
-            assertEquals(expectedOrder.get(i), actualOrder.get(i));
-        }
-    }
-
-    @Test
     void shouldConsumeKeyValuesInOrderForAGivenVersion()
     {
         final List<Long> expectedOrder = new ArrayList<>();

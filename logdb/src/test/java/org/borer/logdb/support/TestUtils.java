@@ -1,6 +1,7 @@
 package org.borer.logdb.support;
 
 import org.borer.logdb.bbtree.BTreeNode;
+import org.borer.logdb.bbtree.BTreeNodeHeap;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.IdSupplier;
@@ -26,12 +27,12 @@ public class TestUtils
         return buffer;
     }
 
-    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child)
+    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNodeHeap child)
     {
         return createNonLeafNodeWithChild(child, 0);
     }
 
-    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNode child, final int startId)
+    public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNodeHeap child, final int startId)
     {
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
                 startId,

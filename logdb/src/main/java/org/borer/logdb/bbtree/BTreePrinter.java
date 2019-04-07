@@ -32,7 +32,34 @@ public class BTreePrinter
         return printer.toString();
     }
 
-    private static void print(final StringBuilder printer, final BTreeNodeLeaf node)
+    private static void print(final StringBuilder printer, final BTreeNode node, final NodesManager nodesManager)
+    {
+        if (node instanceof BTreeNodeNonLeaf)
+        {
+            printNonLeaf(printer, (BTreeNodeNonLeaf)node, nodesManager);
+        }
+        else if (node instanceof BTreeNodeLeaf)
+        {
+            printLeaf(printer, (BTreeNodeLeaf) node);
+        }
+        else if (node instanceof BTreeMappedNode)
+        {
+            if (node.isInternal())
+            {
+                printNonLeaf(printer, (BTreeMappedNode) node, nodesManager);
+            }
+            else
+            {
+                printLeaf(printer, (BTreeMappedNode) node);
+            }
+        }
+        else
+        {
+            throw new UnsupportedOperationException("node type is not supported");
+        }
+    }
+
+    private static void printLeaf(final StringBuilder printer, final BTreeNodeAbstract node)
     {
         final String id = String.valueOf(node.getPageNumber());
         printer.append(String.format("\"%s\"", id));
@@ -48,7 +75,7 @@ public class BTreePrinter
         printer.append("\"];\n");
     }
 
-    private static void print(final StringBuilder printer, final BTreeNodeNonLeaf node, final NodesManager nodesManager)
+    private static void printNonLeaf(final StringBuilder printer, final BTreeNodeAbstract node, final NodesManager nodesManager)
     {
         final String id = String.valueOf(node.getPageNumber());
         final String lastChildId = getPageUniqueId(node.numberOfKeys, node);
@@ -75,26 +102,16 @@ public class BTreePrinter
         printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
         printer.append("\n");
 
+        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
         for (int i = 0; i < node.numberOfValues; i++)
         {
-            final BTreeNode child = nodesManager.loadNode(i, node);
+            final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);
             print(printer, child, nodesManager);
         }
+        nodesManager.returnMappedNode(mappedNode);
     }
 
-    private static void print(final StringBuilder printer, final BTreeNode node, final NodesManager nodesManager)
-    {
-        if (node instanceof BTreeNodeNonLeaf)
-        {
-            print(printer, (BTreeNodeNonLeaf)node, nodesManager);
-        }
-        else
-        {
-            print(printer, (BTreeNodeLeaf) node);
-        }
-    }
-
-    private static String getPageUniqueId(final int index, BTreeNodeNonLeaf node)
+    private static String getPageUniqueId(final int index, BTreeNode node)
     {
         return String.valueOf(
                 node.getValue(index) == BTreeNodeNonLeaf.NON_COMMITTED_CHILD

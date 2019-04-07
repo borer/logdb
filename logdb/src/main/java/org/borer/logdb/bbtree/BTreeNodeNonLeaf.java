@@ -4,7 +4,7 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
 import org.borer.logdb.storage.NodesManager;
 
-public class BTreeNodeNonLeaf extends BTreeNodeAbstract
+public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
     public static final int NON_COMMITTED_CHILD = -1;
 
@@ -41,7 +41,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void setChild(final int index, final BTreeNode child)
+    public void setChild(final int index, final BTreeNodeHeap child)
     {
         //TODO (handle this better) : this will be replaced once we commit the child page
         setValue(index, NON_COMMITTED_CHILD);
@@ -57,7 +57,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void insertChild(final int index, final long key, final BTreeNode child)
+    public void insertChild(final int index, final long key, final BTreeNodeHeap child)
     {
         final int rawChildPageCount = getChildrenNumber();
         insertKey(index, key);
@@ -128,29 +128,22 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void copy(final BTreeNode copyNode)
+    public void copy(final BTreeNodeHeap copyNode)
     {
-        assert copyNode instanceof BTreeNodeNonLeaf : "when splitting a non leaf node, needs same type";
+        assert copyNode instanceof BTreeNodeNonLeaf : "when copying a non leaf node, needs same type";
 
-        final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) copyNode;
-        MemoryCopy.copy(buffer, bTreeNodeNonLeaf.getBuffer());
-
-        bTreeNodeNonLeaf.updateBuffer(bTreeNodeNonLeaf.getBuffer());
+        MemoryCopy.copy(buffer, copyNode.getBuffer());
+        copyNode.initNodeFromBuffer();
 
         final BTreeNode[] copyChildren = new BTreeNode[children.length];
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
+        final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) copyNode;
         bTreeNodeNonLeaf.setChildren(copyChildren);
     }
 
     @Override
-    public boolean needRebalancing(int threshold)
-    {
-        return numberOfValues < 2;
-    }
-
-    @Override
-    public void split(final int at, final BTreeNode splitNode)
+    public void split(final int at, final BTreeNodeHeap splitNode)
     {
         assert getKeyCount() > 0 : "cannot split node with less than 2 nodes";
         assert splitNode instanceof BTreeNodeNonLeaf : "when splitting a non leaf node, needs same type";
@@ -176,7 +169,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         setDirty();
     }
 
-    private void setChildren(final BTreeNode[] children)
+    void setChildren(final BTreeNode[] children)
     {
         this.children = children;
     }
@@ -266,5 +259,11 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         {
             System.arraycopy(src, removeIndex + 1, dst, removeIndex, oldSize - removeIndex - 1);
         }
+    }
+
+    @Override
+    public Memory getBuffer()
+    {
+        return buffer;
     }
 }

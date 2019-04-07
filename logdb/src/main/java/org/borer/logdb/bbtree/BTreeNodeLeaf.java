@@ -4,7 +4,7 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
 import org.borer.logdb.storage.NodesManager;
 
-public class BTreeNodeLeaf extends BTreeNodeAbstract
+public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
     /**
      * Load constructor.
@@ -54,18 +54,14 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void copy(final BTreeNode copyNode)
+    public void copy(final BTreeNodeHeap copyNode)
     {
-        assert copyNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
-
-        final BTreeNodeLeaf bTreeNodeLeaf = (BTreeNodeLeaf) copyNode;
-        MemoryCopy.copy(buffer, bTreeNodeLeaf.getBuffer());
-
-        bTreeNodeLeaf.updateBuffer(bTreeNodeLeaf.getBuffer());
+        MemoryCopy.copy(buffer, copyNode.getBuffer());
+        copyNode.initNodeFromBuffer();
     }
 
     @Override
-    public void split(final int at, final BTreeNode splitNode)
+    public void split(final int at, final BTreeNodeHeap splitNode)
     {
         assert getKeyCount() > 0 : "cannot split node with less than 2 nodes";
         assert splitNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
@@ -81,12 +77,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
         splitValues(at, bNumberOfValues, bTreeNodeLeaf);
 
         setDirty();
-    }
-
-    @Override
-    public boolean needRebalancing(final int threshold)
-    {
-        return numberOfKeys == 0 || numberOfKeys < threshold;
     }
 
     @Override
@@ -150,13 +140,13 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
-    public void insertChild(int index, long key, BTreeNode child)
+    public void insertChild(final int index, final long key, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");
     }
 
     @Override
-    public void setChild(int index, BTreeNode child)
+    public void setChild(final int index, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");
     }
@@ -165,5 +155,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     public int getChildrenNumber()
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");
+    }
+
+    @Override
+    public Memory getBuffer()
+    {
+        return buffer;
+    }
+
+    @Override
+    public void initNodeFromBuffer()
+    {
+        super.initNodeFromBuffer();
     }
 }

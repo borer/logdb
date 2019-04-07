@@ -5,63 +5,23 @@ import org.borer.logdb.bit.Memory;
 import java.util.Objects;
 
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
+import static org.borer.logdb.bbtree.BTreeNodePage.HEADER_SIZE_BYTES;
+import static org.borer.logdb.bbtree.BTreeNodePage.KEY_SIZE;
+import static org.borer.logdb.bbtree.BTreeNodePage.KEY_START_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_KEY_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_VALUES_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.VALUE_SIZE;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    private static final int PAGE_START_OFFSET = 0;
-
-    private static final int PAGE_HEADER_OFFSET = PAGE_START_OFFSET;
-    private static final int PAGE_HEADER_SIZE = Long.BYTES;
-
-    private static final int NUMBER_OF_KEY_OFFSET = PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE;
-    private static final int NUMBER_OF_KEY_SIZE = Integer.BYTES;
-
-    private static final int NUMBER_OF_VALUES_OFFSET = PAGE_START_OFFSET + PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE;
-    private static final int NUMBER_OF_VALUES_SIZE = Integer.BYTES;
-
-    private static final int HEADER_SIZE_BYTES = PAGE_HEADER_SIZE + PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE + NUMBER_OF_VALUES_SIZE;
-    private static final int KEY_START_OFFSET = HEADER_SIZE_BYTES;
-
-    private static final int KEY_SIZE = Long.BYTES;
-    private static final int VALUE_SIZE = Long.BYTES;
-
     private long freeSizeLeftBytes;
 
     long pageNumber;
-    Memory buffer;
     int numberOfKeys;
     int numberOfValues;
     boolean isDirty;
 
-    /**
-     * Index Page layout :
-     * ------------------------------------------ 0
-     * |                 Header                 |
-     * ------------------------------------------ 8
-     * |   Number of keys  |  Number of values  |
-     * ------------------------------------------ 16
-     * |                   Key1                 |
-     * ------------------------------------------ 24
-     * |                   Key2                 |
-     * ------------------------------------------ 32
-     * |                  ......                |
-     * ------------------------------------------ number of keys * 8 = N
-     * |                  ......                |
-     * ------------------------------------------ 4072
-     * |                   Value3               |
-     * ------------------------------------------ 4080
-     * |                   Value2               |
-     * ------------------------------------------ 4088
-     * |                   Value1               |
-     * ------------------------------------------ 4096 (end of page)
-     *
-     * The keys are always 8 bytes.
-     *
-     * For leaf nodes the values are pointers in the leaf nodes to the page that has the element
-     * For internal index nodes the values are pointer in the index file to the page that has the child
-     * Values are always 8 bytes (long)
-     *
-     */
+    final Memory buffer;
 
     /**
      * Load constructor.
@@ -69,7 +29,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
      */
     BTreeNodeAbstract(final long pageNumber, final Memory memory)
     {
-        this(pageNumber, memory, memory.getInt(NUMBER_OF_KEY_OFFSET), memory.getInt(NUMBER_OF_VALUES_OFFSET));
+        this(pageNumber,
+                memory,
+                memory.getInt(NUMBER_OF_KEY_OFFSET),
+                memory.getInt(NUMBER_OF_VALUES_OFFSET));
     }
 
     /**
@@ -110,16 +73,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return pageNumber;
     }
 
-    @Override
-    public Memory getBuffer()
+    public void initNodeFromBuffer()
     {
-        return buffer;
-    }
-
-    @Override
-    public void updateBuffer(final Memory newBuffer)
-    {
-        this.buffer = Objects.requireNonNull(newBuffer, "new buffer must not be null");
         numberOfKeys = buffer.getInt(NUMBER_OF_KEY_OFFSET);
         numberOfValues = buffer.getInt(NUMBER_OF_VALUES_OFFSET);
         freeSizeLeftBytes = calculateFreeSpaceLeft();

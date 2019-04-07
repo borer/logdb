@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -111,6 +114,39 @@ public class BBTreeIntergrationTest
         for (int i = 0; i < numKeys; i++)
         {
             assertEquals(i, loadedBTree.get(i));
+        }
+
+        loadedBTree.close();
+    }
+
+    @Test
+    void shouldConsumeKeyValuesInOrderAfterCommit()
+    {
+        final String filename = "testBtree3.logdb";
+        final BTree originalBTree = createNewPersistedBtree(filename);
+
+        final List<Long> expectedOrder = new ArrayList<>();
+        for (long i = 0; i < 100; i++)
+        {
+            expectedOrder.add(i);
+            originalBTree.put(i, i);
+        }
+
+        originalBTree.commit();
+        originalBTree.close();
+
+        expectedOrder.sort(Long::compareTo);
+
+        final LinkedList<Long> actualOrder = new LinkedList<>();
+        final BTree loadedBTree = loadPersistedBtree(filename);
+
+        loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
+
+        assertEquals(expectedOrder.size(), actualOrder.size());
+
+        for (int i = 0; i < expectedOrder.size(); i++)
+        {
+            assertEquals(expectedOrder.get(i), actualOrder.get(i));
         }
 
         loadedBTree.close();

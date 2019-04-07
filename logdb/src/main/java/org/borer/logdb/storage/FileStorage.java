@@ -1,7 +1,9 @@
 package org.borer.logdb.storage;
 
+import org.borer.logdb.bit.DirectMemory;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
+import org.borer.logdb.bit.ReadMemory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -184,7 +186,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public Memory allocateWritableMemory()
+    public Memory allocateHeapMemory()
     {
         final Memory writableMemory = availableWritableMemory.poll();
         if (writableMemory != null)
@@ -211,7 +213,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long commitNode(final Memory node)
+    public long commitNode(final ReadMemory node)
     {
         final byte[] nodeSupportArray = node.getSupportByteArrayIfAny();
         if (nodeSupportArray != null)
@@ -286,6 +288,7 @@ public final class FileStorage implements Storage, Closeable
         return null;
     }
 
+    @Override
     public Memory loadPage(final long pageNumber)
     {
         //TODO: make this search logN
@@ -305,6 +308,38 @@ public final class FileStorage implements Storage, Closeable
         }
 
         return null;
+    }
+
+    @Override
+    public long getBaseOffsetForPageNumber(final long pageNumber)
+    {
+        //TODO: make this search logN
+        for (int i = 0; i < mappedBuffers.size(); i++)
+        {
+            final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
+            final long offsetMappedBuffer = i * fileDbHeader.memoryMappedChunkSizeBytes;
+            final long pageOffset = pageNumber * fileDbHeader.pageSize;
+            if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
+            {
+                return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
+            }
+        }
+
+        return -1;
+    }
+
+    public DirectMemory getDirectMemory(final long pageNumber)
+    {
+        return MemoryFactory.getGetDirectMemory(
+                pageNumber * fileDbHeader.pageSize,
+                fileDbHeader.pageSize,
+                fileDbHeader.byteOrder);
+    }
+
+    @Override
+    public long getPageSize()
+    {
+        return fileDbHeader.pageSize;
     }
 
     @Override

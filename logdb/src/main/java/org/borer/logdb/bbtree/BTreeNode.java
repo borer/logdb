@@ -1,6 +1,5 @@
 package org.borer.logdb.bbtree;
 
-import org.borer.logdb.bit.Memory;
 import org.borer.logdb.storage.NodesManager;
 
 public interface BTreeNode
@@ -10,18 +9,6 @@ public interface BTreeNode
       * @return pagenumber
      */
     long getPageNumber();
-
-    /**
-     * Gets the underlying buffer that stores the content of this node. Changes to that buffer will change the node content.
-     * @return nodes buffer
-     */
-    Memory getBuffer();
-
-    /**
-     * Changes the underlying buffer to the new one. This is a dangerous non thread safe operation.
-     * @param newBuffer the buffer to use for this node underlying content
-     */
-    void updateBuffer(Memory newBuffer);
 
     /**
      * Inserts key/value pair in the current leaf.
@@ -70,13 +57,13 @@ public interface BTreeNode
      * @param at the key index that we are going to split by
      * @param splitNode the new node that will be populated with the second half of the split
      */
-    void split(int at, BTreeNode splitNode);
+    void split(int at, BTreeNodeHeap splitNode);
 
     /**
      * Creates a copy of the node. The copy has the same id as the original.
      * @param copyNode the node that will be populated with the same content as this node
      */
-    void copy(BTreeNode copyNode);
+    void copy(BTreeNodeHeap copyNode);
 
     /**
      * Commits this node to a storage.
@@ -85,8 +72,6 @@ public interface BTreeNode
     long commit(NodesManager nodesManager);
 
     boolean isDirty();
-
-    boolean needRebalancing(int threshold);
 
     boolean isInternal();
 
@@ -98,15 +83,15 @@ public interface BTreeNode
     long getValue(int index);
 
     /**
-     * Gets the child at index
+     * Gets the child at index.
      * @param index the index for which to get a child
      * @return the child
      */
     BTreeNode getChildAt(int index);
 
-    void insertChild(int index, long key, BTreeNode child);
+    void insertChild(int index, long key, BTreeNodeHeap child);
 
-    void setChild(int index, BTreeNode child);
+    void setChild(int index, BTreeNodeHeap child);
 
     int getChildrenNumber();
 }

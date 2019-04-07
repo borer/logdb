@@ -1,7 +1,9 @@
 package org.borer.logdb.storage;
 
+import org.borer.logdb.bit.DirectMemory;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
+import org.borer.logdb.bit.ReadMemory;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -11,7 +13,7 @@ public class MemoryStorage implements Storage
 {
     private final ByteOrder byteOrder;
     private final int pageSizeBytes;
-    private final HashMap<Long, Memory> maps;
+    private final HashMap<Long, ReadMemory> maps;
 
     private long allocatedMemoryOffset;
     private long lastPageRootNumber;
@@ -27,7 +29,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public Memory allocateWritableMemory()
+    public Memory allocateHeapMemory()
     {
         return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
     }
@@ -39,7 +41,37 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long commitNode(final Memory node)
+    public DirectMemory getDirectMemory(final long pageNumber)
+    {
+        return new DirectMemory()
+        {
+            @Override
+            public void setBaseAddress(long baseAddress)
+            {
+                //No-op
+            }
+
+            @Override
+            public Memory toMemory()
+            {
+                final Memory memory = (Memory) maps.get(pageNumber);
+                if (memory == null)
+                {
+                    return allocateHeapMemory();
+                }
+                return memory;
+            }
+        };
+    }
+
+    @Override
+    public long getPageSize()
+    {
+        return pageSizeBytes;
+    }
+
+    @Override
+    public long commitNode(final ReadMemory node)
     {
         final long currentOffset = this.allocatedMemoryOffset;
         allocatedMemoryOffset += node.getCapacity();
@@ -80,8 +112,14 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public Memory loadPage(final long pageOffset)
+    public Memory loadPage(final long pageNumber)
     {
-        return maps.get(pageOffset);
+        return (Memory)maps.get(pageNumber);
+    }
+
+    @Override
+    public long getBaseOffsetForPageNumber(long pageNumber)
+    {
+        return pageNumber;
     }
 }

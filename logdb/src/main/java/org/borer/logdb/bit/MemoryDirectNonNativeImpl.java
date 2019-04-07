@@ -1,10 +1,10 @@
 package org.borer.logdb.bit;
 
-public class MemoryDirectNonNativeImpl implements Memory
+public class MemoryDirectNonNativeImpl implements Memory, DirectMemory
 {
-    private final long baseAddress;
     private final long capacity;
 
+    private long baseAddress;
     private long position;
 
     MemoryDirectNonNativeImpl(final long baseAddress, final long capacity)
@@ -12,6 +12,12 @@ public class MemoryDirectNonNativeImpl implements Memory
         this.baseAddress = baseAddress;
         this.capacity = capacity;
         this.position = 0;
+    }
+
+    @Override
+    public Memory toMemory()
+    {
+        return this;
     }
 
     @Override
@@ -24,6 +30,12 @@ public class MemoryDirectNonNativeImpl implements Memory
     public long getBaseAddress()
     {
         return baseAddress;
+    }
+
+    @Override
+    public void setBaseAddress(final long baseAddress)
+    {
+        this.baseAddress = baseAddress;
     }
 
     @Override

@@ -2,21 +2,31 @@ package org.borer.logdb.bit;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
 import java.util.Objects;
 
 public class MemoryFactory
 {
     public static Memory mapDirect(
-            final ByteBuffer mappedBuffer,
+            final MappedByteBuffer mappedBuffer,
             final long offset,
             final int capacity,
             final ByteOrder byteOrder)
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
 
-        final long baseAddress =
-                NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset;
+        return getGetDirectMemory(getPageOffset(mappedBuffer, offset), capacity, byteOrder).toMemory();
+    }
 
+    public static long getPageOffset(final MappedByteBuffer mappedBuffer, long offset)
+    {
+        Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
+
+        return NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset;
+    }
+
+    public static DirectMemory getGetDirectMemory(final long baseAddress, final int capacity, final ByteOrder byteOrder)
+    {
         final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
 
         if (nativeOrder)
@@ -34,16 +44,7 @@ public class MemoryFactory
         final ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
         final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
 
-        final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
-
-        if (nativeOrder)
-        {
-            return new MemoryDirectImpl(baseAddress, capacity);
-        }
-        else
-        {
-            return new MemoryDirectNonNativeImpl(baseAddress, capacity);
-        }
+        return getGetDirectMemory(baseAddress, capacity, byteOrder).toMemory();
     }
 
     public static Memory allocateHeap(final int capacity, final ByteOrder byteOrder)
