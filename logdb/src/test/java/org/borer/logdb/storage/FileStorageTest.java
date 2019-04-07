@@ -1,7 +1,6 @@
 package org.borer.logdb.storage;
 
 import org.borer.logdb.Config;
-import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.IdSupplier;
@@ -10,14 +9,20 @@ import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
-import java.io.File;
-import java.io.IOException;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.parallel.ResourceAccessMode.READ_WRITE;
 
 class FileStorageTest
 {
+    private static final String DB_FILE_CONDITION = "file";
+    @TempDir
+    Path tempDirectory;
+
     private static final String DB_FILENAME = "test.logdb";
 
     private FileStorage storage;
@@ -27,7 +32,7 @@ class FileStorageTest
     void setUp()
     {
         storage = FileStorage.createNewFileDb(
-                DB_FILENAME,
+                tempDirectory.resolve(DB_FILENAME).toFile(),
                 TestUtils.MAPPED_CHUNK_SIZE,
                 TestUtils.BYTE_ORDER,
                 Config.PAGE_SIZE_BYTES);
@@ -38,11 +43,18 @@ class FileStorageTest
     @AfterEach
     void tearDown()
     {
-        final File file = new File(DB_FILENAME);
-        file.delete();
+        try
+        {
+            storage.close();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     @Test
+    @ResourceLock(value = DB_FILE_CONDITION, mode = READ_WRITE)
     void shouldPersistAndLoadLeafNode()
     {
         final int numKeys = 10;
@@ -61,6 +73,7 @@ class FileStorageTest
     }
 
     @Test
+    @ResourceLock(value = DB_FILE_CONDITION, mode = READ_WRITE)
     void shouldPersistAndLoadLeafNonNode()
     {
         final int numKeys = 10;
@@ -80,58 +93,6 @@ class FileStorageTest
         for (int i = 0; i < numKeys; i++)
         {
             assertEquals(i, leaf.get(i));
-        }
-    }
-
-    @Test
-    void shouldBeABleToCreateNewDbFileAndReadLeafNode() throws IOException
-    {
-        final NodesManager nodesManager = new NodesManager(storage);
-        final BTree bTree = new BTree(nodesManager);
-
-        bTree.put(1, 1);
-        bTree.put(10, 10);
-        bTree.put(5, 5);
-        bTree.commit();
-
-        storage.close();
-
-        //read btree from file
-        final FileStorage oldFileDB = FileStorage.openDbFile(DB_FILENAME);
-
-        final NodesManager readNodesManager = new NodesManager(oldFileDB);
-        final BTree readBTree = new BTree(readNodesManager);
-
-        assertEquals(1, readBTree.get(1));
-        assertEquals(10, readBTree.get(10));
-        assertEquals(5, readBTree.get(5));
-    }
-
-    @Test
-    void shouldBeABleToPersistAndReadABBtree() throws IOException
-    {
-        final NodesManager nodesManager = new NodesManager(storage);
-        final BTree originalBTree = new BTree(nodesManager);
-
-        final int numKeys = 100;
-        for (int i = 0; i < numKeys; i++)
-        {
-            originalBTree.put(i, i);
-        }
-
-        originalBTree.commit();
-
-        storage.close();
-
-        //read btree from file
-        final FileStorage oldFileDB = FileStorage.openDbFile(DB_FILENAME);
-
-        final NodesManager readNodesManager = new NodesManager(oldFileDB);
-        final BTree loadedBTree = new BTree(readNodesManager);
-
-        for (int i = 0; i < numKeys; i++)
-        {
-            assertEquals(i, loadedBTree.get(i));
         }
     }
 }

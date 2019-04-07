@@ -2,6 +2,8 @@ package org.borer.logdb.storage;
 
 import org.borer.logdb.bit.Memory;
 
+import java.io.Closeable;
+
 /**
  * Storage interface for the underlying persistence of the btree.
  * <p>
@@ -18,7 +20,7 @@ import org.borer.logdb.bit.Memory;
  *  </ul>
  *  </p>
  */
-public interface Storage
+public interface Storage extends Closeable
 {
     Memory allocateWritableMemory();
 

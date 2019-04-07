@@ -265,6 +265,16 @@ public class BTree
         nodesManager.commitLastRootPage(getCurrentRootNode().getPageNumber());
     }
 
+    public void close()
+    {
+        nodesManager.close();
+    }
+
+    public String print()
+    {
+        return BTreePrinter.print(this, nodesManager);
+    }
+
     private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNodeNonLeaf nonLeaf)
     {
         assert nonLeaf != null;

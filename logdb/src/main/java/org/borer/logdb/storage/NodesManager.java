@@ -7,6 +7,7 @@ import org.borer.logdb.bbtree.BtreeNodeType;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,11 +151,11 @@ public class NodesManager
             if (BtreeNodeType.Leaf == nodeType)
             {
                 //TODO: create a pool of those
-                return new BTreeNodeLeaf(idSupplier.getAsLong(), memory);
+                return new BTreeNodeLeaf(pageNumber, memory);
             }
             else
             {
-                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), memory);
+                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(pageNumber, memory);
                 nonLeafNodesCache.put(pageNumber, bTreeNodeNonLeaf);
                 return bTreeNodeNonLeaf;
             }
@@ -162,6 +163,18 @@ public class NodesManager
         else //Condition used when creating new btree
         {
             return createEmptyLeafNode();
+        }
+    }
+
+    public void close()
+    {
+        try
+        {
+            storage.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 }

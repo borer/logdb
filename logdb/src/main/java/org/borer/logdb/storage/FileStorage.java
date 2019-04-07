@@ -4,6 +4,7 @@ import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -25,7 +26,7 @@ public final class FileStorage implements Storage, Closeable
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
     private static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
 
-    private final String filename;
+    private final File file;
     private final List<MappedByteBuffer> mappedBuffers;
     private final Queue<Memory> availableWritableMemory;
 
@@ -35,12 +36,12 @@ public final class FileStorage implements Storage, Closeable
     private long lastRootPageNumber;
 
     private FileStorage(
-            final String filename,
+            final File file,
             final FileDbHeader fileDbHeader,
             final RandomAccessFile dbFile,
             final FileChannel channel)
     {
-        this.filename = Objects.requireNonNull(filename, "db filename cannot be null");
+        this.file = Objects.requireNonNull(file, "db file cannot be null");
         this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
         this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
         this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
@@ -50,7 +51,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     public static FileStorage createNewFileDb(
-            final String filename,
+            final File file,
             final long memoryMappedChunkSizeBytes,
             final ByteOrder byteOrder,
             final int pageSizeBytes)
@@ -58,7 +59,7 @@ public final class FileStorage implements Storage, Closeable
         FileStorage fileStorage = null;
         try
         {
-            final RandomAccessFile dbFile = new RandomAccessFile(filename, "rw");
+            final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
             final FileChannel channel = dbFile.getChannel();
 
             final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
@@ -78,7 +79,7 @@ public final class FileStorage implements Storage, Closeable
             channel.position(fileDbHeader.headerSizeInPages * pageSizeBytes);
 
             fileStorage = new FileStorage(
-                    filename,
+                    file,
                     fileDbHeader,
                     dbFile,
                     channel);
@@ -97,12 +98,12 @@ public final class FileStorage implements Storage, Closeable
         return fileStorage;
     }
 
-    public static FileStorage openDbFile(final String filename)
+    public static FileStorage openDbFile(final File file)
     {
         FileStorage fileStorage = null;
         try
         {
-            final RandomAccessFile dbFile = new RandomAccessFile(filename, "rw");
+            final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
             final FileChannel channel = dbFile.getChannel();
 
             final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
@@ -114,7 +115,7 @@ public final class FileStorage implements Storage, Closeable
             channel.position(fileDbHeader.headerSizeInPages * fileDbHeader.pageSize);
 
             fileStorage = new FileStorage(
-                    filename,
+                    file,
                     fileDbHeader,
                     dbFile,
                     channel);
@@ -323,7 +324,11 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public void close() throws IOException
     {
+        mappedBuffers.clear();
         channel.close();
         dbFile.close();
+
+        //force unmapping of the file, TODO: find another method to trigger the unmapping
+        System.gc();
     }
 }

@@ -59,16 +59,16 @@ public class BTreePrinter
         for (int i = 0; i < node.numberOfKeys; i++)
         {
             final long key = node.getKey(i);
-            printer.append(String.format(" <%d> |%d| ", key, key));
+            final String childId = getPageUniqueId(i, node);
+            printer.append(String.format(" <%s> |%d| ", childId, key));
         }
         printer.append(" <lastChild> |Ls ");
         printer.append("\"];\n");
 
         for (int i = 0; i < node.numberOfKeys; i++)
         {
-            final long key = node.getKey(i);
             final String childId = getPageUniqueId(i, node);
-            printer.append(String.format("\"%s\":%d -> \"%s\"", id, key, childId));
+            printer.append(String.format("\"%s\":%s -> \"%s\"", id, childId, childId));
             printer.append("\n");
         }
 

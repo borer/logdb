@@ -3,6 +3,7 @@ package org.borer.logdb.storage;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
@@ -50,6 +51,12 @@ public class MemoryStorage implements Storage
 
     @Override
     public void flush()
+    {
+        //NO-OP
+    }
+
+    @Override
+    public void close() throws IOException
     {
         //NO-OP
     }
