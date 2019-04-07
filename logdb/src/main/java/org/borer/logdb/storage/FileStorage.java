@@ -23,7 +23,7 @@ import static org.borer.logdb.Config.LOG_DB_VERSION;
 public final class FileStorage implements Storage, Closeable
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
-    public static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
+    private static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
 
     private final String filename;
     private final List<MappedByteBuffer> mappedBuffers;
@@ -74,8 +74,7 @@ public final class FileStorage implements Storage, Closeable
             fileDbHeader.writeTo(headerBuffer);
             headerBuffer.rewind();
 
-            channel.write(headerBuffer);
-            channel.force(true);
+            FileUtils.writeFully(channel, headerBuffer);
             channel.position(fileDbHeader.headerSizeInPages * pageSizeBytes);
 
             fileStorage = new FileStorage(
@@ -108,7 +107,7 @@ public final class FileStorage implements Storage, Closeable
 
             final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
             headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
-            channel.read(headerBuffer);
+            FileUtils.readFully(channel, headerBuffer, 0);
             headerBuffer.rewind();
 
             final FileDbHeader fileDbHeader = FileDbHeader.readFrom(headerBuffer);
@@ -220,7 +219,7 @@ public final class FileStorage implements Storage, Closeable
             try
             {
                 pageNumber = channel.position() / fileDbHeader.pageSize;
-                channel.write(ByteBuffer.wrap(nodeSupportArray));
+                FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray));
                 extendMapsIfRequired();
             }
             catch (IOException e)

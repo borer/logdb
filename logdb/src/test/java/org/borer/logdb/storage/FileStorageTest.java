@@ -7,6 +7,7 @@ import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.support.TestUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,9 +26,6 @@ class FileStorageTest
     @BeforeEach
     void setUp()
     {
-        final File file = new File(DB_FILENAME);
-        file.delete();
-
         storage = FileStorage.createNewFileDb(
                 DB_FILENAME,
                 TestUtils.MAPPED_CHUNK_SIZE,
@@ -35,6 +33,13 @@ class FileStorageTest
                 Config.PAGE_SIZE_BYTES);
 
         nodesManager = new NodesManager(storage);
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        final File file = new File(DB_FILENAME);
+        file.delete();
     }
 
     @Test
