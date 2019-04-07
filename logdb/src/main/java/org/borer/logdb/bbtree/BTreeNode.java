@@ -58,6 +58,13 @@ public interface BTreeNode
     long get(long key);
 
     /**
+     * Get the key index corresponding to this key or -1.
+     * @param key key whose index to search for
+     * @return the index corresponding to that key -1.
+     */
+    int getKeyIndex(long key);
+
+    /**
      * Splits the current node into 2 nodes.
      * Current node with all the keys from 0...at-1 and a new one from at+1...end.
      * @param at the key index that we are going to split by
@@ -80,4 +87,26 @@ public interface BTreeNode
     boolean isDirty();
 
     boolean needRebalancing(int threshold);
+
+    boolean isInternal();
+
+    /**
+     * Gets value at index.
+     * @param index the index to get the value at
+     * @return the value at index
+     */
+    long getValue(int index);
+
+    /**
+     * Gets the child at index
+     * @param index the index for which to get a child
+     * @return the child
+     */
+    BTreeNode getChildAt(int index);
+
+    void insertChild(int index, long key, BTreeNode child);
+
+    void setChild(int index, BTreeNode child);
+
+    int getChildrenNumber();
 }

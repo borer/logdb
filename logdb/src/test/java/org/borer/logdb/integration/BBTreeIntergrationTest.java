@@ -8,7 +8,6 @@ import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,7 +18,7 @@ public class BBTreeIntergrationTest
     Path tempDirectory;
 
     @Test
-    void shouldBeABleToCreateNewDbFileAndReadLeafNode() throws IOException
+    void shouldBeABleToCreateNewDbFileAndReadLeafNode()
     {
         final String filename = "testBtree1.logdb";
         final BTree bTree = createNewPersistedBtree(filename);
@@ -41,7 +40,7 @@ public class BBTreeIntergrationTest
     }
 
     @Test
-    void shouldBeABleToPersistAndReadABBtree() throws IOException
+    void shouldBeABleToPersistAndReadABBtree()
     {
         final String filename = "testBtree2.logdb";
         final BTree originalBTree = createNewPersistedBtree(filename);

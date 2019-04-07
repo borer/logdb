@@ -61,13 +61,12 @@ public class BTree
 
             if (currentNode.getKeyCount() == 1)
             {
-                assert currentNode instanceof BTreeNodeNonLeaf
+                assert currentNode.isInternal()
                         : "Parent of the node that trying to remove is not non leaf";
 
                 this.nodesCount--;
                 assert index <= 1;
-                final BTreeNodeNonLeaf currentNonLeafNode = (BTreeNodeNonLeaf) currentNode;
-                currentNode = nodesManager.loadNode(1 - index, currentNonLeafNode);
+                currentNode = nodesManager.loadNode(1 - index, currentNode);
 
                 updatePathToRoot(parentCursor, currentNode);
                 return;
@@ -104,7 +103,7 @@ public class BTree
             final CursorPosition rightSiblingCursor = parentCursor.getRightSibling(nodesManager);
             if (rightSiblingCursor != null)
             {
-                final BTreeNodeLeaf rightSibling = (BTreeNodeLeaf) rightSiblingCursor.node;
+                final BTreeNode rightSibling = rightSiblingCursor.node;
                 if (rightSibling.getKeyCount() >= THRESHOLD_CHILDREN_PER_NODE + 2)
                 {
                     // we can move one from there to here
@@ -123,7 +122,7 @@ public class BTree
             final CursorPosition leftSiblingCursor = parentCursor.getLeftSibling(nodesManager);
             if (leftSiblingCursor != null)
             {
-                final BTreeNodeLeaf leftSibling = (BTreeNodeLeaf) leftSiblingCursor.node;
+                final BTreeNode leftSibling = leftSiblingCursor.node;
                 if (leftSibling.getKeyCount() >= THRESHOLD_CHILDREN_PER_NODE + 2)
                 {
                     // we can move one from there to here
@@ -172,7 +171,7 @@ public class BTree
             if (parentCursor == null)
             {
                 this.nodesCount++;
-                final BTreeNodeNonLeaf temp = nodesManager.createEmptyNonLeafNode();
+                final BTreeNode temp = nodesManager.createEmptyNonLeafNode();
 
                 temp.insertChild(0, keyAt, currentNode);
                 temp.setChild(1, split);
@@ -182,7 +181,7 @@ public class BTree
                 break;
             }
 
-            final BTreeNodeNonLeaf parentNode = (BTreeNodeNonLeaf) nodesManager.copyNode(parentCursor.node);
+            final BTreeNode parentNode = nodesManager.copyNode(parentCursor.node);
             parentNode.setChild(parentCursor.index, split);
             parentNode.insertChild(parentCursor.index, keyAt, currentNode);
 
@@ -228,13 +227,13 @@ public class BTree
     {
         final BTreeNode rootNodeForVersion = getCurrentRootNode();
 
-        if (rootNodeForVersion instanceof BTreeNodeNonLeaf)
+        if (rootNodeForVersion.isInternal())
         {
-            consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) rootNodeForVersion);
+            consumeNonLeafNode(consumer, rootNodeForVersion);
         }
         else
         {
-            consumeLeafNode(consumer, (BTreeNodeLeaf) rootNodeForVersion);
+            consumeLeafNode(consumer, rootNodeForVersion);
         }
     }
 
@@ -249,13 +248,13 @@ public class BTree
 
         final BTreeNode rootNodeForVersion = getRootNodeForVersion(version);
 
-        if (rootNodeForVersion instanceof BTreeNodeNonLeaf)
+        if (rootNodeForVersion.isInternal())
         {
-            consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) rootNodeForVersion);
+            consumeNonLeafNode(consumer, rootNodeForVersion);
         }
         else
         {
-            consumeLeafNode(consumer, (BTreeNodeLeaf) rootNodeForVersion);
+            consumeLeafNode(consumer, rootNodeForVersion);
         }
     }
 
@@ -275,26 +274,26 @@ public class BTree
         return BTreePrinter.print(this, nodesManager);
     }
 
-    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNodeNonLeaf nonLeaf)
+    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNode nonLeaf)
     {
         assert nonLeaf != null;
 
-        final int childPageCount = nonLeaf.getRawChildPageCount();
+        final int childPageCount = nonLeaf.getChildrenNumber();
         for (int i = 0; i < childPageCount; i++)
         {
             final BTreeNode childPage = nodesManager.loadNode(i, nonLeaf);
-            if (childPage instanceof BTreeNodeNonLeaf)
+            if (childPage.isInternal())
             {
-                consumeNonLeafNode(consumer, (BTreeNodeNonLeaf) childPage);
+                consumeNonLeafNode(consumer, childPage);
             }
             else
             {
-                consumeLeafNode(consumer, (BTreeNodeLeaf)childPage);
+                consumeLeafNode(consumer, childPage);
             }
         }
     }
 
-    private void consumeLeafNode(BiConsumer<Long, Long> consumer, BTreeNodeLeaf leaf)
+    private void consumeLeafNode(BiConsumer<Long, Long> consumer, BTreeNode leaf)
     {
         assert leaf != null;
 
@@ -313,27 +312,16 @@ public class BTree
         BTreeNode node = root;
         CursorPosition cursor = null;
         int index;
-        while (node instanceof BTreeNodeNonLeaf)
+        while (node.isInternal())
         {
-            final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
-            assert nonLeaf.getKeyCount() > 0
-                    : String.format("non leaf node should always have at least 1 key. Current node had %d",
-                                    nonLeaf.getKeyCount());
-            index = nonLeaf.binarySearch(key) + 1;
-            if (index < 0)
-            {
-                index = -index;
-            }
+            assert node.getKeyCount() > 0
+                    : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+            index = node.getKeyIndex(key);
             cursor = new CursorPosition(node, index, cursor);
-            node = nodesManager.loadNode(index, nonLeaf);
+            node = nodesManager.loadNode(index, node);
         }
 
-        index = ((BTreeNodeLeaf)node).binarySearch(key);
-        if (index < 0)
-        {
-            index = -index;
-        }
-
+        index = node.getKeyIndex(key);
         return new CursorPosition(node, index, cursor);
     }
 
@@ -346,7 +334,7 @@ public class BTree
         {
             BTreeNode c = currentNode;
             currentNode = nodesManager.copyNode(parentCursor.node);
-            ((BTreeNodeNonLeaf) currentNode).setChild(parentCursor.index, c);
+            currentNode.setChild(parentCursor.index, c);
             parentCursor = parentCursor.parent;
         }
 

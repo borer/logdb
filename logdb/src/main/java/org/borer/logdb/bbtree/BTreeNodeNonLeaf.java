@@ -40,6 +40,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
                 String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
     }
 
+    @Override
     public void setChild(final int index, final BTreeNode child)
     {
         //TODO (handle this better) : this will be replaced once we commit the child page
@@ -49,14 +50,16 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         setDirty();
     }
 
+    @Override
     public BTreeNode getChildAt(final int index)
     {
         return children[index];
     }
 
-    void insertChild(final int index, final long key, final BTreeNode child)
+    @Override
+    public void insertChild(final int index, final long key, final BTreeNode child)
     {
-        final int rawChildPageCount = getRawChildPageCount();
+        final int rawChildPageCount = getChildrenNumber();
         insertKey(index, key);
         //this will be replaced once we commit the child page
         insertValue(index, NON_COMMITTED_CHILD);
@@ -68,7 +71,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
         setDirty();
     }
 
-    int getRawChildPageCount()
+    @Override
+    public int getChildrenNumber()
     {
         return getKeyCount() + 1;
     }
@@ -101,13 +105,26 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract
     @Override
     public long get(final long key)
     {
+        int index = getKeyIndex(key);
+        return getValue(index);
+    }
+
+    @Override
+    public int getKeyIndex(long key)
+    {
         int index = binarySearch(key) + 1;
         if (index < 0)
         {
             index = -index;
         }
 
-        return getValue(index);
+        return index;
+    }
+
+    @Override
+    public boolean isInternal()
+    {
+        return true;
     }
 
     @Override

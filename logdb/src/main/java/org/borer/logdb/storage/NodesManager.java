@@ -99,8 +99,10 @@ public class NodesManager
         return pageNumber;
     }
 
-    public BTreeNode loadNode(final int index, final BTreeNodeNonLeaf node)
+    public BTreeNode loadNode(final int index, final BTreeNode node)
     {
+        assert node.isInternal() : "node must be internal";
+
         final long childPageNumber = node.getValue(index);
         if (childPageNumber != BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
         {

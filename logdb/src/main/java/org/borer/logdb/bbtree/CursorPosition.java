@@ -35,7 +35,7 @@ public final class CursorPosition
         do
         {
             parentNode = (BTreeNodeNonLeaf) parentCursor.node;
-            if (siblingIndex > parentNode.getRawChildPageCount())
+            if (siblingIndex > parentNode.getChildrenNumber())
             {
                 break;
             }
@@ -92,7 +92,7 @@ public final class CursorPosition
         do
         {
             parentNode = (BTreeNodeNonLeaf) parentCursor.node;
-            if (siblingIndex < 0 || siblingIndex > parentNode.getRawChildPageCount())
+            if (siblingIndex < 0 || siblingIndex > parentNode.getChildrenNumber())
             {
                 break;
             }
@@ -131,7 +131,7 @@ public final class CursorPosition
 
             parentCursor = new CursorPosition(nonLeaf, parentIndex, parentCursor);
 
-            parentIndex = nonLeaf.getRawChildPageCount();
+            parentIndex = nonLeaf.getChildrenNumber();
             node = nodesManager.loadNode(parentIndex, nonLeaf);
         }
 

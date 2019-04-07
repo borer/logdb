@@ -41,6 +41,19 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     }
 
     @Override
+    public int getKeyIndex(long key)
+    {
+        final int index = binarySearch(key);
+
+        if (index < 0)
+        {
+            return -1;
+        }
+
+        return index;
+    }
+
+    @Override
     public void copy(final BTreeNode copyNode)
     {
         assert copyNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
@@ -122,5 +135,35 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract
     protected BtreeNodeType getNodeType()
     {
         return BtreeNodeType.Leaf;
+    }
+
+    @Override
+    public boolean isInternal()
+    {
+        return false;
+    }
+
+    @Override
+    public BTreeNode getChildAt(int index)
+    {
+        throw new UnsupportedOperationException("Leaf nodes don't have children.");
+    }
+
+    @Override
+    public void insertChild(int index, long key, BTreeNode child)
+    {
+        throw new UnsupportedOperationException("Leaf nodes don't have children.");
+    }
+
+    @Override
+    public void setChild(int index, BTreeNode child)
+    {
+        throw new UnsupportedOperationException("Leaf nodes don't have children.");
+    }
+
+    @Override
+    public int getChildrenNumber()
+    {
+        throw new UnsupportedOperationException("Leaf nodes don't have children.");
     }
 }
