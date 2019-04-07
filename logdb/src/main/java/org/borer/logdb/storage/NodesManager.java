@@ -110,6 +110,11 @@ public class NodesManager
 
     public void commitDirtyNodes()
     {
+        if (dirtyRootNodes.isEmpty())
+        {
+            return;
+        }
+
         int i = 0;
         for (final BTreeNode dirtyRootNode : dirtyRootNodes)
         {

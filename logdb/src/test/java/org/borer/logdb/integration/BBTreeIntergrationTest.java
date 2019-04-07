@@ -120,9 +120,44 @@ public class BBTreeIntergrationTest
     }
 
     @Test
-    void shouldConsumeKeyValuesInOrderAfterCommit()
+    void shouldBeABleToCommitMultipleTimes()
     {
         final String filename = "testBtree3.logdb";
+        final BTree originalBTree = createNewPersistedBtree(filename);
+
+        final List<Long> expectedOrder = new ArrayList<>();
+        final int numberOfPairs = 100;
+        for (long i = 0; i < numberOfPairs; i++)
+        {
+            expectedOrder.add(i);
+            originalBTree.put(i, i);
+            originalBTree.commit();
+        }
+
+        originalBTree.commit();
+        originalBTree.close();
+
+        expectedOrder.sort(Long::compareTo);
+
+        final LinkedList<Long> actualOrder = new LinkedList<>();
+        final BTree loadedBTree = loadPersistedBtree(filename);
+
+        loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
+
+        assertEquals(expectedOrder.size(), actualOrder.size());
+
+        for (int i = 0; i < expectedOrder.size(); i++)
+        {
+            assertEquals(expectedOrder.get(i), actualOrder.get(i));
+        }
+
+        loadedBTree.close();
+    }
+
+    @Test
+    void shouldConsumeKeyValuesInOrderAfterCommit()
+    {
+        final String filename = "testBtree4.logdb";
         final BTree originalBTree = createNewPersistedBtree(filename);
 
         final List<Long> expectedOrder = new ArrayList<>();

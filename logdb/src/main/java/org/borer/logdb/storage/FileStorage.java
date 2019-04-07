@@ -143,10 +143,11 @@ public final class FileStorage implements Storage, Closeable
             long originalChannelPosition = channel.position();
 
             final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
-            final long regionsToMap = requiredNumberOfMaps - mappedBuffers.size();
+            final int existingRegions = mappedBuffers.size();
+            final long regionsToMap = requiredNumberOfMaps - existingRegions;
             for (long i = 0; i < regionsToMap; i++)
             {
-                mapMemory(i * fileDbHeader.memoryMappedChunkSizeBytes);
+                mapMemory((existingRegions + i) * fileDbHeader.memoryMappedChunkSizeBytes);
             }
 
             channel.position(originalChannelPosition);
@@ -291,7 +292,7 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public Memory loadPage(final long pageNumber)
     {
-        //TODO: make this search logN
+        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
@@ -313,7 +314,7 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public long getBaseOffsetForPageNumber(final long pageNumber)
     {
-        //TODO: make this search logN
+        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
