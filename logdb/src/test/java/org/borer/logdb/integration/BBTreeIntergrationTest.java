@@ -132,6 +132,12 @@ public class BBTreeIntergrationTest
             expectedOrder.add(i);
             originalBTree.put(i, i);
             originalBTree.commit();
+
+//            if (i == 14 || i == 15)
+//            {
+//                System.out.println("iteraiton " + i);
+//                System.out.println(originalBTree.print());
+//            }
         }
 
         originalBTree.commit();

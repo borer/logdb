@@ -76,6 +76,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         splitKeys(at, bNumberOfKeys,  bTreeNodeLeaf);
         splitValues(at, bNumberOfValues, bTreeNodeLeaf);
 
+        bTreeNodeLeaf.setDirty();
         setDirty();
     }
 
@@ -89,6 +90,8 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 
         removeKey(index, keyCount);
         removeValue(index, keyCount);
+
+        setDirty();
     }
 
     @Override
@@ -106,15 +109,17 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         {
             setValue(index, value);
         }
+
+        setDirty();
     }
 
     @Override
-    public long commit(final NodesManager nodesManager)
+    public long commit(final NodesManager nodesManager, final boolean isRoot)
     {
         if (isDirty)
         {
             preCommit();
-            pageNumber = nodesManager.commitNode(this);
+            pageNumber = nodesManager.commitNode(this, isRoot);
             isDirty = false;
         }
 
@@ -161,11 +166,5 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public Memory getBuffer()
     {
         return buffer;
-    }
-
-    @Override
-    public void initNodeFromBuffer()
-    {
-        super.initNodeFromBuffer();
     }
 }

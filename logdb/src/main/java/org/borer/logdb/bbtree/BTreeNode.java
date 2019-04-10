@@ -11,6 +11,11 @@ public interface BTreeNode
     long getPageNumber();
 
     /**
+     * Reload node in memory data from backing storage.
+     */
+    void initNodeFromBuffer();
+
+    /**
      * Inserts key/value pair in the current leaf.
      * If the key already exits, its value is replaced.
      * @param key Key that identifies the value
@@ -67,12 +72,16 @@ public interface BTreeNode
 
     /**
      * Commits this node to a storage.
+     * @param nodesManager the node manager use for committing this node
+     * @param isRoot specifies if the current node is root
      * @return the address offset where the node was stored
      */
-    long commit(NodesManager nodesManager);
+    long commit(NodesManager nodesManager, boolean isRoot);
 
     boolean isDirty();
 
+    //TODO: replace this method with enum
+    @Deprecated
     boolean isInternal();
 
     /**

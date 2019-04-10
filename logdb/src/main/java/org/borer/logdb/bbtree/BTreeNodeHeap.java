@@ -10,7 +10,5 @@ public interface BTreeNodeHeap extends BTreeNode
      */
     Memory getBuffer();
 
-    void initNodeFromBuffer();
-
     boolean isInternal();
 }

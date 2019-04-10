@@ -57,7 +57,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     protected abstract BtreeNodeType getNodeType();
 
-    protected void preCommit()
+    void preCommit()
     {
         setNodePageType(getNodeType());
     }
@@ -214,7 +214,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         updateNumberOfValues(numberOfValues);
     }
 
-    protected void setDirty()
+    void setDirty()
     {
         isDirty = true;
     }

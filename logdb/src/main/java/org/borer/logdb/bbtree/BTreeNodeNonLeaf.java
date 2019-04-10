@@ -47,6 +47,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         setValue(index, NON_COMMITTED_CHILD);
 
         children[index] = child;
+
         setDirty();
     }
 
@@ -68,6 +69,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         copyWithGap(children, newChildren, rawChildPageCount, index);
         children = newChildren;
         children[index] = child;
+
         setDirty();
     }
 
@@ -89,6 +91,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         removeValue(index, keyCount);
 
         removeChildReference(index);
+
         setDirty();
     }
 
@@ -166,6 +169,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         splitKeys(at, bNumberOfKeys, bTreeNodeLeaf);
         splitValues(aNumberOfValues, bNumberOfValues, bTreeNodeLeaf);
 
+        bTreeNodeLeaf.setDirty();
         setDirty();
     }
 
@@ -175,7 +179,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long commit(final NodesManager nodesManager)
+    public long commit(final NodesManager nodesManager, final boolean isRoot)
     {
         if (isDirty)
         {
@@ -187,7 +191,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                     final long pageNumber;
                     if (child.isDirty())
                     {
-                        pageNumber = child.commit(nodesManager);
+                        pageNumber = child.commit(nodesManager, false);
                     }
                     else
                     {
@@ -200,7 +204,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
             }
 
             preCommit();
-            pageNumber = nodesManager.commitNode(this);
+            pageNumber = nodesManager.commitNode(this, isRoot);
             isDirty = false;
         }
 

@@ -60,7 +60,7 @@ class FileStorageTest
         final int numKeys = 10;
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
 
-        final long pageNumber = leaf.commit(nodesManager);
+        final long pageNumber = leaf.commit(nodesManager, true);
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
@@ -80,7 +80,7 @@ class FileStorageTest
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
         final BTreeNodeNonLeaf nonLeaf = TestUtils.createNonLeafNodeWithChild(leaf);
 
-        final long pageNumber = nonLeaf.commit(nodesManager);
+        final long pageNumber = nonLeaf.commit(nodesManager, true);
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);

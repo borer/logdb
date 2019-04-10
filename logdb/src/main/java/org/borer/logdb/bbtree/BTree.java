@@ -48,7 +48,7 @@ public class BTree
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
         int index = cursorPosition.index;
         BTreeNode currentNode = cursorPosition.getNode(mappedNode);
@@ -97,7 +97,7 @@ public class BTree
         BTreeNode rootNode = getCurrentRootNode();
         final CursorPosition cursorPosition = traverseDown(rootNode, key);
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
         BTreeNode targetNode = cursorPosition.getNode(mappedNode);
         CursorPosition parentCursor = cursorPosition.parent;
@@ -159,7 +159,7 @@ public class BTree
 
         final CursorPosition cursorPosition = traverseDown(rootReference.root, key);
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         final long value = cursorPosition.getNode(mappedNode).get(key);
         nodesManager.returnMappedNode(mappedNode);
 
@@ -170,7 +170,7 @@ public class BTree
     {
         //TODO optimize, we don't need the whole path, just the end node.
         final CursorPosition cursorPosition = traverseDown(getCurrentRootNode(), key);
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         final long value = cursorPosition.getNode(mappedNode).get(key);
         nodesManager.returnMappedNode(mappedNode);
         return value;
@@ -235,7 +235,7 @@ public class BTree
     {
         assert nonLeaf != null;
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
         final int childPageCount = nonLeaf.getChildrenNumber();
         for (int i = 0; i < childPageCount; i++)
@@ -274,7 +274,7 @@ public class BTree
         CursorPosition cursor = null;
         int index;
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         while (node.isInternal())
         {
             assert node.getKeyCount() > 0
@@ -311,7 +311,7 @@ public class BTree
         BTreeNodeHeap currentNode = current;
         CursorPosition parentCursor = cursor;
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         while (parentCursor != null)
         {
             BTreeNodeHeap c = currentNode;

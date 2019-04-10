@@ -92,15 +92,14 @@ public class BTreeMappedNode extends BTreeNodeAbstract
         MemoryCopy.copy(buffer, copyNode.getBuffer());
         copyNode.initNodeFromBuffer();
 
-        if (copyNode.isInternal() && copyNode instanceof BTreeNodeNonLeaf)
+        if (copyNode.isInternal() && (copyNode instanceof BTreeNodeNonLeaf))
         {
-            final int numberOfChildren = copyNode.getChildrenNumber();
-            ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNode[numberOfChildren]);
+            ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNode[numberOfValues]);
         }
     }
 
     @Override
-    public long commit(NodesManager nodesManager)
+    public long commit(NodesManager nodesManager, boolean isRoot)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support commit");
     }

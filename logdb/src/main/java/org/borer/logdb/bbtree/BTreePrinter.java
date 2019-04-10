@@ -102,7 +102,7 @@ public class BTreePrinter
         printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
         printer.append("\n");
 
-        final BTreeMappedNode mappedNode = nodesManager.getMappedNode();
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         for (int i = 0; i < node.numberOfValues; i++)
         {
             final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);

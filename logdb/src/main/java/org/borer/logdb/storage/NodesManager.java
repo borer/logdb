@@ -13,10 +13,8 @@ import org.borer.logdb.bit.ReadMemory;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 
@@ -26,10 +24,8 @@ public class NodesManager
     private final IdSupplier idSupplier;
 
     private final List<BTreeNode> dirtyRootNodes;
-    //TODO: use an LRU bounded cache
-    private final Map<Long, BTreeNodeHeap> nonLeafNodesCache;
-    private final Collection<BTreeNodeHeap> leafNodesCache;
-
+    private final Queue<BTreeNodeNonLeaf> nonLeafNodesCache;
+    private final Queue<BTreeNodeLeaf> leafNodesCache;
     private final Queue<BTreeMappedNode> mappedNodes;
 
     public NodesManager(final Storage storage)
@@ -37,9 +33,9 @@ public class NodesManager
         this.storage = Objects.requireNonNull(storage, "storage cannot be null");
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
-        this.nonLeafNodesCache = new HashMap<>();
-        leafNodesCache = new ArrayList<>();
-        mappedNodes = new ArrayDeque<>();
+        this.nonLeafNodesCache = new ArrayDeque<>();
+        this.leafNodesCache = new ArrayDeque<>();
+        this.mappedNodes = new ArrayDeque<>();
     }
 
     private BTreeNodeLeaf createEmptyLeafNode()
@@ -51,7 +47,17 @@ public class NodesManager
                 0);
     }
 
-    public BTreeMappedNode getMappedNode()
+    public BTreeNodeNonLeaf createEmptyNonLeafNode()
+    {
+        return new BTreeNodeNonLeaf(
+                idSupplier.getAsLong(),
+                storage.allocateHeapMemory(),
+                0,
+                1,
+                new BTreeNode[1]);
+    }
+
+    public BTreeMappedNode getOrCreateMappedNode()
     {
         if (!mappedNodes.isEmpty())
         {
@@ -72,35 +78,52 @@ public class NodesManager
         mappedNodes.add(mappedNode);
     }
 
-    public BTreeNodeNonLeaf createEmptyNonLeafNode()
-    {
-        return new BTreeNodeNonLeaf(
-                idSupplier.getAsLong(),
-                storage.allocateHeapMemory(),
-                0,
-                1,
-                new BTreeNode[1]);
-    }
-
     public BTreeNodeHeap splitNode(final BTreeNode originalNode, final int at)
     {
-        final BTreeNodeHeap splitNode = createSameNodeType(originalNode, storage.allocateHeapMemory());
+        final BTreeNodeHeap splitNode = createSameNodeType(originalNode);
         originalNode.split(at, splitNode);
         return splitNode;
     }
 
     public BTreeNodeHeap copyNode(final BTreeNode originalNode)
     {
-        final BTreeNodeHeap copyNode = createSameNodeType(originalNode, storage.allocateHeapMemory());
+        final BTreeNodeHeap copyNode = createSameNodeType(originalNode);
         originalNode.copy(copyNode);
         return copyNode;
     }
 
-    private BTreeNodeHeap createSameNodeType(final BTreeNode originalNode, final Memory memory)
+    private BTreeNodeHeap createSameNodeType(final BTreeNode originalNode)
     {
-        return (originalNode.isInternal())
-                ? new BTreeNodeNonLeaf(idSupplier.getAsLong(), memory, 0, 0, null)
-                : new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0, 0);
+        if (originalNode.isInternal())
+        {
+            return getOrCreateNonLeafNode();
+        }
+        else
+        {
+            return getOrCreateLeafNode();
+        }
+    }
+
+    private BTreeNodeNonLeaf getOrCreateNonLeafNode()
+    {
+        BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
+        if (nonLeaf == null)
+        {
+            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, null);
+        }
+
+        return nonLeaf;
+    }
+
+    private BTreeNodeLeaf getOrCreateLeafNode()
+    {
+        BTreeNodeLeaf leaf = leafNodesCache.poll();
+        if (leaf == null)
+        {
+            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0);
+        }
+
+        return leaf;
     }
 
     public void addDirtyRoot(final BTreeNode rootNode)
@@ -115,31 +138,50 @@ public class NodesManager
             return;
         }
 
-        int i = 0;
         for (final BTreeNode dirtyRootNode : dirtyRootNodes)
         {
-            dirtyRootNode.commit(this);
-            i++;
+            dirtyRootNode.commit(this, true);
         }
 
         storage.flush();
         dirtyRootNodes.clear();
     }
 
-    public long commitNode(final BTreeNodeHeap node)
+    public long commitNode(final BTreeNodeNonLeaf node, final boolean isRoot)
     {
-        final ReadMemory buffer = node.getBuffer();
-        final long pageNumber = storage.commitNode(buffer);
-        if (node.isInternal())
+        final long pageNumber = commitNodeToStorage(node);
+        if (!isRoot)
         {
-            nonLeafNodesCache.put(pageNumber, node);
+            resetNode(node);
+            nonLeafNodesCache.add(node);
         }
-        else
+        return pageNumber;
+    }
+
+    public long commitNode(final BTreeNodeLeaf node, final boolean isRoot)
+    {
+        final long pageNumber = commitNodeToStorage(node);
+        if (!isRoot)
         {
+            resetNode(node);
             leafNodesCache.add(node);
         }
-
         return pageNumber;
+    }
+
+    private void resetNode(final BTreeNodeHeap node)
+    {
+        final byte[] supportByteArrayIfAny = node.getBuffer().getSupportByteArrayIfAny();
+        if (supportByteArrayIfAny != null)
+        {
+            Arrays.fill(supportByteArrayIfAny, (byte)0);
+        }
+    }
+
+    private long commitNodeToStorage(final BTreeNodeHeap node)
+    {
+        final ReadMemory buffer = node.getBuffer();
+        return storage.commitNode(buffer);
     }
 
     public BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)
@@ -165,7 +207,7 @@ public class NodesManager
 
     public BTreeNode loadLastRoot()
     {
-        final Memory memory = (Memory) storage.loadLastRoot();
+        final Memory memory = storage.loadLastRoot();
         final long pageNumber = storage.getLastRootPageNumber();
 
         if (memory != null)
@@ -174,14 +216,11 @@ public class NodesManager
 
             if (BtreeNodeType.Leaf == nodeType)
             {
-                //TODO: create a pool of those
                 return new BTreeNodeLeaf(pageNumber, memory);
             }
             else
             {
-                final BTreeNodeNonLeaf bTreeNodeNonLeaf = new BTreeNodeNonLeaf(pageNumber, memory);
-                nonLeafNodesCache.put(pageNumber, bTreeNodeNonLeaf);
-                return bTreeNodeNonLeaf;
+                return new BTreeNodeNonLeaf(pageNumber, memory);
             }
         }
         else //Condition used when creating new btree

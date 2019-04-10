@@ -223,7 +223,7 @@ public final class FileStorage implements Storage, Closeable
             try
             {
                 pageNumber = channel.position() / fileDbHeader.pageSize;
-                FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray));
+                FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray)); //TODO reuse bytebuffer
                 extendMapsIfRequired();
             }
             catch (IOException e)
