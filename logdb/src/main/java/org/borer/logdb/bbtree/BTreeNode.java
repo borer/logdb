@@ -80,9 +80,7 @@ public interface BTreeNode
 
     boolean isDirty();
 
-    //TODO: replace this method with enum
-    @Deprecated
-    boolean isInternal();
+    BtreeNodeType getNodeType();
 
     /**
      * Gets value at index.

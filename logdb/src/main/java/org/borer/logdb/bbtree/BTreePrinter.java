@@ -44,7 +44,7 @@ public class BTreePrinter
         }
         else if (node instanceof BTreeMappedNode)
         {
-            if (node.isInternal())
+            if (node.getNodeType() == BtreeNodeType.NonLeaf)
             {
                 printNonLeaf(printer, (BTreeMappedNode) node, nodesManager);
             }

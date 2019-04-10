@@ -55,8 +55,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.isDirty = true;
     }
 
-    protected abstract BtreeNodeType getNodeType();
-
     void preCommit()
     {
         setNodePageType(getNodeType());

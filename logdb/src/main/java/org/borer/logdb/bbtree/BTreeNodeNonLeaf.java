@@ -212,7 +212,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    protected BtreeNodeType getNodeType()
+    public BtreeNodeType getNodeType()
     {
         return BtreeNodeType.NonLeaf;
     }

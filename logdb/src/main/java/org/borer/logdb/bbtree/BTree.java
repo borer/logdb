@@ -63,8 +63,8 @@ public class BTree
 
             if (currentNode.getKeyCount() == 1)
             {
-                assert currentNode.isInternal()
-                        : "Parent of the node that trying to remove is not non leaf";
+                assert currentNode.getNodeType() == BtreeNodeType.NonLeaf
+                        : "Parent of the node that trying to remove is NOT non leaf";
 
                 this.nodesCount--;
                 assert index <= 1;
@@ -184,7 +184,7 @@ public class BTree
     {
         final BTreeNode rootNodeForVersion = getCurrentRootNode();
 
-        if (rootNodeForVersion.isInternal())
+        if (rootNodeForVersion.getNodeType() == BtreeNodeType.NonLeaf)
         {
             consumeNonLeafNode(consumer, rootNodeForVersion);
         }
@@ -205,7 +205,7 @@ public class BTree
 
         final BTreeNode rootNodeForVersion = getRootNodeForVersion(version);
 
-        if (rootNodeForVersion.isInternal())
+        if (rootNodeForVersion.getNodeType() == BtreeNodeType.NonLeaf)
         {
             consumeNonLeafNode(consumer, rootNodeForVersion);
         }
@@ -241,7 +241,7 @@ public class BTree
         for (int i = 0; i < childPageCount; i++)
         {
             final BTreeNode childPage = nodesManager.loadNode(i, nonLeaf, mappedNode);
-            if (childPage.isInternal())
+            if (childPage.getNodeType() == BtreeNodeType.NonLeaf)
             {
                 consumeNonLeafNode(consumer, childPage);
             }
@@ -275,7 +275,7 @@ public class BTree
         int index;
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        while (node.isInternal())
+        while (node.getNodeType() == BtreeNodeType.NonLeaf)
         {
             assert node.getKeyCount() > 0
                     : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());

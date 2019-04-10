@@ -40,7 +40,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     }
 
     @Override
-    protected BtreeNodeType getNodeType()
+    public BtreeNodeType getNodeType()
     {
         return BtreeNodeType.fromByte(buffer.getByte(PAGE_TYPE_OFFSET));
     }
@@ -61,7 +61,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     public long get(long key)
     {
         int index = getKeyIndex(key);
-        if (!isInternal())
+        if (getNodeType() == BtreeNodeType.Leaf)
         {
             index--;
         }
@@ -102,12 +102,6 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     public long commit(NodesManager nodesManager, boolean isRoot)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support commit");
-    }
-
-    @Override
-    public boolean isInternal()
-    {
-        return getNodeType() == BtreeNodeType.NonLeaf;
     }
 
     @Override

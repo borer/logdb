@@ -94,7 +94,7 @@ public class NodesManager
 
     private BTreeNodeHeap createSameNodeType(final BTreeNode originalNode)
     {
-        if (originalNode.isInternal())
+        if (originalNode.getNodeType() == BtreeNodeType.NonLeaf)
         {
             return getOrCreateNonLeafNode();
         }
@@ -186,7 +186,7 @@ public class NodesManager
 
     public BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)
     {
-        assert parentNode.isInternal() : "node must be internal";
+        assert parentNode.getNodeType() == BtreeNodeType.NonLeaf : "node must be non leaf";
 
         final long childPageNumber = parentNode.getValue(index);
         if (childPageNumber != BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
