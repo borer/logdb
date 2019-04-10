@@ -4,6 +4,8 @@ import org.borer.logdb.bit.DirectMemory;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryFactory;
 import org.borer.logdb.bit.ReadMemory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -25,6 +27,8 @@ import static org.borer.logdb.Config.LOG_DB_VERSION;
 
 public final class FileStorage implements Storage, Closeable
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
+
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
     private static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
 
@@ -58,6 +62,9 @@ public final class FileStorage implements Storage, Closeable
             final ByteOrder byteOrder,
             final int pageSizeBytes)
     {
+        Objects.requireNonNull(file, "Db file cannot be null");
+
+        LOGGER.info("Opening database file " + file.getAbsolutePath());
         FileStorage fileStorage = null;
         try
         {
@@ -88,13 +95,13 @@ public final class FileStorage implements Storage, Closeable
 
             fileStorage.extendMapsIfRequired();
         }
-        catch (FileNotFoundException e)
+        catch (final FileNotFoundException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to find db file " + file.getAbsolutePath(), e);
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to read/write to db file " + file.getAbsolutePath(), e);
         }
 
         return fileStorage;
@@ -102,6 +109,8 @@ public final class FileStorage implements Storage, Closeable
 
     public static FileStorage openDbFile(final File file)
     {
+        Objects.requireNonNull(file, "DB file cannot be null");
+
         FileStorage fileStorage = null;
         try
         {
@@ -124,13 +133,13 @@ public final class FileStorage implements Storage, Closeable
 
             fileStorage.extendMapsIfRequired();
         }
-        catch (FileNotFoundException e)
+        catch (final FileNotFoundException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to find db file " + file.getAbsolutePath(), e);
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to read from db file " + file.getAbsolutePath(), e);
         }
 
         return fileStorage;
@@ -152,9 +161,9 @@ public final class FileStorage implements Storage, Closeable
 
             channel.position(originalChannelPosition);
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Couldn't extend the mapped db file", e);
         }
     }
 
@@ -180,9 +189,11 @@ public final class FileStorage implements Storage, Closeable
             mappedBuffers.add(map);
 
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error(
+                    "Couldn't mapped db file at offset " + offset +
+                            "for " + fileDbHeader.memoryMappedChunkSizeBytes + " bytes", e);
         }
     }
 
@@ -226,9 +237,9 @@ public final class FileStorage implements Storage, Closeable
                 FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray)); //TODO reuse bytebuffer
                 extendMapsIfRequired();
             }
-            catch (IOException e)
+            catch (final IOException e)
             {
-                e.printStackTrace();
+                LOGGER.error("Unable to persist node to database file. Page number " + pageNumber, e);
             }
 
             return pageNumber;
@@ -251,9 +262,9 @@ public final class FileStorage implements Storage, Closeable
             dbFile.writeLong(Long.reverseBytes(lastRootPageNumber));
             channel.position(currentChanelPosition);
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to persist metadata", e);
         }
     }
 
@@ -275,9 +286,9 @@ public final class FileStorage implements Storage, Closeable
             currentRootPageNumber = Long.reverseBytes(dbFile.readLong());
             channel.position(currentChanelPosition);
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to load last root node", e);
             return null;
         }
 
@@ -351,9 +362,9 @@ public final class FileStorage implements Storage, Closeable
             channel.force(true);
             extendMapsIfRequired();
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to flush persistence layer", e);
         }
     }
 

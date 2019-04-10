@@ -9,6 +9,8 @@ import org.borer.logdb.bbtree.BtreeNodeType;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.ReadMemory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -20,6 +22,8 @@ import java.util.Queue;
 
 public class NodesManager
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodesManager.class);
+
     private final Storage storage;
     private final IdSupplier idSupplier;
 
@@ -236,9 +240,9 @@ public class NodesManager
             mappedNodes.clear();
             storage.close();
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to close storage", e);
         }
     }
 }
