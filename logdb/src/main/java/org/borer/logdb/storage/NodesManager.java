@@ -7,6 +7,7 @@ import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.BtreeNodeType;
 import org.borer.logdb.bbtree.IdSupplier;
+import org.borer.logdb.bbtree.RootReference;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.ReadMemory;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class NodesManager
     private final Storage storage;
     private final IdSupplier idSupplier;
 
-    private final List<BTreeNode> dirtyRootNodes;
+    private final List<RootReference> dirtyRootNodes;
     private final Queue<BTreeNodeNonLeaf> nonLeafNodesCache;
     private final Queue<BTreeNodeLeaf> leafNodesCache;
     private final Queue<BTreeMappedNode> mappedNodes;
@@ -44,21 +45,12 @@ public class NodesManager
 
     private BTreeNodeLeaf createEmptyLeafNode()
     {
-        return new BTreeNodeLeaf(
-                idSupplier.getAsLong(),
-                storage.allocateHeapMemory(),
-                0,
-                0);
+        return getOrCreateLeafNode();
     }
 
     public BTreeNodeNonLeaf createEmptyNonLeafNode()
     {
-        return new BTreeNodeNonLeaf(
-                idSupplier.getAsLong(),
-                storage.allocateHeapMemory(),
-                0,
-                1,
-                new BTreeNode[1]);
+        return getOrCreateNonLeafNode();
     }
 
     public BTreeMappedNode getOrCreateMappedNode()
@@ -113,7 +105,7 @@ public class NodesManager
         BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
         if (nonLeaf == null)
         {
-            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, null);
+            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 1, new BTreeNode[1]);
         }
 
         return nonLeaf;
@@ -130,7 +122,7 @@ public class NodesManager
         return leaf;
     }
 
-    public void addDirtyRoot(final BTreeNode rootNode)
+    public void addDirtyRoot(final RootReference rootNode)
     {
         dirtyRootNodes.add(rootNode);
     }
@@ -142,15 +134,31 @@ public class NodesManager
             return;
         }
 
-        for (final BTreeNode dirtyRootNode : dirtyRootNodes)
+        //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
+
+        for (final RootReference dirtyRootNode : dirtyRootNodes)
         {
-            dirtyRootNode.commit(this, true);
+            final long previousRootPageNumber = dirtyRootNode.previous != null ? dirtyRootNode.previous.getPageNumber() : -1;
+            final long pageNumber = dirtyRootNode.root.commit(
+                    this,
+                    true,
+                    previousRootPageNumber,
+                    dirtyRootNode.timestamp,
+                    dirtyRootNode.version);
+
+            dirtyRootNode.setPageNumber(pageNumber);
         }
 
         storage.flush();
         dirtyRootNodes.clear();
     }
 
+    /**
+     * After this method, the node should not be used anymore as it's put backed into the pool.
+     * @param node the node to commit
+     * @param isRoot true if this node is a root
+     * @return the page number where this node is stored
+     */
     public long commitNode(final BTreeNodeNonLeaf node, final boolean isRoot)
     {
         final long pageNumber = commitNodeToStorage(node);
@@ -162,6 +170,12 @@ public class NodesManager
         return pageNumber;
     }
 
+    /**
+     * After this method, the node should not be used anymore as it's put backed into the pool.
+     * @param node the node to commit
+     * @param isRoot true if this node is a root
+     * @return the page number where this node is stored
+     */
     public long commitNode(final BTreeNodeLeaf node, final boolean isRoot)
     {
         final long pageNumber = commitNodeToStorage(node);

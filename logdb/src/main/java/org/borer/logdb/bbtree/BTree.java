@@ -386,12 +386,12 @@ public class BTree
             newVersion = currentRoot.version + 1L;
         }
 
-        RootReference updatedRootReference = new RootReference(newRootPage, newVersion, currentRoot);
+        RootReference updatedRootReference = new RootReference(newRootPage, 1L, newVersion, currentRoot);
         boolean success = root.compareAndSet(currentRoot, updatedRootReference);
 
         if (success)
         {
-            nodesManager.addDirtyRoot(newRootPage);
+            nodesManager.addDirtyRoot(updatedRootReference);
             return updatedRootReference;
         }
         else
@@ -403,28 +403,5 @@ public class BTree
     public long getNodesCount()
     {
         return this.nodesCount;
-    }
-
-    private static final class RootReference
-    {
-        /**
-         * The root page.
-         */
-        final BTreeNode root;
-        /**
-         * The version used for writing.
-         */
-        final long version;
-        /**
-         * Reference to the previous root in the chain.
-         */
-        final RootReference previous;
-
-        RootReference(BTreeNode root, long version, RootReference previous)
-        {
-            this.root = root;
-            this.version = version;
-            this.previous = previous;
-        }
     }
 }

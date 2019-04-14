@@ -212,6 +212,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
+    @Deprecated
     public void returnWritableMemory(final Memory writableMemory)
     {
         final byte[] byteArray = writableMemory.getSupportByteArrayIfAny();

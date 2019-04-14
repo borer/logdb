@@ -15,6 +15,8 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.parallel.ResourceAccessMode.READ_WRITE;
 
 class FileStorageTest
@@ -60,11 +62,19 @@ class FileStorageTest
         final int numKeys = 10;
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
 
-        final long pageNumber = leaf.commit(nodesManager, true);
+        final long timestamp = 1L;
+        final long version = 2L;
+        final int previousRootPageNumber = 1234;
+        final long pageNumber = leaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
         final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemory);
+
+        assertTrue(loadedLeaf.isRoot());
+        assertEquals(previousRootPageNumber, loadedLeaf.getPreviousRoot());
+        assertEquals(version, loadedLeaf.getVersion());
+        assertEquals(timestamp, loadedLeaf.getTimestamp());
 
         for (int i = 0; i < numKeys; i++)
         {
@@ -80,15 +90,25 @@ class FileStorageTest
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
         final BTreeNodeNonLeaf nonLeaf = TestUtils.createNonLeafNodeWithChild(leaf);
 
-        final long pageNumber = nonLeaf.commit(nodesManager, true);
+        final long timestamp = 2L;
+        final long version = 1L;
+        final int previousRootPageNumber = 56789;
+        final long pageNumber = nonLeaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
         final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, persistedMemory);
 
+        assertTrue(loadedNonLeaf.isRoot());
+        assertEquals(previousRootPageNumber, loadedNonLeaf.getPreviousRoot());
+        assertEquals(version, loadedNonLeaf.getVersion());
+        assertEquals(timestamp, loadedNonLeaf.getTimestamp());
+
         final long pageNumberLeaf = loadedNonLeaf.getValue(0);
         final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
         final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemoryLeaf);
+
+        assertFalse(loadedLeaf.isRoot());
 
         for (int i = 0; i < numKeys; i++)
         {

@@ -179,7 +179,11 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long commit(final NodesManager nodesManager, final boolean isRoot)
+    public long commit(final NodesManager nodesManager,
+                       final boolean isRoot,
+                       final long previousRootPageNumber,
+                       final long timestamp,
+                       final long version)
     {
         if (isDirty)
         {
@@ -191,7 +195,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                     final long pageNumber;
                     if (child.isDirty())
                     {
-                        pageNumber = child.commit(nodesManager, false);
+                        pageNumber = child.commit(nodesManager, false, previousRootPageNumber, timestamp, version);
                     }
                     else
                     {
@@ -203,12 +207,11 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                 }
             }
 
-            preCommit();
-            pageNumber = nodesManager.commitNode(this, isRoot);
-            isDirty = false;
+            preCommit(isRoot, previousRootPageNumber, timestamp, version);
+            this.pageNumber = nodesManager.commitNode(this, isRoot);
         }
 
-        return pageNumber;
+        return this.pageNumber;
     }
 
     @Override

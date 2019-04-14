@@ -114,16 +114,15 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long commit(final NodesManager nodesManager, final boolean isRoot)
+    public long commit(final NodesManager nodesManager, final boolean isRoot, long previousRootPageNumber, final long timestamp, final long version)
     {
         if (isDirty)
         {
-            preCommit();
-            pageNumber = nodesManager.commitNode(this, isRoot);
-            isDirty = false;
+            preCommit(isRoot, previousRootPageNumber, timestamp, version);
+            this.pageNumber = nodesManager.commitNode(this, isRoot);
         }
 
-        return pageNumber;
+        return this.pageNumber;
     }
 
     @Override

@@ -99,7 +99,11 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     }
 
     @Override
-    public long commit(NodesManager nodesManager, boolean isRoot)
+    public long commit(final NodesManager nodesManager,
+                       final boolean isRoot,
+                       final long previousRootPageNumber,
+                       final long timestamp,
+                       final long version)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support commit");
     }

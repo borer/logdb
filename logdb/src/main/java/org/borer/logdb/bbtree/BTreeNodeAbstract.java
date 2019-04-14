@@ -10,6 +10,11 @@ import static org.borer.logdb.bbtree.BTreeNodePage.KEY_SIZE;
 import static org.borer.logdb.bbtree.BTreeNodePage.KEY_START_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_KEY_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_VALUES_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_IS_ROOT_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_PREV_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_TIMESTAMP_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_TYPE_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_VERSION_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.VALUE_SIZE;
 
 abstract class BTreeNodeAbstract implements BTreeNode
@@ -55,14 +60,78 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.isDirty = true;
     }
 
-    void preCommit()
+    void preCommit(final boolean isRoot, final long previousRootPageNumber, final long timestamp, final long version)
+    {
+        if (isRoot)
+        {
+            preCommitRoot(previousRootPageNumber, timestamp, version);
+        }
+        else
+        {
+            preCommit();
+        }
+    }
+
+    private void preCommit()
     {
         setNodePageType(getNodeType());
+        setRootFlag(false);
+        isDirty = false;
+    }
+
+    private void preCommitRoot(final long previousRootPageNumber, final long timestamp, final long version)
+    {
+        setNodePageType(getNodeType());
+        setRootFlag(true);
+        setPreviousRoot(previousRootPageNumber);
+        setTimestamp(timestamp);
+        setVersion(version);
+        isDirty = false;
     }
 
     private void setNodePageType(final BtreeNodeType type)
     {
-        buffer.putByte(0, type.getType());
+        buffer.putByte(PAGE_TYPE_OFFSET, type.getType());
+    }
+
+    void setRootFlag(final boolean isRoot)
+    {
+        buffer.putByte(PAGE_IS_ROOT_OFFSET, (byte)(isRoot ? 1 : 0));
+    }
+
+    public boolean isRoot()
+    {
+        return buffer.getByte(PAGE_IS_ROOT_OFFSET) == 1;
+    }
+
+    void setTimestamp(final long timestamp)
+    {
+        buffer.putLong(PAGE_TIMESTAMP_OFFSET, timestamp);
+    }
+
+    public long getTimestamp()
+    {
+        return buffer.getLong(PAGE_TIMESTAMP_OFFSET);
+    }
+
+    void setVersion(final long version)
+    {
+        buffer.putLong(PAGE_VERSION_OFFSET, version);
+    }
+
+    public long getVersion()
+    {
+        return buffer.getLong(PAGE_VERSION_OFFSET);
+    }
+
+    void setPreviousRoot(final long previousRootPageNumber)
+    {
+        buffer.putLong(PAGE_PREV_OFFSET, previousRootPageNumber);
+    }
+
+    public long getPreviousRoot()
+    {
+        return buffer.getLong(PAGE_PREV_OFFSET);
     }
 
     @Override
@@ -336,6 +405,15 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public String toString()
     {
         final StringBuilder contentBuilder = new StringBuilder();
+
+        if (isRoot())
+        {
+            contentBuilder.append(
+                    String.format(" isRoot : true, previousRoot: %d, timestamp: %d, version: %d,",
+                            getPreviousRoot(),
+                            getTimestamp(),
+                            getVersion()));
+        }
 
         contentBuilder.append(" keys : ");
         for (int i = 0; i < numberOfKeys; i++)

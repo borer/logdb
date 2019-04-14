@@ -36,9 +36,21 @@ class BTreeNodePage
     static final int PAGE_START_OFFSET = 0;
 
     static final int PAGE_TYPE_OFFSET = 0;
+    static final int PAGE_IS_ROOT_OFFSET = 1;
+    static final int PAGE_FLAGS_SIZE = Integer.BYTES;
+    static final int PAGE_CHECKSUM_OFFSET = PAGE_START_OFFSET + PAGE_FLAGS_SIZE;
+    static final int PAGE_CHECKSUM_SIZE = Integer.BYTES;
+
+    static final int PAGE_TIMESTAMP_OFFSET = PAGE_CHECKSUM_OFFSET + PAGE_CHECKSUM_SIZE;
+    static final int PAGE_TIMESTAMP_SIZE = Long.BYTES;
+    static final int PAGE_VERSION_OFFSET = PAGE_TIMESTAMP_OFFSET + PAGE_TIMESTAMP_SIZE;
+    static final int PAGE_VERSION_SIZE = Long.BYTES;
+    static final int PAGE_PREV_OFFSET = PAGE_VERSION_OFFSET + PAGE_VERSION_SIZE;
+    static final int PAGE_PREV_SIZE = Long.BYTES;
 
     static final int PAGE_HEADER_OFFSET = PAGE_START_OFFSET;
-    static final int PAGE_HEADER_SIZE = Long.BYTES;
+    static final int PAGE_HEADER_SIZE = PAGE_FLAGS_SIZE + PAGE_CHECKSUM_SIZE + PAGE_TIMESTAMP_SIZE + PAGE_VERSION_SIZE + PAGE_PREV_SIZE;
+
 
     static final int NUMBER_OF_KEY_OFFSET = PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE;
     static final int NUMBER_OF_KEY_SIZE = Integer.BYTES;

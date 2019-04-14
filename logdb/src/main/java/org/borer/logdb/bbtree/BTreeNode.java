@@ -74,9 +74,10 @@ public interface BTreeNode
      * Commits this node to a storage.
      * @param nodesManager the node manager use for committing this node
      * @param isRoot specifies if the current node is root
+     * @param previousRootPageNumber the page number of the previous root node. If first root, then this value is -1
      * @return the address offset where the node was stored
      */
-    long commit(NodesManager nodesManager, boolean isRoot);
+    long commit(NodesManager nodesManager, boolean isRoot, long previousRootPageNumber, long timestamp, long version);
 
     boolean isDirty();
 
