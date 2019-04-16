@@ -17,25 +17,47 @@ public class BTree
     private static final long INITIAL_VERSION = 0;
 
     /**
-     * Reference to the current root page.
+     * Reference to the current uncommitted root page.
      */
-    private final AtomicReference<RootReference> root;
+    private final AtomicReference<RootReference> uncommittedRoot;
+    /**
+     * Reference to the current committed root page number.
+     */
+    private final AtomicReference<Long> committedRoot;
 
     private final NodesManager nodesManager;
 
     private long nodesCount;
 
+    private long writeVersion;
+
     public BTree(final NodesManager nodesManager)
     {
         this.nodesManager = Objects.requireNonNull(
                 nodesManager, "nodesManager must not be null");
-        this.root = new AtomicReference<>(null);
-        this.nodesCount = 1;
+        final long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
+        this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
-        //TODO: pass the root in the constructor
-        final BTreeNode currentRoot = Objects.requireNonNull(
-                nodesManager.loadLastRoot(), "current root cannot be null");
-        setNewRoot(null, currentRoot);
+        final boolean isNewBtree = lastRootPageNumber == -1;
+        if (isNewBtree)
+        {
+            final RootReference rootReference = new RootReference(
+                    nodesManager.createEmptyLeafNode(),
+                    System.currentTimeMillis(),
+                    INITIAL_VERSION,
+                    null);
+            this.uncommittedRoot = new AtomicReference<>(rootReference);
+            this.writeVersion = INITIAL_VERSION;
+        }
+        else
+        {
+            this.uncommittedRoot = new AtomicReference<>(null);
+            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+            mappedNode.initNode(lastRootPageNumber);
+            this.writeVersion = mappedNode.getVersion();
+        }
+
+        this.nodesCount = 1;
     }
 
     /**
@@ -45,8 +67,7 @@ public class BTree
      */
     public void remove(final long key)
     {
-        BTreeNode rootNode = getCurrentRootNode();
-        final CursorPosition cursorPosition = traverseDown(rootNode, key);
+        final CursorPosition cursorPosition = getLastCursorPosition(key);
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
@@ -94,8 +115,7 @@ public class BTree
      */
     public void put(final long key, final long value)
     {
-        BTreeNode rootNode = getCurrentRootNode();
-        final CursorPosition cursorPosition = traverseDown(rootNode, key);
+        final CursorPosition cursorPosition = getLastCursorPosition(key);
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
@@ -151,14 +171,7 @@ public class BTree
         assert version >= 0;
 
         //TODO optimize, we don't need the whole path, just the end node.
-        RootReference rootReference = getRootReferenceForVersion(version);
-        if (rootReference == null)
-        {
-            return -1;
-        }
-
-        final CursorPosition cursorPosition = traverseDown(rootReference.root, key);
-
+        final CursorPosition cursorPosition = getLastCursorPosition(key, version);
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         final long value = cursorPosition.getNode(mappedNode).get(key);
         nodesManager.returnMappedNode(mappedNode);
@@ -169,11 +182,49 @@ public class BTree
     public long get(final long key)
     {
         //TODO optimize, we don't need the whole path, just the end node.
-        final CursorPosition cursorPosition = traverseDown(getCurrentRootNode(), key);
+        final CursorPosition cursorPosition = getLastCursorPosition(key);
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         final long value = cursorPosition.getNode(mappedNode).get(key);
         nodesManager.returnMappedNode(mappedNode);
         return value;
+    }
+
+    private CursorPosition getLastCursorPosition(long key)
+    {
+        CursorPosition cursorPosition;
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null)
+        {
+            cursorPosition = traverseDown(rootReference.root, key);
+        }
+        else
+        {
+            cursorPosition = traverseDown(committedRoot.get(), key);
+        }
+        return cursorPosition;
+    }
+
+    private CursorPosition getLastCursorPosition(long key, int version)
+    {
+        final CursorPosition cursorPosition;
+        final RootReference currentRootReference = uncommittedRoot.get();
+        if (currentRootReference != null)
+        {
+            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
+            if (rootNodeForVersion == null)
+            {
+                cursorPosition = traverseDown(committedRoot.get(), key);
+            }
+            else
+            {
+                cursorPosition = traverseDown(rootNodeForVersion.root, key);
+            }
+        }
+        else
+        {
+            cursorPosition = traverseDown(committedRoot.get(), key);
+        }
+        return cursorPosition;
     }
 
     /**
@@ -182,15 +233,34 @@ public class BTree
      */
     public void consumeAll(final BiConsumer<Long, Long> consumer)
     {
-        final BTreeNode rootNodeForVersion = getCurrentRootNode();
-
-        if (rootNodeForVersion.getNodeType() == BtreeNodeType.NonLeaf)
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null)
         {
-            consumeNonLeafNode(consumer, rootNodeForVersion);
+            final BTreeNode root = rootReference.root;
+            if (root.getNodeType() == BtreeNodeType.NonLeaf)
+            {
+                consumeNonLeafNode(consumer, root);
+            }
+            else
+            {
+                consumeLeafNode(consumer, root);
+            }
         }
         else
         {
-            consumeLeafNode(consumer, rootNodeForVersion);
+            final Long committedRootPageNumber = committedRoot.get();
+            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+            mappedNode.initNode(committedRootPageNumber);
+            final boolean isNonLeaf = mappedNode.getNodeType() == BtreeNodeType.NonLeaf;
+            nodesManager.returnMappedNode(mappedNode);
+            if (isNonLeaf)
+            {
+                consumeNonLeafNode(consumer, committedRootPageNumber);
+            }
+            else
+            {
+                consumeLeafNode(consumer, committedRootPageNumber);
+            }
         }
     }
 
@@ -203,22 +273,69 @@ public class BTree
     {
         assert version >= 0;
 
-        final BTreeNode rootNodeForVersion = getRootNodeForVersion(version);
-
-        if (rootNodeForVersion.getNodeType() == BtreeNodeType.NonLeaf)
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null)
         {
-            consumeNonLeafNode(consumer, rootNodeForVersion);
+            final RootReference rootNodeForVersion = rootReference.getRootReferenceForVersion(version);
+            if (rootNodeForVersion != null)
+            {
+                if (rootNodeForVersion.root.getNodeType() == BtreeNodeType.NonLeaf)
+                {
+                    consumeNonLeafNode(consumer, rootNodeForVersion.root);
+                }
+                else
+                {
+                    consumeLeafNode(consumer, rootNodeForVersion.root);
+                }
+            }
+            else
+            {
+                final Long committedRootPageNumber = committedRoot.get();
+                final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+                mappedNode.initNode(committedRootPageNumber);
+                final boolean isNonLeaf = mappedNode.getNodeType() == BtreeNodeType.NonLeaf;
+                nodesManager.returnMappedNode(mappedNode);
+                if (isNonLeaf)
+                {
+                    consumeNonLeafNode(consumer, committedRootPageNumber);
+                }
+                else
+                {
+                    consumeLeafNode(consumer, committedRootPageNumber);
+                }
+            }
         }
         else
         {
-            consumeLeafNode(consumer, rootNodeForVersion);
+            final Long committedRootPageNumber = committedRoot.get();
+            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+            mappedNode.initNode(committedRootPageNumber);
+            final boolean isNonLeaf = mappedNode.getNodeType() == BtreeNodeType.NonLeaf;
+            nodesManager.returnMappedNode(mappedNode);
+            if (isNonLeaf)
+            {
+                consumeNonLeafNode(consumer, committedRootPageNumber);
+            }
+            else
+            {
+                consumeLeafNode(consumer, committedRootPageNumber);
+            }
         }
     }
 
     public void commit()
     {
         nodesManager.commitDirtyNodes();
-        nodesManager.commitLastRootPage(getCurrentRootNode().getPageNumber());
+
+        final RootReference uncommittedRootReference = uncommittedRoot.get();
+        if (uncommittedRootReference != null)
+        {
+            final long pageNumber = uncommittedRootReference.getPageNumber();
+            nodesManager.commitLastRootPage(pageNumber);
+
+            uncommittedRoot.set(null);
+            committedRoot.set(pageNumber);
+        }
     }
 
     public void close()
@@ -229,6 +346,32 @@ public class BTree
     public String print()
     {
         return BTreePrinter.print(this, nodesManager);
+    }
+
+    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final long nonLeafPageNumber)
+    {
+        assert nonLeafPageNumber > 0;
+
+        final BTreeMappedNode nonLeafNode = nodesManager.getOrCreateMappedNode();
+        final BTreeMappedNode childNode = nodesManager.getOrCreateMappedNode();
+
+        nonLeafNode.initNode(nonLeafPageNumber);
+        final int childPageCount = nonLeafNode.getChildrenNumber();
+        for (int i = 0; i < childPageCount; i++)
+        {
+            final BTreeNode childPage = nodesManager.loadNode(i, nonLeafNode, childNode);
+            if (childPage.getNodeType() == BtreeNodeType.NonLeaf)
+            {
+                consumeNonLeafNode(consumer, childPage.getPageNumber());
+            }
+            else
+            {
+                consumeLeafNode(consumer, childPage.getPageNumber());
+            }
+        }
+
+        nodesManager.returnMappedNode(childNode);
+        nodesManager.returnMappedNode(nonLeafNode);
     }
 
     private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNode nonLeaf)
@@ -254,7 +397,24 @@ public class BTree
         nodesManager.returnMappedNode(mappedNode);
     }
 
-    private void consumeLeafNode(BiConsumer<Long, Long> consumer, BTreeNode leaf)
+    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final long leafPageNumber)
+    {
+        assert leafPageNumber > 0;
+
+        final BTreeMappedNode mappedLeaf = nodesManager.getOrCreateMappedNode();
+        mappedLeaf.initNode(leafPageNumber);
+
+        final int keyCount = mappedLeaf.getKeyCount();
+        for (int i = 0; i < keyCount; i++)
+        {
+            final long key = mappedLeaf.getKey(i);
+            final long value = mappedLeaf.getValue(i);
+
+            consumer.accept(key, value);
+        }
+    }
+
+    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNode leaf)
     {
         assert leaf != null;
 
@@ -275,6 +435,31 @@ public class BTree
         int index;
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        while (node.getNodeType() == BtreeNodeType.NonLeaf)
+        {
+            assert node.getKeyCount() > 0
+                    : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+            index = node.getKeyIndex(key);
+            cursor = createCursorPosition(node, index, cursor);
+            node = nodesManager.loadNode(index, node, mappedNode);
+        }
+
+        index = node.getKeyIndex(key);
+        cursor = createCursorPosition(node, index, cursor);
+        nodesManager.returnMappedNode(mappedNode);
+
+        return cursor;
+    }
+
+    private CursorPosition traverseDown(final long rootPageNumber, final long key)
+    {
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        mappedNode.initNode(rootPageNumber);
+
+        BTreeNode node = mappedNode;
+        CursorPosition cursor = null;
+        int index;
+
         while (node.getNodeType() == BtreeNodeType.NonLeaf)
         {
             assert node.getKeyCount() > 0
@@ -321,73 +506,39 @@ public class BTree
         }
         nodesManager.returnMappedNode(mappedNode);
 
-        setNewRoot(getCurrentRoot(), currentNode);
+        setNewRoot(currentNode);
     }
 
-    private RootReference getRootReferenceForVersion(int version)
+    BTreeNode getCurrentUncommittedRootNode()
     {
-        RootReference rootReference = getCurrentRoot();
-        while (rootReference != null && rootReference.version > version)
-        {
-            rootReference = rootReference.previous;
-        }
-
-        if (rootReference == null || rootReference.version < version)
-        {
-            return null;
-        }
-        return rootReference;
+        final RootReference rootReference = uncommittedRoot.get();
+        return rootReference == null ? null : rootReference.root;
     }
 
-    private BTreeNode getRootNodeForVersion(int version)
+    long getCurrentCommittedRootNode()
     {
-        final RootReference rootReferenceForVersion = getRootReferenceForVersion(version);
-        assert rootReferenceForVersion != null;
-        assert rootReferenceForVersion.root != null;
-        return rootReferenceForVersion.root;
-    }
-
-    private RootReference getCurrentRoot()
-    {
-        return root.get();
-    }
-
-    BTreeNode getCurrentRootNode()
-    {
-        RootReference rootReference = root.get();
-        assert rootReference != null;
-        return rootReference.root;
+        final long committedRootPageNumber = committedRoot.get();
+        assert committedRootPageNumber > 0 : "Committed root page number must be positive. Current " + committedRootPageNumber;
+        return committedRootPageNumber;
     }
 
     /**
-     * Try to set the new root reference from now on.
+     * Try to set the new uncommittedRoot reference from now on.
      *
-     * @param oldRoot     previous root reference
-     * @param newRootPage the new root page
+     * @param newRootPage the new uncommittedRoot page
      * @return new RootReference or null if update failed
      */
-    private RootReference setNewRoot(RootReference oldRoot, BTreeNode newRootPage)
+    private RootReference setNewRoot(final BTreeNode newRootPage)
     {
-        RootReference currentRoot = getCurrentRoot();
-        assert newRootPage != null || currentRoot != null;
-        if (currentRoot != oldRoot && oldRoot != null)
-        {
-            return null;
-        }
+        Objects.requireNonNull(newRootPage, "current uncommittedRoot cannot be null");
+        final RootReference currentRoot = uncommittedRoot.get();
 
-        long newVersion = INITIAL_VERSION;
-        if (currentRoot != null)
-        {
-            if (newRootPage == null)
-            {
-                newRootPage = currentRoot.root;
-            }
+        final long newVersion = ++writeVersion;
 
-            newVersion = currentRoot.version + 1L;
-        }
-
-        RootReference updatedRootReference = new RootReference(newRootPage, 1L, newVersion, currentRoot);
-        boolean success = root.compareAndSet(currentRoot, updatedRootReference);
+        //TODO: extract timestamp retriever
+        final long timestamp = System.currentTimeMillis();
+        final RootReference updatedRootReference = new RootReference(newRootPage, timestamp, newVersion, currentRoot);
+        boolean success = uncommittedRoot.compareAndSet(currentRoot, updatedRootReference);
 
         if (success)
         {

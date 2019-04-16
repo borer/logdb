@@ -11,7 +11,21 @@ public class BTreePrinter
      */
     public static String print(final BTree bTree, final NodesManager nodesManager)
     {
-        return print(bTree.getCurrentRootNode(), nodesManager);
+        final BTreeNode currentUncommittedRootNode = bTree.getCurrentUncommittedRootNode();
+        if (currentUncommittedRootNode != null)
+        {
+            return print(currentUncommittedRootNode, nodesManager);
+        }
+        else
+        {
+            final long currentCommittedRootPageNumber = bTree.getCurrentCommittedRootNode();
+            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+            mappedNode.initNode(currentCommittedRootPageNumber);
+            final String print = print(mappedNode, nodesManager);
+            nodesManager.returnMappedNode(mappedNode);
+
+            return print;
+        }
     }
 
     /**

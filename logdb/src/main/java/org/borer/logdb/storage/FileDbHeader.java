@@ -14,9 +14,8 @@ public class FileDbHeader
     private static int MEMORY_MAPPED_CHUNK_SIZE_OFFSET = PAGE_SIZE_OFFSET + Integer.BYTES;
     private static int LAST_ROOT_OFFSET = MEMORY_MAPPED_CHUNK_SIZE_OFFSET + Long.BYTES;
 
-    private final int version;
-    private final long lastRootOffset;
-
+    final int version;
+    final long lastRootOffset;
     final ByteOrder byteOrder;
     final int pageSize; // Must be a power of two
     final int headerSizeInPages;

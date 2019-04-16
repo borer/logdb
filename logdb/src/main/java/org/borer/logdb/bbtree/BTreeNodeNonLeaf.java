@@ -208,7 +208,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
             }
 
             preCommit(isRoot, previousRootPageNumber, timestamp, version);
-            this.pageNumber = nodesManager.commitNode(this, isRoot);
+            this.pageNumber = nodesManager.commitNode(this);
         }
 
         return this.pageNumber;

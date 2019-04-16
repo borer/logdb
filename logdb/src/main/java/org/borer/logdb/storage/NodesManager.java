@@ -43,7 +43,7 @@ public class NodesManager
         this.mappedNodes = new ArrayDeque<>();
     }
 
-    private BTreeNodeLeaf createEmptyLeafNode()
+    public BTreeNodeLeaf createEmptyLeafNode()
     {
         return getOrCreateLeafNode();
     }
@@ -127,6 +127,9 @@ public class NodesManager
         dirtyRootNodes.add(rootNode);
     }
 
+    /**
+     * Stores into persistent storage all the dirty roots and their paths.
+     */
     public void commitDirtyNodes()
     {
         if (dirtyRootNodes.isEmpty())
@@ -156,34 +159,26 @@ public class NodesManager
     /**
      * After this method, the node should not be used anymore as it's put backed into the pool.
      * @param node the node to commit
-     * @param isRoot true if this node is a root
      * @return the page number where this node is stored
      */
-    public long commitNode(final BTreeNodeNonLeaf node, final boolean isRoot)
+    public long commitNode(final BTreeNodeNonLeaf node)
     {
         final long pageNumber = commitNodeToStorage(node);
-        if (!isRoot)
-        {
-            resetNode(node);
-            nonLeafNodesCache.add(node);
-        }
+        resetNode(node);
+        nonLeafNodesCache.add(node);
         return pageNumber;
     }
 
     /**
      * After this method, the node should not be used anymore as it's put backed into the pool.
      * @param node the node to commit
-     * @param isRoot true if this node is a root
      * @return the page number where this node is stored
      */
-    public long commitNode(final BTreeNodeLeaf node, final boolean isRoot)
+    public long commitNode(final BTreeNodeLeaf node)
     {
         final long pageNumber = commitNodeToStorage(node);
-        if (!isRoot)
-        {
-            resetNode(node);
-            leafNodesCache.add(node);
-        }
+        resetNode(node);
+        leafNodesCache.add(node);
         return pageNumber;
     }
 
@@ -223,10 +218,15 @@ public class NodesManager
         storage.commitMetadata(offsetLastRoot);
     }
 
+    public long loadLastRootPageNumber()
+    {
+        return storage.getLastRootPageNumber();
+    }
+
     public BTreeNode loadLastRoot()
     {
         final Memory memory = storage.loadLastRoot();
-        final long pageNumber = storage.getLastRootPageNumber();
+        final long pageNumber = loadLastRootPageNumber();
 
         if (memory != null)
         {

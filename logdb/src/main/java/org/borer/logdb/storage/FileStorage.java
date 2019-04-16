@@ -39,7 +39,6 @@ public final class FileStorage implements Storage, Closeable
     private final RandomAccessFile dbFile;
     private final FileChannel channel;
     private final FileDbHeader fileDbHeader;
-    private long lastRootPageNumber;
 
     private FileStorage(
             final File file,
@@ -53,7 +52,6 @@ public final class FileStorage implements Storage, Closeable
         this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
         this.mappedBuffers = new ArrayList<>();
         this.availableWritableMemory = new ArrayDeque<>();
-        this.lastRootPageNumber = -1;
     }
 
     public static FileStorage createNewFileDb(
@@ -254,7 +252,6 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public void commitMetadata(final long lastRootPageNumber)
     {
-        this.lastRootPageNumber = lastRootPageNumber;
         try
         {
             final long currentChanelPosition = channel.position();
@@ -272,7 +269,7 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public long getLastRootPageNumber()
     {
-        return lastRootPageNumber;
+        return fileDbHeader.lastRootOffset;
     }
 
     @Override

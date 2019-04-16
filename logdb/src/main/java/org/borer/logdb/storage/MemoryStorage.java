@@ -25,7 +25,7 @@ public class MemoryStorage implements Storage
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = 0L;
-        this.lastPageRootNumber = 0L;
+        this.lastPageRootNumber = -1L;
     }
 
     @Override

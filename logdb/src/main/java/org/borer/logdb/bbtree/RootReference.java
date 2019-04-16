@@ -27,10 +27,20 @@ public final class RootReference
                   final long version,
                   final RootReference previous)
     {
+        this.pageNumber = -1;
         this.root = root;
         this.timestamp = timestamp;
         this.version = version;
         this.previous = previous;
+    }
+
+    public RootReference(final long pageNumber, final long timestamp, final long version)
+    {
+        this.pageNumber = pageNumber;
+        this.root = null;
+        this.timestamp = timestamp;
+        this.version = version;
+        this.previous = null;
     }
 
     public void setPageNumber(final long pageNumber)
@@ -41,5 +51,20 @@ public final class RootReference
     public long getPageNumber()
     {
         return pageNumber;
+    }
+
+    RootReference getRootReferenceForVersion(final int version)
+    {
+        RootReference rootReference = this;
+        while (rootReference != null && rootReference.version > version)
+        {
+            rootReference = rootReference.previous;
+        }
+
+        if (rootReference == null || rootReference.version < version)
+        {
+            return null;
+        }
+        return rootReference;
     }
 }
