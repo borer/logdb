@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class BTreeTest
 {
@@ -40,18 +41,25 @@ class BTreeTest
         bTree.put(key, expectedValue2);
         bTree.put(key, expectedValue3);
 
+        //index is 0 based
         final long actual0 = bTree.get(key, 0);
-        assertEquals(-1, actual0);
+        assertEquals(expectedValue1, actual0);
 
-        //index is 0 based, but the version 0 is from the constructor
         final long actual1 = bTree.get(key, 1);
-        assertEquals(expectedValue1, actual1);
+        assertEquals(expectedValue2, actual1);
 
         final long actual2 = bTree.get(key, 2);
-        assertEquals(expectedValue2, actual2);
+        assertEquals(expectedValue3, actual2);
 
-        final long actual3 = bTree.get(key, 3);
-        assertEquals(expectedValue3, actual3);
+        try
+        {
+            bTree.get(key, 3);
+            fail();
+        }
+        catch (final IllegalArgumentException e)
+        {
+            assertEquals("Didn't have version 3", e.getMessage());
+        }
 
         //get latest version by default
         final long actualLatest = bTree.get(key);
@@ -88,7 +96,7 @@ class BTreeTest
         final int version = 50;
         for (long i = 0; i < 100; i++)
         {
-            if (i < version)
+            if (i <= version)
             {
                 expectedOrder.add(i);
             }

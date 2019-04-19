@@ -91,7 +91,8 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            fileStorage.extendMapsIfRequired();
+            final long requiredNumberOfMaps = getRequiredFileMapsForWholeFile(fileDbHeader.memoryMappedChunkSizeBytes, channel.size());
+            fileStorage.extendMapsIfRequired(requiredNumberOfMaps);
         }
         catch (final FileNotFoundException e)
         {
@@ -129,7 +130,8 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            fileStorage.extendMapsIfRequired();
+            final long requiredNumberOfMaps = getRequiredFileMapsForWholeFile(fileDbHeader.memoryMappedChunkSizeBytes, channel.size());
+            fileStorage.extendMapsIfRequired(requiredNumberOfMaps);
         }
         catch (final FileNotFoundException e)
         {
@@ -143,13 +145,17 @@ public final class FileStorage implements Storage, Closeable
         return fileStorage;
     }
 
-    private void extendMapsIfRequired()
+    private static long getRequiredFileMapsForWholeFile(final long memoryMappedChunkSizeBytes, final long fileSize)
+    {
+        return (fileSize / memoryMappedChunkSizeBytes) + 1;
+    }
+
+    private void extendMapsIfRequired(final long requiredNumberOfMaps)
     {
         try
         {
             long originalChannelPosition = channel.position();
 
-            final long requiredNumberOfMaps = calculateRequiredNumberOfMapMemoryRegions();
             final int existingRegions = mappedBuffers.size();
             final long regionsToMap = requiredNumberOfMaps - existingRegions;
             for (long i = 0; i < regionsToMap; i++)
@@ -163,11 +169,6 @@ public final class FileStorage implements Storage, Closeable
         {
             LOGGER.error("Couldn't extend the mapped db file", e);
         }
-    }
-
-    private long calculateRequiredNumberOfMapMemoryRegions() throws IOException
-    {
-        return (channel.size() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
     }
 
     private void mapMemory(final long offset)
@@ -234,7 +235,7 @@ public final class FileStorage implements Storage, Closeable
             {
                 pageNumber = channel.position() / fileDbHeader.pageSize;
                 FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray)); //TODO reuse bytebuffer
-                extendMapsIfRequired();
+                extendMapsIfRequired(getRequiredNumberOfMaps());
             }
             catch (final IOException e)
             {
@@ -298,6 +299,11 @@ public final class FileStorage implements Storage, Closeable
         return null;
     }
 
+    private long getRequiredNumberOfMaps() throws IOException
+    {
+        return (channel.position() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
+    }
+
     @Override
     public Memory loadPage(final long pageNumber)
     {
@@ -340,8 +346,9 @@ public final class FileStorage implements Storage, Closeable
 
     public DirectMemory getDirectMemory(final long pageNumber)
     {
+        final long baseOffsetForPageNumber = getBaseOffsetForPageNumber(pageNumber);
         return MemoryFactory.getGetDirectMemory(
-                pageNumber * fileDbHeader.pageSize,
+                baseOffsetForPageNumber,
                 fileDbHeader.pageSize,
                 fileDbHeader.byteOrder);
     }
@@ -358,7 +365,7 @@ public final class FileStorage implements Storage, Closeable
         try
         {
             channel.force(true);
-            extendMapsIfRequired();
+            extendMapsIfRequired(getRequiredNumberOfMaps());
         }
         catch (final IOException e)
         {

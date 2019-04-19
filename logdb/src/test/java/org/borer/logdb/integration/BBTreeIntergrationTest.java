@@ -187,7 +187,7 @@ public class BBTreeIntergrationTest
         loadedBTree.close();
     }
 
-//    @Test
+    @Test
     void shouldGetHistoricValuesFromOpenDB()
     {
         final String filename = "testBtree5.logdb";

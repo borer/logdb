@@ -173,7 +173,13 @@ public class BTree
         //TODO optimize, we don't need the whole path, just the end node.
         final CursorPosition cursorPosition = getLastCursorPosition(key, version);
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        final long value = cursorPosition.getNode(mappedNode).get(key);
+        final BTreeNode node = cursorPosition.getNode(mappedNode);
+        if (node == null)
+        {
+            throw new IllegalArgumentException("Didn't have version " + version);
+        }
+
+        final long value = node.get(key);
         nodesManager.returnMappedNode(mappedNode);
 
         return value;
@@ -290,9 +296,15 @@ public class BTree
             }
             else
             {
-                final Long committedRootPageNumber = committedRoot.get();
+                long committedRootPageNumber = committedRoot.get();
                 final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
                 mappedNode.initNode(committedRootPageNumber);
+                while (mappedNode.getVersion() > version)
+                {
+                    committedRootPageNumber = mappedNode.getPreviousRoot();
+                    mappedNode.initNode(committedRootPageNumber);
+                }
+
                 final boolean isNonLeaf = mappedNode.getNodeType() == BtreeNodeType.NonLeaf;
                 nodesManager.returnMappedNode(mappedNode);
                 if (isNonLeaf)
@@ -307,9 +319,15 @@ public class BTree
         }
         else
         {
-            final Long committedRootPageNumber = committedRoot.get();
+            long committedRootPageNumber = committedRoot.get();
             final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
             mappedNode.initNode(committedRootPageNumber);
+            while (mappedNode.getVersion() > version)
+            {
+                committedRootPageNumber = mappedNode.getPreviousRoot();
+                mappedNode.initNode(committedRootPageNumber);
+            }
+
             final boolean isNonLeaf = mappedNode.getNodeType() == BtreeNodeType.NonLeaf;
             nodesManager.returnMappedNode(mappedNode);
             if (isNonLeaf)
@@ -533,7 +551,7 @@ public class BTree
         Objects.requireNonNull(newRootPage, "current uncommittedRoot cannot be null");
         final RootReference currentRoot = uncommittedRoot.get();
 
-        final long newVersion = ++writeVersion;
+        final long newVersion = writeVersion++;
 
         //TODO: extract timestamp retriever
         final long timestamp = System.currentTimeMillis();
