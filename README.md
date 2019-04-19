@@ -14,11 +14,8 @@ mvn package
 To run the benchmark :
 
 ```sh
-java -jar benchmark/target/benchmarks.jar TestBenchmark
+./runBenchmarks.sh
 ```
-
-*Note: when running the benchmark you need to give it a bit of heap memory depending on how fast 
-it's running on your machine*
 
 License
 ----
