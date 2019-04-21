@@ -40,6 +40,29 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                 String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
     }
 
+    public void insertLog(final long key, final long value)
+    {
+        final int index = logBinarySearch(key);
+
+        if (index < 0)
+        {
+            final int absIndex = -index - 1;
+            insertLogKeyValue(absIndex, key, value);
+        }
+        else
+        {
+            setLogKeyValue(index, key, value);
+        }
+
+        setDirty();
+    }
+
+    public void removeLog(final long key)
+    {
+        final int index = logBinarySearch(key);
+        removeLogKeyValue(index);
+    }
+
     @Override
     public void setChild(final int index, final BTreeNodeHeap child)
     {

@@ -11,6 +11,7 @@ import static org.borer.logdb.bbtree.BTreeNodePage.KEY_START_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_KEY_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.NUMBER_OF_VALUES_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_IS_ROOT_OFFSET;
+import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_PREV_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_TIMESTAMP_OFFSET;
 import static org.borer.logdb.bbtree.BTreeNodePage.PAGE_TYPE_OFFSET;
@@ -24,6 +25,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     long pageNumber;
     int numberOfKeys;
     int numberOfValues;
+    int numberOfLogKeyValues;
     boolean isDirty;
 
     final Memory buffer;
@@ -146,6 +148,16 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         numberOfKeys = buffer.getInt(NUMBER_OF_KEY_OFFSET);
         numberOfValues = buffer.getInt(NUMBER_OF_VALUES_OFFSET);
+
+        if (getNodeType() == BtreeNodeType.NonLeaf)
+        {
+            numberOfLogKeyValues = buffer.getInt(PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
+        }
+        else
+        {
+            numberOfLogKeyValues = 0;
+        }
+
         freeSizeLeftBytes = calculateFreeSpaceLeft();
     }
 
@@ -177,9 +189,24 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return getKeyIndexOffset(index) + KEY_SIZE;
     }
 
-    private static long getValueIndexOffset(final int index)
+    long getLogKey(final int index)
     {
-        return PAGE_SIZE_BYTES - ((index + 1) * VALUE_SIZE);
+        return buffer.getLong(getLogKeyIndexOffset(index));
+    }
+
+    long getLogValueFromBuffer(final int index)
+    {
+        return buffer.getLong(getLogValueIndexOffset(index));
+    }
+
+    private static long getLogKeyIndexOffset(final int index)
+    {
+        return PAGE_SIZE_BYTES - ((index + 1) * (KEY_SIZE + VALUE_SIZE));
+    }
+
+    private static long getLogValueIndexOffset(final int index)
+    {
+        return getLogKeyIndexOffset(index) + KEY_SIZE;
     }
 
     void insertKeyAndValue(final int index, final long key, final long value)
@@ -227,6 +254,12 @@ abstract class BTreeNodeAbstract implements BTreeNode
         buffer.putInt(NUMBER_OF_VALUES_OFFSET, numberOfValues);
     }
 
+    void updateNumberOfLogKeyValues(final int numberOfLogKeyValues)
+    {
+        this.numberOfLogKeyValues = numberOfLogKeyValues;
+        buffer.putInt(PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET, numberOfLogKeyValues);
+    }
+
     /**
      * Gets the value at index position.
      *
@@ -238,27 +271,42 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getValueIndexOffsetNew(index));
     }
 
-    void removeValue(final int index, final int keyCount)
+    public long getLogValue(final long key)
     {
-        assert keyCount >= 0
-                : String.format("value size after removing index %d was %d", index, keyCount - 1);
-        copyValuesExcept(index);
+        final int index = logBinarySearch(key);
+        if (index < 0)
+        {
+            return -1;
+        }
 
-        numberOfValues--;
-        updateNumberOfValues(numberOfValues);
-
-        freeSizeLeftBytes += VALUE_SIZE;
+        return getLogValueFromBuffer(index);
     }
 
-    void insertValue(final int index, final long value)
+    void removeLogKeyValue(final int index)
     {
-        copyValuesWithGap(index);
-        setValue(index, value);
+        copyLogKeyValuesExcept(index);
 
-        numberOfValues++;
-        updateNumberOfValues(numberOfValues);
+        numberOfLogKeyValues--;
+        updateNumberOfLogKeyValues(numberOfLogKeyValues);
 
-        freeSizeLeftBytes -= VALUE_SIZE;
+        freeSizeLeftBytes += KEY_SIZE + VALUE_SIZE;
+    }
+
+    void insertLogKeyValue(final int index, final long key, final long value)
+    {
+        copyLogKeyValuesWithGap(index);
+        setLogKeyValue(index, key, value);
+
+        numberOfLogKeyValues++;
+        updateNumberOfLogKeyValues(numberOfLogKeyValues);
+
+        freeSizeLeftBytes -= KEY_SIZE + VALUE_SIZE;
+    }
+
+    void setLogKeyValue(final int index, final long key, final long value)
+    {
+        buffer.putLong(getLogKeyIndexOffset(index), key);
+        buffer.putLong(getLogValueIndexOffset(index), value);
     }
 
     long setValue(final int index, final long value)
@@ -295,8 +343,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         //copy values
         final byte[] bValuesBuffer = new byte[bNumberOfValues * VALUE_SIZE];
-        buffer.getBytes(getValueIndexOffset(aNumberOfValues + bNumberOfValues - 1), bValuesBuffer);
-        bNode.buffer.putBytes(getValueIndexOffset(bNumberOfValues - 1), bValuesBuffer);
+        buffer.getBytes(getLogKeyIndexOffset(aNumberOfValues + bNumberOfValues - 1), bValuesBuffer);
+        bNode.buffer.putBytes(getLogKeyIndexOffset(bNumberOfValues - 1), bValuesBuffer);
 
         freeSizeLeftBytes += (numberOfValues - aNumberOfValues) * VALUE_SIZE;
         numberOfValues = aNumberOfValues;
@@ -366,31 +414,31 @@ abstract class BTreeNodeAbstract implements BTreeNode
      *
      * @param gapIndex the index of the gap
      */
-    private void copyValuesWithGap(final int gapIndex)
+    private void copyLogKeyValuesWithGap(final int gapIndex)
     {
-        if (gapIndex < numberOfValues)
+        if (gapIndex < numberOfLogKeyValues)
         {
-            final int elementsToMove = numberOfValues - gapIndex;
-            final long oldValueIndexOffset = getValueIndexOffset(numberOfValues - 1);
-            final long newValueIndexOffset = getValueIndexOffset(numberOfValues);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * VALUE_SIZE];
+            final int elementsToMove = numberOfLogKeyValues - gapIndex;
+            final long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues - 1);
+            final long newLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * (KEY_SIZE + VALUE_SIZE)];
 
-            buffer.getBytes(oldValueIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(newValueIndexOffset, bufferForElementsToMove);
+            buffer.getBytes(oldLogKeyValueIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(newLogKeyValueIndexOffset, bufferForElementsToMove);
         }
     }
 
-    private void copyValuesExcept(final int removeIndex)
+    private void copyLogKeyValuesExcept(final int removeIndex)
     {
-        if (numberOfValues > 0 && removeIndex < (numberOfValues - 1))
+        if (numberOfLogKeyValues > 0 && removeIndex < (numberOfLogKeyValues - 1))
         {
-            final int elementsToMove = numberOfValues - removeIndex;
-            final long oldValueIndexOffset = getValueIndexOffset(numberOfValues);
-            final long newValueIndexOffset = getValueIndexOffset(numberOfValues - 1);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * VALUE_SIZE];
+            final int elementsToMove = numberOfLogKeyValues - removeIndex;
+            final long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues);
+            final long newLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues - 1);
+            byte[] bufferForElementsToMove = new byte[elementsToMove * (KEY_SIZE + VALUE_SIZE)];
 
-            buffer.getBytes(oldValueIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(newValueIndexOffset, bufferForElementsToMove);
+            buffer.getBytes(oldLogKeyValueIndexOffset, bufferForElementsToMove);
+            buffer.putBytes(newLogKeyValueIndexOffset, bufferForElementsToMove);
         }
     }
 
@@ -437,6 +485,33 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return -(low + 1);
     }
 
+    int logBinarySearch(final long key)
+    {
+        int low = 0;
+        int high = numberOfLogKeyValues - 1;
+        int index = high >>> 1;
+
+        while (low <= high)
+        {
+            final long existingKey = getLogKey(index);
+            final int compare = Long.compare(key, existingKey);
+            if (compare > 0)
+            {
+                low = index + 1;
+            }
+            else if (compare < 0)
+            {
+                high = index - 1;
+            }
+            else
+            {
+                return index;
+            }
+            index = (low + high) >>> 1;
+        }
+        return -(low + 1);
+    }
+
     @Override
     public String toString()
     {
@@ -449,6 +524,21 @@ abstract class BTreeNodeAbstract implements BTreeNode
                             getPreviousRoot(),
                             getTimestamp(),
                             getVersion()));
+        }
+
+        if (numberOfLogKeyValues > 0)
+        {
+            contentBuilder.append(" log KV : ");
+            for (int i = 0; i < numberOfLogKeyValues; i++)
+            {
+                contentBuilder.append(getLogKey(i));
+                contentBuilder.append("-");
+                contentBuilder.append(getLogValueFromBuffer(i));
+                if (i + 1 != numberOfLogKeyValues)
+                {
+                    contentBuilder.append(",");
+                }
+            }
         }
 
         contentBuilder.append(" keys : ");
@@ -470,6 +560,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             }
         }
 
-        return String.format("%s{ %s }", getNodeType().name(), contentBuilder.toString());
+        return String.format("%s{ %s }",
+                getNodeType().name(),
+                contentBuilder.toString());
     }
 }

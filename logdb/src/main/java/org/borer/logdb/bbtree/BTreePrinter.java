@@ -97,6 +97,23 @@ public class BTreePrinter
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
+        if (node.numberOfLogKeyValues > 0)
+        {
+            printer.append("{ log | {");
+            for (int i = 0; i < node.numberOfLogKeyValues; i++)
+            {
+                if (i + 1 < node.numberOfLogKeyValues)
+                {
+                    printer.append(String.format(" %s-%s | ", node.getLogKey(i), node.getLogValueFromBuffer(i)));
+                }
+                else
+                {
+                    printer.append(String.format(" %s-%s ", node.getLogKey(i), node.getLogValueFromBuffer(i)));
+                }
+            }
+            printer.append("}}|");
+        }
+
         for (int i = 0; i < node.numberOfKeys; i++)
         {
             final long key = node.getKey(i);

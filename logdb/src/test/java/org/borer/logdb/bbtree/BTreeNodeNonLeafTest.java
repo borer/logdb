@@ -31,6 +31,41 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
+    void shouldBeAbleToInsertLogKeyValues()
+    {
+        final int maxLogKeyValues = 10;
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            bTreeNonLeaf.insertLog(i, i);
+        }
+
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            assertEquals(i, bTreeNonLeaf.getLogValue(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToRemoveLogKeyValues()
+    {
+        final int maxLogKeyValues = 10;
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            bTreeNonLeaf.insertLog(i, i);
+        }
+
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            bTreeNonLeaf.removeLog(i);
+        }
+
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            assertEquals(-1, bTreeNonLeaf.getLogValue(i));
+        }
+    }
+
+    @Test
     void shouldBeAbleToInsertMultipleChildren()
     {
         final int numKeysPerChild = 5;
@@ -238,6 +273,12 @@ class BTreeNodeNonLeafTest
             assertEquals(i + 1, bTreeNonLeaf.getKeyCount());
         }
 
+        final int maxLogKeyValuePairs = 10;
+        for (int i = 0; i < maxLogKeyValuePairs; i++)
+        {
+            bTreeNonLeaf.insertLog(i, i);
+        }
+
         final BTreeNodeNonLeaf copy = new BTreeNodeNonLeaf(
                 bTreeNonLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
@@ -253,5 +294,10 @@ class BTreeNodeNonLeafTest
 
         assertEquals(11, bTreeNonLeaf.getKeyCount());
         assertEquals(10, copy.getKeyCount());
+
+        for (int i = 0; i < maxLogKeyValuePairs; i++)
+        {
+            assertEquals(i, copy.getLogValue(i));
+        }
     }
 }
