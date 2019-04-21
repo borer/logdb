@@ -6,12 +6,20 @@ public class MemoryCopy
 {
     public static void copy(final Memory sourceMemory, final Memory destinationMemory)
     {
+        copy(sourceMemory, 0, destinationMemory, 0, sourceMemory.getCapacity());
+    }
+
+    public static void copy(final Memory sourceMemory,
+                            final long sourceOffset,
+                            final Memory destinationMemory,
+                            final long destinationOffset,
+                            final long lengthBytes)
+    {
         Objects.requireNonNull(sourceMemory, "source memory cannot be null");
         Objects.requireNonNull(destinationMemory, "destination memory cannot be null");
 
-        final long lengthBytes = sourceMemory.getCapacity();
-
-        destinationMemory.assertBounds(0, lengthBytes);
+        sourceMemory.assertBounds(sourceOffset, lengthBytes);
+        destinationMemory.assertBounds(destinationOffset, lengthBytes);
 
         if ((sourceMemory instanceof MemoryDirectNonNativeImpl && !(destinationMemory instanceof MemoryDirectNonNativeImpl)) ||
                 (!(sourceMemory instanceof MemoryDirectNonNativeImpl) && destinationMemory instanceof MemoryDirectNonNativeImpl))
@@ -22,9 +30,9 @@ public class MemoryCopy
         {
             NativeMemoryAccess.copyBytes(
                     sourceMemory.getSupportByteArrayIfAny(),
-                    sourceMemory.getBaseAddress(),
+                    sourceMemory.getBaseAddress() + sourceOffset,
                     destinationMemory.getSupportByteArrayIfAny(),
-                    destinationMemory.getBaseAddress(),
+                    destinationMemory.getBaseAddress() + destinationOffset,
                     lengthBytes);
         }
     }

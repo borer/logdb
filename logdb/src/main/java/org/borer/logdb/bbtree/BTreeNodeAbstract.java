@@ -1,6 +1,7 @@
 package org.borer.logdb.bbtree;
 
 import org.borer.logdb.bit.Memory;
+import org.borer.logdb.bit.MemoryCopy;
 
 import java.util.Objects;
 
@@ -326,9 +327,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         //copy keys
         final int extraValues = numberOfValues - numberOfKeys;
         final int lengthOfSplit = (bNumberOfKeys + extraValues) * (KEY_SIZE + VALUE_SIZE);
-        final byte[] bKeyValueBuffer = new byte[lengthOfSplit];
-        buffer.getBytes(getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bKeyValueBuffer);
-        bNode.buffer.putBytes(getKeyIndexOffset(0), bKeyValueBuffer);
+        MemoryCopy.copy(buffer, getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bNode.buffer, getKeyIndexOffset(0), lengthOfSplit);
 
         freeSizeLeftBytes += (numberOfKeys - aNumberOfKeys) * (KEY_SIZE + VALUE_SIZE);
 
@@ -380,12 +379,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final long oldIndexOffset = getKeyIndexOffset(gapIndex);
         final long newIndexOffset = getKeyIndexOffset(gapIndex + 1);
 
-        //TODO: this can be optimized with unsafe memory copy
         final int size = (pairsToMove + extraValues) * (KEY_SIZE + VALUE_SIZE);
-        byte[] bufferForElementsToMove = new byte[size];
-
-        buffer.getBytes(oldIndexOffset, bufferForElementsToMove);
-        buffer.putBytes(newIndexOffset, bufferForElementsToMove);
+        MemoryCopy.copy(buffer, oldIndexOffset, buffer, newIndexOffset, size);
     }
 
     private void copyKeyValuesExcept(final int removeIndex)
@@ -401,12 +396,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final long oldIndexOffset = getKeyIndexOffset(removeIndex);
         final long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
 
-        //TODO: this can be optimized with unsafe memory copy
         final int size = (pairsToMove * (KEY_SIZE + VALUE_SIZE)) + (extraValues * VALUE_SIZE);
-        byte[] bufferForElementsToMove = new byte[size];
-
-        buffer.getBytes(newIndexOffset, bufferForElementsToMove);
-        buffer.putBytes(oldIndexOffset, bufferForElementsToMove);
+        MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 
     /**
@@ -421,10 +412,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             final int elementsToMove = numberOfLogKeyValues - gapIndex;
             final long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues - 1);
             final long newLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * (KEY_SIZE + VALUE_SIZE)];
-
-            buffer.getBytes(oldLogKeyValueIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(newLogKeyValueIndexOffset, bufferForElementsToMove);
+            final int size = elementsToMove * (KEY_SIZE + VALUE_SIZE);
+            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
         }
     }
 
@@ -435,10 +424,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             final int elementsToMove = numberOfLogKeyValues - removeIndex;
             final long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues);
             final long newLogKeyValueIndexOffset = getLogKeyIndexOffset(numberOfLogKeyValues - 1);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * (KEY_SIZE + VALUE_SIZE)];
-
-            buffer.getBytes(oldLogKeyValueIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(newLogKeyValueIndexOffset, bufferForElementsToMove);
+            final int size = elementsToMove * (KEY_SIZE + VALUE_SIZE);
+            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
         }
     }
 
