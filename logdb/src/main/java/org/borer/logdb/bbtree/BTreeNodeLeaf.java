@@ -73,8 +73,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         bTreeNodeLeaf.updateNumberOfKeys(bNumberOfKeys);
         bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
 
-        splitKeys(at, bNumberOfKeys,  bTreeNodeLeaf);
-        splitValues(at, bNumberOfValues, bTreeNodeLeaf);
+        splitKeysAndValues(at, bNumberOfKeys, bTreeNodeLeaf);
 
         bTreeNodeLeaf.setDirty();
         setDirty();
@@ -88,8 +87,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         assert keyCount > index && keyCount > 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
-        removeKey(index, keyCount);
-        removeValue(index, keyCount);
+        removeKeyAndValue(index, keyCount);
 
         setDirty();
     }
@@ -102,8 +100,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         if (index < 0)
         {
             final int absIndex = -index - 1;
-            insertKey(absIndex, key);
-            insertValue(absIndex, value);
+            insertKeyAndValue(absIndex, key, value);
         }
         else
         {

@@ -61,9 +61,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public void insertChild(final int index, final long key, final BTreeNodeHeap child)
     {
         final int rawChildPageCount = getChildrenNumber();
-        insertKey(index, key);
         //this will be replaced once we commit the child page
-        insertValue(index, NON_COMMITTED_CHILD);
+        insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
 
         BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
         copyWithGap(children, newChildren, rawChildPageCount, index);
@@ -87,8 +86,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         assert keyCount > index && keyCount > 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
-        removeKey(index, keyCount);
-        removeValue(index, keyCount);
+        removeKeyAndValue(index, keyCount);
 
         removeChildReference(index);
 
@@ -166,8 +164,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         bTreeNodeLeaf.updateNumberOfKeys(bNumberOfKeys);
         bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
 
-        splitKeys(at, bNumberOfKeys, bTreeNodeLeaf);
-        splitValues(aNumberOfValues, bNumberOfValues, bTreeNodeLeaf);
+        splitKeysAndValues(at, bNumberOfKeys, bTreeNodeLeaf);
 
         bTreeNodeLeaf.setDirty();
         setDirty();

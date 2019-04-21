@@ -30,6 +30,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     /**
      * Load constructor.
+     *
      * @param memory the memory to load from
      */
     BTreeNodeAbstract(final long pageNumber, final Memory memory)
@@ -42,9 +43,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     /**
      * Copy/Split constructor.
-     * @param pageNumber the page number of this node or an id generated for not yet persisted nodes
-     * @param buffer the buffer used as a content for this node
-     * @param numberOfKeys number of keys in this node
+     *
+     * @param pageNumber     the page number of this node or an id generated for not yet persisted nodes
+     * @param buffer         the buffer used as a content for this node
+     * @param numberOfKeys   number of keys in this node
      * @param numberOfValues number of values in this node
      */
     BTreeNodeAbstract(final long pageNumber,
@@ -96,7 +98,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void setRootFlag(final boolean isRoot)
     {
-        buffer.putByte(PAGE_IS_ROOT_OFFSET, (byte)(isRoot ? 1 : 0));
+        buffer.putByte(PAGE_IS_ROOT_OFFSET, (byte) (isRoot ? 1 : 0));
     }
 
     public boolean isRoot()
@@ -167,7 +169,12 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     private static long getKeyIndexOffset(final int index)
     {
-        return KEY_START_OFFSET + (index * KEY_SIZE);
+        return KEY_START_OFFSET + (index * (KEY_SIZE + VALUE_SIZE));
+    }
+
+    private static long getValueIndexOffsetNew(final int index)
+    {
+        return getKeyIndexOffset(index) + KEY_SIZE;
     }
 
     private static long getValueIndexOffset(final int index)
@@ -175,32 +182,37 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return PAGE_SIZE_BYTES - ((index + 1) * VALUE_SIZE);
     }
 
-    void insertKey(final int index, final long key)
+    void insertKeyAndValue(final int index, final long key, final long value)
     {
         final int keyCount = getKeyCount();
         assert index <= keyCount
                 : String.format("index to insert %d > node key cound %d ", index, keyCount);
 
-        copyKeysWithGap(index);
+        copyKeyValuesWithGap(index);
 
         buffer.putLong(getKeyIndexOffset(index), key);
+        buffer.putLong(getValueIndexOffsetNew(index), value);
 
         numberOfKeys++;
         updateNumberOfKeys(numberOfKeys);
+        numberOfValues++;
+        updateNumberOfValues(numberOfValues);
 
-        freeSizeLeftBytes -= KEY_SIZE;
+        freeSizeLeftBytes -= KEY_SIZE + VALUE_SIZE;
     }
 
-    void removeKey(final int index, final int keyCount)
+    void removeKeyAndValue(final int index, final int keyCount)
     {
         assert (keyCount - 1) >= 0
                 : String.format("key size after removing index %d was %d", index, keyCount - 1);
-        copyKeysExcept(index);
+        copyKeyValuesExcept(index);
 
         numberOfKeys--;
         updateNumberOfKeys(numberOfKeys);
+        numberOfValues--;
+        updateNumberOfValues(numberOfValues);
 
-        freeSizeLeftBytes += KEY_SIZE;
+        freeSizeLeftBytes += KEY_SIZE + VALUE_SIZE;
     }
 
     void updateNumberOfKeys(final int numberOfKeys)
@@ -217,12 +229,13 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     /**
      * Gets the value at index position.
+     *
      * @param index Index inside the btree leaf
      * @return The value or null if it doesn't exist
      */
     public long getValue(final int index)
     {
-        return buffer.getLong(getValueIndexOffset(index));
+        return buffer.getLong(getValueIndexOffsetNew(index));
     }
 
     void removeValue(final int index, final int keyCount)
@@ -250,21 +263,30 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     long setValue(final int index, final long value)
     {
-        final long valueIndexOffset = getValueIndexOffset(index);
+        final long valueIndexOffset = getValueIndexOffsetNew(index);
         final long oldValue = buffer.getLong(valueIndexOffset);
         buffer.putLong(valueIndexOffset, value);
 
         return oldValue;
     }
 
-    void splitKeys(final int aNumberOfKeys, final int bNumberOfKeys, final BTreeNodeAbstract bNode)
+    void splitKeysAndValues(
+            final int aNumberOfKeys,
+            final int bNumberOfKeys,
+            final BTreeNodeAbstract bNode)
     {
         //copy keys
-        final byte[] bKeysBuffer = new byte[bNumberOfKeys * KEY_SIZE];
-        buffer.getBytes(getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bKeysBuffer);
-        bNode.buffer.putBytes(getKeyIndexOffset(0), bKeysBuffer);
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int lengthOfSplit = (bNumberOfKeys + extraValues) * (KEY_SIZE + VALUE_SIZE);
+        final byte[] bKeyValueBuffer = new byte[lengthOfSplit];
+        buffer.getBytes(getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bKeyValueBuffer);
+        bNode.buffer.putBytes(getKeyIndexOffset(0), bKeyValueBuffer);
 
-        freeSizeLeftBytes += (numberOfKeys - aNumberOfKeys) * KEY_SIZE;
+        freeSizeLeftBytes += (numberOfKeys - aNumberOfKeys) * (KEY_SIZE + VALUE_SIZE);
+
+        numberOfValues = aNumberOfKeys + extraValues;
+        updateNumberOfValues(numberOfValues);
+
         numberOfKeys = aNumberOfKeys;
         updateNumberOfKeys(numberOfKeys);
     }
@@ -297,32 +319,46 @@ abstract class BTreeNodeAbstract implements BTreeNode
      *
      * @param gapIndex the index of the gap
      */
-    private void copyKeysWithGap(final int gapIndex)
+    private void copyKeyValuesWithGap(final int gapIndex)
     {
-        if (gapIndex < numberOfKeys)
-        {
-            final int elementsToMove = numberOfKeys - gapIndex;
-            final long oldKeyIndexOffset = getKeyIndexOffset(gapIndex);
-            final long newKeyIndexOffset = getKeyIndexOffset(gapIndex + 1);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * KEY_SIZE];
+        assert gapIndex >= 0;
 
-            buffer.getBytes(oldKeyIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(newKeyIndexOffset, bufferForElementsToMove);
-        }
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int pairsToMove = numberOfKeys - gapIndex;
+
+        assert extraValues >= 0;
+        assert pairsToMove >= 0;
+
+        final long oldIndexOffset = getKeyIndexOffset(gapIndex);
+        final long newIndexOffset = getKeyIndexOffset(gapIndex + 1);
+
+        //TODO: this can be optimized with unsafe memory copy
+        final int size = (pairsToMove + extraValues) * (KEY_SIZE + VALUE_SIZE);
+        byte[] bufferForElementsToMove = new byte[size];
+
+        buffer.getBytes(oldIndexOffset, bufferForElementsToMove);
+        buffer.putBytes(newIndexOffset, bufferForElementsToMove);
     }
 
-    private void copyKeysExcept(final int removeIndex)
+    private void copyKeyValuesExcept(final int removeIndex)
     {
-        if (numberOfKeys > 0 && removeIndex < numberOfKeys)
-        {
-            final int elementsToMove = numberOfKeys - removeIndex;
-            final long oldKeyIndexOffset = getKeyIndexOffset(removeIndex);
-            final long newKeyIndexOffset = getKeyIndexOffset(removeIndex + 1);
-            byte[] bufferForElementsToMove = new byte[elementsToMove * KEY_SIZE];
+        assert removeIndex >= 0;
 
-            buffer.getBytes(newKeyIndexOffset, bufferForElementsToMove);
-            buffer.putBytes(oldKeyIndexOffset, bufferForElementsToMove);
-        }
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int pairsToMove = (numberOfValues + numberOfKeys) - removeIndex;
+
+        assert extraValues >= 0;
+        assert pairsToMove >= 0;
+
+        final long oldIndexOffset = getKeyIndexOffset(removeIndex);
+        final long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
+
+        //TODO: this can be optimized with unsafe memory copy
+        final int size = (pairsToMove * (KEY_SIZE + VALUE_SIZE)) + (extraValues * VALUE_SIZE);
+        byte[] bufferForElementsToMove = new byte[size];
+
+        buffer.getBytes(newIndexOffset, bufferForElementsToMove);
+        buffer.putBytes(oldIndexOffset, bufferForElementsToMove);
     }
 
     /**
