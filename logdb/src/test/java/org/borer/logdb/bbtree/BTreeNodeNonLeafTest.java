@@ -9,7 +9,9 @@ import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 import static org.borer.logdb.support.TestUtils.BYTE_ORDER;
 import static org.borer.logdb.support.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BTreeNodeNonLeafTest
 {
@@ -298,6 +300,32 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < maxLogKeyValuePairs; i++)
         {
             assertEquals(i, copy.getLogValue(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToSpillKeyValuesFromNodeLog()
+    {
+        long maxLogKeyValuePairs = 0L;
+        while (bTreeNonLeaf.logHasFreeSpace())
+        {
+            bTreeNonLeaf.insertLog(maxLogKeyValuePairs, maxLogKeyValuePairs);
+            maxLogKeyValuePairs++;
+        }
+
+        assertFalse(bTreeNonLeaf.logHasFreeSpace());
+        assertEquals(maxLogKeyValuePairs, bTreeNonLeaf.getLogKeyValuesCount());
+
+        final long[] keyValueLog = bTreeNonLeaf.spillLog();
+
+        assertTrue(bTreeNonLeaf.logHasFreeSpace());
+        assertEquals(0, bTreeNonLeaf.getLogKeyValuesCount());
+
+        for (int i = 0; i < maxLogKeyValuePairs; i++)
+        {
+            final int index = i * 2;
+            assertEquals(i, keyValueLog[index]);
+            assertEquals(i, keyValueLog[index + 1]);
         }
     }
 }

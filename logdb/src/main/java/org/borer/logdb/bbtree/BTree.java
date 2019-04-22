@@ -68,6 +68,7 @@ public class BTree
     public void remove(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
+        final long newVersion = writeVersion++;
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
@@ -91,19 +92,148 @@ public class BTree
                 assert index <= 1;
                 currentNode = nodesManager.loadNode(1 - index, currentNode, mappedNode);
 
-                final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode);
+                final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode, newVersion);
                 updatePathToRoot(parentCursor, targetNode);
                 return;
             }
             assert currentNode.getKeyCount() > 1;
         }
 
-        final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode);
+        final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode, newVersion);
         targetNode.remove(index);
 
         nodesManager.returnMappedNode(mappedNode);
 
         updatePathToRoot(parentCursor, targetNode);
+    }
+
+    public void putWithLog(final long key, final long value)
+    {
+        BTreeNode currentNode;
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        final long newVersion = writeVersion++;
+
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null && rootReference.root != null)
+        {
+            currentNode = rootReference.root;
+        }
+        else
+        {
+            mappedNode.initNode(committedRoot.get());
+            currentNode = mappedNode;
+        }
+        BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
+        nodesManager.returnMappedNode(mappedNode);
+
+        putWithLogInternal(null, -1, newRoot, key, value);
+
+        int keyCount = newRoot.getKeyCount();
+        if (keyCount > Config.MAX_CHILDREN_PER_NODE)
+        {
+            this.nodesCount++;
+            final int at = keyCount >> 1;
+            final long keyAt = newRoot.getKey(at);
+            final BTreeNodeHeap split = nodesManager.splitNode(newRoot, at, newVersion);
+            final BTreeNodeHeap temp = nodesManager.createEmptyNonLeafNode();
+
+            temp.insertChild(0, keyAt, newRoot);
+            temp.setChild(1, split);
+
+            newRoot = temp;
+        }
+
+        setNewRoot(newRoot);
+    }
+
+    private void putWithLogInternal(
+            final BTreeNodeHeap parent,
+            final int nodeIndexInParent,
+            final BTreeNodeHeap node,
+            final long key,
+            final long value)
+    {
+        if (node.getNodeType() == BtreeNodeType.Leaf)
+        {
+            node.insert(key, value);
+        }
+        else
+        {
+            final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
+            if (nonLeaf.logHasFreeSpace())
+            {
+                nonLeaf.insertLog(key, value);
+            }
+            else
+            {
+                final int keyIndex = nonLeaf.getKeyIndex(key);
+                final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(nonLeaf, keyIndex);
+                nonLeaf.setChild(keyIndex, childrenCopy);
+                putWithLogInternal(nonLeaf, keyIndex, childrenCopy, key, value);
+
+                final long[] keyValues = nonLeaf.spillLog();
+                assert keyValues.length % 2 == 0 : "log key/value array must even size. Current size " + keyValues.length;
+                final int maxIndex = keyValues.length / 2;
+
+                for (int i = 0; i < maxIndex; i++)
+                {
+                    final int index = i * 2;
+                    final long key2 = keyValues[index];
+                    final long value2 = keyValues[index + 1];
+                    final int keyIndex2 = nonLeaf.getKeyIndex(key2);
+                    final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
+                    nonLeaf.setChild(keyIndex2, childrenCopy2);
+                    putWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
+                }
+            }
+        }
+
+        if (parent != null)
+        {
+            splitIfRequired(parent, nodeIndexInParent, node, parent.getVersion());
+        }
+    }
+
+    private void splitIfRequired(
+            final BTreeNodeHeap parent,
+            final int nodeIndexInParent,
+            final BTreeNodeHeap node,
+            final long newVersion)
+    {
+        assert parent != null : "Parent cannot be null when trying to split node";
+        assert nodeIndexInParent >= 0 : "the index in parent node must be bigger than 0";
+        assert node != null : "Cannot split null node";
+
+        int keyCount = node.getKeyCount();
+        if (keyCount > Config.MAX_CHILDREN_PER_NODE)
+        {
+            this.nodesCount++;
+            final int at = keyCount >> 1;
+            final long keyAt = node.getKey(at);
+            final BTreeNodeHeap split = nodesManager.splitNode(node, at, newVersion);
+            parent.setChild(nodeIndexInParent, split);
+            parent.insertChild(nodeIndexInParent, keyAt, node);
+        }
+    }
+
+    private BTreeNodeHeap getOrCreateChildrenCopy(final BTreeNodeNonLeaf parent, final int keyIndex)
+    {
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        final BTreeNode child = nodesManager.loadNode(keyIndex, parent, mappedNode);
+
+        final BTreeNodeHeap childrenCopy;
+        if (child instanceof BTreeMappedNode || child.getVersion() != parent.getVersion())
+        {
+            childrenCopy = nodesManager.copyNode(child, parent.getVersion());
+        }
+        else
+        {
+            assert child instanceof  BTreeNodeHeap;
+            childrenCopy = (BTreeNodeHeap) child;
+        }
+
+        nodesManager.returnMappedNode(mappedNode);
+        return childrenCopy;
     }
 
     /**
@@ -116,13 +246,14 @@ public class BTree
     public void put(final long key, final long value)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
+        final long newVersion = writeVersion++;
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
         BTreeNode targetNode = cursorPosition.getNode(mappedNode);
         CursorPosition parentCursor = cursorPosition.parent;
 
-        BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode);
+        BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
         currentNode.insert(key, value);
 
         int keyCount = currentNode.getKeyCount();
@@ -131,7 +262,7 @@ public class BTree
             this.nodesCount++;
             final int at = keyCount >> 1;
             final long keyAt = currentNode.getKey(at);
-            final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at);
+            final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at, newVersion);
 
             if (parentCursor == null)
             {
@@ -140,13 +271,14 @@ public class BTree
 
                 temp.insertChild(0, keyAt, currentNode);
                 temp.setChild(1, split);
+                temp.setVersion(newVersion);
 
                 currentNode = temp;
 
                 break;
             }
 
-            final BTreeNodeHeap parentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode));
+            final BTreeNodeHeap parentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode), newVersion);
             parentNode.setChild(parentCursor.index, split);
             parentNode.insertChild(parentCursor.index, keyAt, currentNode);
 
@@ -513,12 +645,13 @@ public class BTree
     {
         BTreeNodeHeap currentNode = current;
         CursorPosition parentCursor = cursor;
+        final long version = current.getVersion();
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         while (parentCursor != null)
         {
             BTreeNodeHeap c = currentNode;
-            currentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode));
+            currentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode), version);
             currentNode.setChild(parentCursor.index, c);
             parentCursor = parentCursor.parent;
         }
@@ -546,16 +679,14 @@ public class BTree
      * @param newRootPage the new uncommittedRoot page
      * @return new RootReference or null if update failed
      */
-    private RootReference setNewRoot(final BTreeNode newRootPage)
+    private RootReference setNewRoot(final BTreeNodeHeap newRootPage)
     {
         Objects.requireNonNull(newRootPage, "current uncommittedRoot cannot be null");
         final RootReference currentRoot = uncommittedRoot.get();
 
-        final long newVersion = writeVersion++;
-
         //TODO: extract timestamp retriever
         final long timestamp = System.currentTimeMillis();
-        final RootReference updatedRootReference = new RootReference(newRootPage, timestamp, newVersion, currentRoot);
+        final RootReference updatedRootReference = new RootReference(newRootPage, timestamp, newRootPage.getVersion(), currentRoot);
         boolean success = uncommittedRoot.compareAndSet(currentRoot, updatedRootReference);
 
         if (success)

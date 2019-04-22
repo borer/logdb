@@ -102,4 +102,8 @@ public interface BTreeNode
     void setChild(int index, BTreeNodeHeap child);
 
     int getChildrenNumber();
+
+    void setVersion(long newVersion);
+
+    long getVersion();
 }

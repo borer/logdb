@@ -7,7 +7,7 @@ public final class RootReference
     /**
      * The root page.
      */
-    public final BTreeNode root;
+    public final BTreeNodeHeap root;
     /**
      * The version used for writing.
      */
@@ -22,7 +22,7 @@ public final class RootReference
      */
     public final RootReference previous;
 
-    RootReference(final BTreeNode root,
+    RootReference(final BTreeNodeHeap root,
                   final long timestamp,
                   final long version,
                   final RootReference previous)

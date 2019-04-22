@@ -118,11 +118,13 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(PAGE_TIMESTAMP_OFFSET);
     }
 
-    void setVersion(final long version)
+    @Override
+    public void setVersion(final long version)
     {
         buffer.putLong(PAGE_VERSION_OFFSET, version);
     }
 
+    @Override
     public long getVersion()
     {
         return buffer.getLong(PAGE_VERSION_OFFSET);
@@ -163,7 +165,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     private long calculateFreeSpaceLeft(final long pageSize)
     {
-        final int usedBytes = (numberOfKeys * KEY_SIZE) + (numberOfValues * VALUE_SIZE) + HEADER_SIZE_BYTES;
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int usedBytes = ((numberOfKeys + extraValues + numberOfLogKeyValues) * (KEY_SIZE + VALUE_SIZE)) + HEADER_SIZE_BYTES;
         return pageSize - usedBytes;
     }
 
@@ -171,6 +174,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public int getKeyCount()
     {
         return numberOfKeys;
+    }
+
+    int getLogKeyValuesCount()
+    {
+        return numberOfLogKeyValues;
     }
 
     @Override
@@ -271,6 +279,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getValueIndexOffsetNew(index));
     }
 
+    public boolean logHasFreeSpace()
+    {
+        return freeSizeLeftBytes > (KEY_SIZE + VALUE_SIZE);
+    }
+
     public long getLogValue(final long key)
     {
         final int index = logBinarySearch(key);
@@ -307,6 +320,22 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key);
         buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
+    }
+
+    public long[] spillLog()
+    {
+        final long[] keyValueLog = new long[numberOfLogKeyValues * 2];
+        for (int i = 0; i < numberOfLogKeyValues; i++)
+        {
+            final int index = i * 2;
+            keyValueLog[index] = getLogKey(i);
+            keyValueLog[index + 1] = getLogValueFromBuffer(i);
+        }
+
+        freeSizeLeftBytes += numberOfLogKeyValues * (KEY_SIZE + VALUE_SIZE);
+        updateNumberOfLogKeyValues(0);
+
+        return keyValueLog;
     }
 
     long setValue(final int index, final long value)

@@ -69,22 +69,26 @@ public class NodesManager
         }
     }
 
+    //TODO: make this a bit smarter, like try-with-resources or some other automatic way of recycling the mapped node
+    @Deprecated
     public void returnMappedNode(final BTreeMappedNode mappedNode)
     {
         mappedNodes.add(mappedNode);
     }
 
-    public BTreeNodeHeap splitNode(final BTreeNode originalNode, final int at)
+    public BTreeNodeHeap splitNode(final BTreeNode originalNode, final int at, final long newVersion)
     {
         final BTreeNodeHeap splitNode = createSameNodeType(originalNode);
         originalNode.split(at, splitNode);
+        splitNode.setVersion(newVersion);
         return splitNode;
     }
 
-    public BTreeNodeHeap copyNode(final BTreeNode originalNode)
+    public BTreeNodeHeap copyNode(final BTreeNode originalNode, final long newVersion)
     {
         final BTreeNodeHeap copyNode = createSameNodeType(originalNode);
         originalNode.copy(copyNode);
+        copyNode.setVersion(newVersion);
         return copyNode;
     }
 
