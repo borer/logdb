@@ -16,26 +16,26 @@ import org.openjdk.jmh.annotations.Threads;
 
 import java.io.File;
 import java.nio.ByteOrder;
+import java.util.Random;
 
 import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 
-public class TestWritingBenchmark
+public class TestRandomKeysWritingBenchmark
 {
-    public static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
+    private static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
 
     @State(Scope.Thread)
     public static class BenchmarkState
     {
-        private long key;
         private File dbFile;
         private FileStorage storage;
         private NodesManager nodesManager;
         private BTree btree;
+        private Random random;
 
         @Setup(Level.Trial)
         public void doSetup()
         {
-            System.out.println("setup");
             dbFile = new File("benchmark.logdb");
             dbFile.delete();
 
@@ -46,24 +46,20 @@ public class TestWritingBenchmark
                     Config.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
-
             btree = new BTree(nodesManager);
-
-            key = 1L;
+            random = new Random();
         }
 
         @TearDown(Level.Trial)
         public void doTearDown()
         {
-            System.out.println("teardown");
             btree.close();
             dbFile.delete();
         }
 
-        void putKey()
+        void putKeyValue()
         {
-            btree.put(key, key);
-            key++;
+            btree.put(random.nextLong(), random.nextLong());
         }
 
         void commit()
@@ -74,11 +70,10 @@ public class TestWritingBenchmark
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
-//    @Fork(0)
     @Threads(1)
     public void testBench(final BenchmarkState benchmarkState)
     {
-        benchmarkState.putKey();
+        benchmarkState.putKeyValue();
         benchmarkState.commit();
     }
 }

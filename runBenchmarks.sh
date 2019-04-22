@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java -jar benchmark/target/benchmarks.jar TestWritingBenchmark
+java -jar benchmark/target/benchmarks.jar
