@@ -1,6 +1,5 @@
 package org.borer.logdb.support;
 
-import org.borer.logdb.bbtree.BTreeNode;
 import org.borer.logdb.bbtree.BTreeNodeHeap;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
@@ -39,7 +38,7 @@ public class TestUtils
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1]);
+                new BTreeNodeHeap[1]);
 
         nonLeaf.setChild(0, child);
 

@@ -8,7 +8,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
     public static final int NON_COMMITTED_CHILD = -1;
 
-    private BTreeNode[] children;
+    private BTreeNodeHeap[] children;
 
     /**
      * Load constructor.
@@ -16,7 +16,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public BTreeNodeNonLeaf(final long pageNumber, final Memory memory)
     {
         super(pageNumber, memory);
-        this.children =  new BTreeNode[0];
+        this.children =  new BTreeNodeHeap[0];
     }
 
     /**
@@ -27,7 +27,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
             final Memory memory,
             final int numberOfKeys,
             final int numberOfValues,
-            final BTreeNode[] children)
+            final BTreeNodeHeap[] children)
     {
         super(pageNumber, memory, numberOfKeys, numberOfValues);
         this.children = children;
@@ -57,10 +57,23 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         setDirty();
     }
 
-    public void removeLog(final long key)
+    /**
+     * try to remove a key/value pair for this node log.
+     * @param key the key that identifies the key/value pair to remove from the node log
+     * @return true if removed successfully, false if not in the log.
+     */
+    public boolean removeLog(final long key)
     {
         final int index = logBinarySearch(key);
-        removeLogKeyValue(index);
+        if (index >= 0)
+        {
+            removeLogKeyValue(index);
+            setDirty();
+
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -87,7 +100,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         //this will be replaced once we commit the child page
         insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
 
-        BTreeNode[] newChildren = new BTreeNode[rawChildPageCount + 1];
+        BTreeNodeHeap[] newChildren = new BTreeNodeHeap[rawChildPageCount + 1];
         copyWithGap(children, newChildren, rawChildPageCount, index);
         children = newChildren;
         children[index] = child;
@@ -119,7 +132,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     private void removeChildReference(final int index)
     {
         final int oldChildrenSize = children.length;
-        final BTreeNode[] newChildren = new BTreeNode[oldChildrenSize - 1];
+        final BTreeNodeHeap[] newChildren = new BTreeNodeHeap[oldChildrenSize - 1];
         assert newChildren.length >= 0
                 : String.format("children size after removing index %d was %d", index, newChildren.length);
         copyExcept(children, newChildren, oldChildrenSize, index);
@@ -159,7 +172,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         MemoryCopy.copy(buffer, copyNode.getBuffer());
         copyNode.initNodeFromBuffer();
 
-        final BTreeNode[] copyChildren = new BTreeNode[children.length];
+        final BTreeNodeHeap[] copyChildren = new BTreeNodeHeap[children.length];
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
         final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) copyNode;
@@ -176,8 +189,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         final int bNumberOfKeys = numberOfKeys - aNumberOfValues;
         final int bNumberOfValues = numberOfValues - aNumberOfValues;
 
-        final BTreeNode[] aChildren = new BTreeNode[aNumberOfValues];
-        final BTreeNode[] bChildren = new BTreeNode[bNumberOfValues];
+        final BTreeNodeHeap[] aChildren = new BTreeNodeHeap[aNumberOfValues];
+        final BTreeNodeHeap[] bChildren = new BTreeNodeHeap[bNumberOfValues];
         System.arraycopy(children, 0, aChildren, 0, aNumberOfValues);
         System.arraycopy(children, aNumberOfValues, bChildren, 0, bNumberOfValues);
         children = aChildren;
@@ -193,7 +206,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         setDirty();
     }
 
-    void setChildren(final BTreeNode[] children)
+    void setChildren(final BTreeNodeHeap[] children)
     {
         this.children = children;
     }

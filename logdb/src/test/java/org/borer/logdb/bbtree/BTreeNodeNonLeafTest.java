@@ -68,6 +68,20 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
+    void shouldNotFailWhenRemovingNonExistingLogKeyValue()
+    {
+        assertEquals(0, bTreeNonLeaf.numberOfLogKeyValues);
+
+        final int maxLogKeyValues = 10;
+        for (int i = 0; i < maxLogKeyValues; i++)
+        {
+            bTreeNonLeaf.removeLog(i);
+        }
+
+        assertEquals(0, bTreeNonLeaf.numberOfLogKeyValues);
+    }
+
+    @Test
     void shouldBeAbleToInsertMultipleChildren()
     {
         final int numKeysPerChild = 5;
@@ -155,7 +169,7 @@ class BTreeNodeNonLeafTest
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1]);
+                new BTreeNodeHeap[1]);
         bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
@@ -223,7 +237,7 @@ class BTreeNodeNonLeafTest
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
                 1, //there is always one child at least
-                new BTreeNode[1]);
+                new BTreeNodeHeap[1]);
         bTreeNonLeaf.split(at, split);
 
         assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());

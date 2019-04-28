@@ -107,6 +107,116 @@ public class BTree
         updatePathToRoot(parentCursor, targetNode);
     }
 
+    public void removeWithLog(final long key)
+    {
+        final CursorPosition cursorPosition = getLastCursorPosition(key);
+        final long newVersion = writeVersion++;
+
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+
+        int index = cursorPosition.index;
+        BTreeNode newRoot = cursorPosition.getNode(mappedNode);
+        CursorPosition parentCursor = cursorPosition.parent;
+        boolean wasFound = false;
+
+        if (index >= 0 && newRoot.getNodeType() == BtreeNodeType.Leaf)
+        {
+            wasFound = true;
+            boolean isSafeToRemoveParent = false;
+            BTreeNode parent = null;
+            if (parentCursor != null)
+            {
+                parent = parentCursor.getNode(mappedNode);
+                assert parent.getNodeType() == BtreeNodeType.NonLeaf;
+                final int logKeyValuesCount = ((BTreeNodeAbstract) parent).getLogKeyValuesCount();
+                isSafeToRemoveParent = logKeyValuesCount == 0;
+            }
+
+            //if current leaf has only one element, try to remove directly from parent
+            if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() == 1 && isSafeToRemoveParent)
+            {
+                this.nodesCount = this.nodesCount - 2;
+                index = parentCursor.index;
+                final BTreeNode child = nodesManager.loadNode(1 - index, parent, mappedNode);
+                newRoot = nodesManager.copyNode(child, newVersion);
+
+                parentCursor = parentCursor.parent;
+            }
+            else if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() > 1)
+            {
+                this.nodesCount--;
+                final BTreeNodeHeap parentCopy = nodesManager.copyNode(parent, newVersion);
+                index = parentCursor.index;
+                parentCopy.remove(index);
+
+                final int logIndex = ((BTreeNodeAbstract) parentCopy).logBinarySearch(key);
+                if (logIndex > 0)
+                {
+                    ((BTreeNodeAbstract) parentCopy).removeLogKeyValue(logIndex);
+                }
+
+                newRoot = parentCopy;
+
+                parentCursor = parentCursor.parent;
+            }
+            else
+            {
+                final BTreeNodeHeap copyNode = nodesManager.copyNode(newRoot, newVersion);
+                copyNode.remove(index);
+                newRoot = copyNode;
+            }
+        }
+
+        //remove from parent logs
+        while (parentCursor != null)
+        {
+            index = parentCursor.index;
+
+            final BTreeNode parentNode = parentCursor.getNode(mappedNode);
+            if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
+            {
+                final int logIndex = ((BTreeNodeAbstract) parentNode).logBinarySearch(key);
+                if (wasFound)
+                {
+                    final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
+                    copyParent.setChild(index, (BTreeNodeHeap) newRoot);
+
+                    if (logIndex >= 0)
+                    {
+                        ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                    }
+
+                    newRoot = copyParent;
+                }
+                else
+                {
+                    if (logIndex >= 0) //found in current node
+                    {
+                        wasFound = true;
+                        final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
+                        ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+
+                        newRoot = copyParent;
+                    }
+                }
+
+            }
+            else
+            {
+                throw new IllegalStateException("Should not have leafs in the middle of the tree.");
+            }
+
+            parentCursor = parentCursor.parent;
+        }
+
+        nodesManager.returnMappedNode(mappedNode);
+
+        if (wasFound)
+        {
+            setNewRoot((BTreeNodeHeap) newRoot);
+        }
+    }
+
     public void putWithLog(final long key, final long value)
     {
         BTreeNode currentNode;

@@ -109,7 +109,7 @@ public class NodesManager
         BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
         if (nonLeaf == null)
         {
-            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 1, new BTreeNode[1]);
+            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 1, new BTreeNodeHeap[1]);
         }
 
         return nonLeaf;

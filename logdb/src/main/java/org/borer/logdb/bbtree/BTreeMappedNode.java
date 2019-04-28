@@ -94,7 +94,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
 
         if (copyNode.isInternal() && (copyNode instanceof BTreeNodeNonLeaf))
         {
-            ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNode[numberOfValues]);
+            ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNodeHeap[numberOfValues]);
         }
     }
 

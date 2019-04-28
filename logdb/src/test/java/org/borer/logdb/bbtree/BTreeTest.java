@@ -119,7 +119,59 @@ class BTreeTest
                 "\"233\"[label = \" <170> |170|  <171> |171|  <172> |172|  <173> |173|  <174> |174|  <175> |175|  <176> |176|  <177> |177|  <178> |178|  <182> |182| \"];\n" +
                 "}\n";
 
-        assertEquals(expectedTree, BTreePrinter.print(bTree, nodesManager));
+        assertEquals(expectedTree, bTree.print());
+    }
+
+    @Test
+    void shouldNotFailToDeleteNonExistingKeyWithLog()
+    {
+        assertEquals(1, bTree.getNodesCount());
+
+        final int numberOfPairs = 200;
+        for (int i = 0; i < numberOfPairs; i++)
+        {
+            bTree.removeWithLog(i);
+        }
+
+        for (long i = 0; i < 200; i++)
+        {
+            bTree.putWithLog(i, i);
+        }
+
+        assertEquals(38, bTree.getNodesCount());
+
+        bTree.removeWithLog(200);
+        bTree.removeWithLog(-20);
+
+        assertEquals(38, bTree.getNodesCount());
+    }
+
+    @Test
+    void shouldBeAbleToDeleteElementsWithLog()
+    {
+        final int numberOfPairs = 200;
+        for (long i = 0; i < numberOfPairs; i++)
+        {
+            bTree.putWithLog(i, i);
+        }
+
+        for (int i = 0; i < numberOfPairs; i++)
+        {
+            bTree.removeWithLog(i);
+        }
+
+        assertEquals(1L, bTree.getNodesCount());
+
+        final String expectedTree = "digraph g {\n" +
+                "node [shape = record,height=.1];\n" +
+                "\"765\"[label = \" <571> |120|  <lastChild> |Ls \"];\n" +
+                "\"765\":571 -> \"571\"\n" +
+                "\"765\":lastChild -> \"747\"\n" +
+                "\"571\"[label = \"\"];\n" +
+                "\"747\"[label = \"\"];\n" +
+                "}\n";
+
+        assertEquals(expectedTree, bTree.print());
     }
 
     @Test
@@ -283,6 +335,6 @@ class BTreeTest
                 "\"248\"[label = \" <90> |90|  <91> |91|  <92> |92|  <93> |93|  <94> |94|  <95> |95|  <96> |96|  <97> |97|  <98> |98|  <99> |99| \"];\n" +
                 "}\n";
 
-        assertEquals(expectedTree, BTreePrinter.print(bTree, nodesManager));
+        assertEquals(expectedTree, bTree.print());
     }
 }

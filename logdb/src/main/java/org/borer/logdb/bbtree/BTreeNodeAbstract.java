@@ -318,7 +318,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void setLogKeyValue(final int index, final long key, final long value)
     {
-        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key);
+        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key); //TODO: maybe we don't need to set the key again.
         buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
     }
 
