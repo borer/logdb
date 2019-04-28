@@ -159,12 +159,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public boolean isInternal()
-    {
-        return true;
-    }
-
-    @Override
     public void copy(final BTreeNodeHeap copyNode)
     {
         assert copyNode instanceof BTreeNodeNonLeaf : "when copying a non leaf node, needs same type";

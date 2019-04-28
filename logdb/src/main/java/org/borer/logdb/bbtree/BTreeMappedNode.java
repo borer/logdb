@@ -92,7 +92,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
         MemoryCopy.copy(buffer, copyNode.getBuffer());
         copyNode.initNodeFromBuffer();
 
-        if (copyNode.isInternal() && (copyNode instanceof BTreeNodeNonLeaf))
+        if (copyNode.getNodeType() == BtreeNodeType.NonLeaf && (copyNode instanceof BTreeNodeNonLeaf))
         {
             ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNodeHeap[numberOfValues]);
         }

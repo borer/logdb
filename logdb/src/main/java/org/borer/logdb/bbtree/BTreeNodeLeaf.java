@@ -129,12 +129,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public boolean isInternal()
-    {
-        return false;
-    }
-
-    @Override
     public BTreeNode getChildAt(int index)
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");

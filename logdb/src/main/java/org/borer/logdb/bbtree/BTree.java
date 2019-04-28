@@ -107,10 +107,126 @@ public class BTree
         updatePathToRoot(parentCursor, targetNode);
     }
 
+    /**
+     * Removes the key from the tree by appending a thombstone without touching leafs.
+     * When the tree is spilled, the entry will be actually removed from the leaf.
+     * @param key the key that identifies the pair to remove.
+     */
     public void removeWithLog(final long key)
     {
-        final CursorPosition cursorPosition = getLastCursorPosition(key);
+        BTreeNode currentNode;
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
         final long newVersion = writeVersion++;
+
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null && rootReference.root != null)
+        {
+            currentNode = rootReference.root;
+        }
+        else
+        {
+            mappedNode.initNode(committedRoot.get());
+            currentNode = mappedNode;
+        }
+        BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
+
+        removeWithLogInternal(null, -1, newRoot, key);
+
+        if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getKeyCount() == 1)
+        {
+            this.nodesCount = this.nodesCount - 2;
+            final int keyIndex = newRoot.getKeyIndex(key);
+            final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(keyIndex, newRoot, mappedNode);
+            if (nodeToRemoveFrom.getNodeType() == BtreeNodeType.Leaf && nodeToRemoveFrom.getKeyCount() == 0)
+            {
+                newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, 1 - keyIndex);
+            }
+        }
+
+        nodesManager.returnMappedNode(mappedNode);
+
+        setNewRoot(newRoot);
+    }
+
+    private void removeWithLogInternal(
+            final BTreeNodeHeap parent,
+            final int nodeIndexInParent,
+            final BTreeNodeHeap node,
+            final long key)
+    {
+        if (node.getNodeType() == BtreeNodeType.Leaf)
+        {
+            final int keyIndex = node.getKeyIndex(key);
+            if (keyIndex >= 0)
+            {
+                node.remove(keyIndex);
+            }
+        }
+        else
+        {
+            final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
+            if (nonLeaf.logHasFreeSpace())
+            {
+                nonLeaf.insertLog(key, -1);
+            }
+            else
+            {
+                final int keyIndex = nonLeaf.getKeyIndex(key);
+                final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(nonLeaf, keyIndex);
+                nonLeaf.setChild(keyIndex, childrenCopy);
+                removeWithLogInternal(nonLeaf, keyIndex, childrenCopy, key);
+
+                //remove log if there is any, as we already removed the key/value in the previous step
+                nonLeaf.removeLog(key);
+
+                //spill the rest of the log
+                final long[] keyValues = nonLeaf.spillLog();
+                assert keyValues.length % 2 == 0 : "log key/value array must even size. Current size " + keyValues.length;
+                final int maxIndex = keyValues.length / 2;
+
+                for (int i = 0; i < maxIndex; i++)
+                {
+                    final int index = i * 2;
+                    final long key2 = keyValues[index];
+                    final long value2 = keyValues[index + 1];
+                    final int keyIndex2 = nonLeaf.getKeyIndex(key2);
+                    final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
+                    nonLeaf.setChild(keyIndex2, childrenCopy2);
+                    if (value2 < 0)
+                    {
+                        removeWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2);
+                    }
+                    else
+                    {
+                        putWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
+                    }
+                }
+
+                final BTreeNodeHeap childToRemove = getOrCreateChildrenCopy(nonLeaf, keyIndex);
+                if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
+                {
+                    this.nodesCount--;
+                    nonLeaf.remove(keyIndex);
+                }
+                else if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
+                {
+                    this.nodesCount = this.nodesCount - 2;
+                    final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - keyIndex);
+                    parent.setChild(nodeIndexInParent, childrenCopy3);
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes the key by first walking the tree and searching if it actually has a value with that key.
+     * If no value is found this operation is a no-op.
+     * @param key the key that identifies the pair to remove.
+     */
+    public void removeWithLogWithoutFalsePositives(final long key)
+    {
+        final CursorPosition cursorPosition = getLastCursorPosition(key);
+        final long newVersion = writeVersion + 1;
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
@@ -213,6 +329,7 @@ public class BTree
 
         if (wasFound)
         {
+            writeVersion = newVersion;
             setNewRoot((BTreeNodeHeap) newRoot);
         }
     }

@@ -9,6 +9,4 @@ public interface BTreeNodeHeap extends BTreeNode
      * @return nodes buffer
      */
     Memory getBuffer();
-
-    boolean isInternal();
 }
