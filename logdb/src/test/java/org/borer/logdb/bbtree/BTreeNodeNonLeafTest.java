@@ -63,7 +63,7 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            assertEquals(-1, bTreeNonLeaf.getLogValue(i));
+            assertEquals(-1, bTreeNonLeaf.logBinarySearch(i));
         }
     }
 

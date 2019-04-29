@@ -519,6 +519,95 @@ public class BTree
         updatePathToRoot(parentCursor, currentNode);
     }
 
+    public long getWithLog(final long key)
+    {
+        BTreeNode currentNode;
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+
+        final RootReference rootReference = uncommittedRoot.get();
+        if (rootReference != null && rootReference.root != null)
+        {
+            currentNode = rootReference.root;
+        }
+        else
+        {
+            mappedNode.initNode(committedRoot.get());
+            currentNode = mappedNode;
+        }
+
+        final long value = getKey(key, currentNode);
+        nodesManager.returnMappedNode(mappedNode);
+
+        return value;
+    }
+
+    /**
+     * Gets a value for the key at time/instance t.
+     *
+     * @param key     the key to search for
+     * @param version the version that we are interested. Must be >= 0
+     */
+    public long getWithLog(final long key, final int version)
+    {
+        BTreeNode currentNode;
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        currentNode = getRootNode(version, mappedNode);
+
+        final long value = getKey(key, currentNode);
+        nodesManager.returnMappedNode(mappedNode);
+
+        return value;
+    }
+
+    private long getKey(final long key, final BTreeNode root)
+    {
+        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        BTreeNode currentNode = root;
+
+        while (currentNode.getNodeType() == BtreeNodeType.NonLeaf)
+        {
+            if (((BTreeNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
+            {
+                final int logIndex = ((BTreeNodeAbstract) currentNode).logBinarySearch(key);
+                if (logIndex >= 0)
+                {
+                    return ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                }
+            }
+            final int keyIndex = currentNode.getKeyIndex(key);
+            currentNode = nodesManager.loadNode(keyIndex, currentNode, mappedNode);
+        }
+
+        final long value = currentNode.get(key);
+        nodesManager.returnMappedNode(mappedNode);
+        return value;
+    }
+
+    private BTreeNode getRootNode(final int version, final BTreeMappedNode mappedNode)
+    {
+        final BTreeNode rootForVersion;
+        final RootReference currentRootReference = uncommittedRoot.get();
+        if (currentRootReference != null)
+        {
+            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
+            if (rootNodeForVersion != null)
+            {
+                rootForVersion = rootNodeForVersion.root;
+            }
+            else
+            {
+                mappedNode.initNode(committedRoot.get());
+                rootForVersion = mappedNode;
+            }
+        }
+        else
+        {
+            mappedNode.initNode(committedRoot.get());
+            rootForVersion = mappedNode;
+        }
+        return rootForVersion;
+    }
+
     /**
      * Gets a value for the key at time/instance t.
      *

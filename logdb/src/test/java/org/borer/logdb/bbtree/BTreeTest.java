@@ -123,6 +123,44 @@ class BTreeTest
     }
 
     @Test
+    void shouldBeAbleToRetrieveElementsWithLog()
+    {
+        for (long i = 0; i < 200; i++)
+        {
+            bTree.putWithLog(i, i);
+        }
+
+        for (long i = 0; i < 200; i++)
+        {
+            assertEquals(i, bTree.getWithLog(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToRetrieveNonExistingElementsWithLog()
+    {
+        for (long i = 0; i < 10; i++)
+        {
+            assertEquals(-1, bTree.getWithLog(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToRetrievePastVersionsForElementsWithLog()
+    {
+        final long key = 123L;
+        for (long i = 0; i < 200; i++)
+        {
+            bTree.putWithLog(key, i);
+        }
+
+        for (long i = 0; i < 200; i++)
+        {
+            assertEquals(i, bTree.getWithLog(key, (int)i));
+        }
+    }
+
+    @Test
     void shouldNotFailToDeleteNonExistingKeyWithLogWithoutFalsePositives()
     {
         assertEquals(1, bTree.getNodesCount());

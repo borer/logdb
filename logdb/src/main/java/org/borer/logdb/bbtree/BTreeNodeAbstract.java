@@ -202,7 +202,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getLogKeyIndexOffset(buffer.getCapacity(), index));
     }
 
-    long getLogValueFromBuffer(final int index)
+    long getLogValue(final int index)
     {
         return buffer.getLong(getLogValueIndexOffset(buffer.getCapacity(), index));
     }
@@ -284,17 +284,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return freeSizeLeftBytes > (KEY_SIZE + VALUE_SIZE);
     }
 
-    public long getLogValue(final long key)
-    {
-        final int index = logBinarySearch(key);
-        if (index < 0)
-        {
-            return -1;
-        }
-
-        return getLogValueFromBuffer(index);
-    }
-
     void removeLogKeyValue(final int index)
     {
         copyLogKeyValuesExcept(index);
@@ -329,7 +318,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         {
             final int index = i * 2;
             keyValueLog[index] = getLogKey(i);
-            keyValueLog[index + 1] = getLogValueFromBuffer(i);
+            keyValueLog[index + 1] = getLogValue(i);
         }
 
         freeSizeLeftBytes += numberOfLogKeyValues * (KEY_SIZE + VALUE_SIZE);
@@ -548,7 +537,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
             {
                 contentBuilder.append(getLogKey(i));
                 contentBuilder.append("-");
-                contentBuilder.append(getLogValueFromBuffer(i));
+                contentBuilder.append(getLogValue(i));
                 if (i + 1 != numberOfLogKeyValues)
                 {
                     contentBuilder.append(",");
