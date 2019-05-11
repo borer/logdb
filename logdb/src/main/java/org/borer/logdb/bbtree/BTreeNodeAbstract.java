@@ -130,6 +130,12 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(PAGE_VERSION_OFFSET);
     }
 
+    @Override
+    public boolean needsSplitting()
+    {
+        return (KEY_SIZE + VALUE_SIZE) >= freeSizeLeftBytes;
+    }
+
     void setPreviousRoot(final long previousRootPageNumber)
     {
         buffer.putLong(PAGE_PREV_OFFSET, previousRootPageNumber);
@@ -404,16 +410,16 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         assert removeIndex >= 0;
 
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int pairsToMove = (numberOfValues + numberOfKeys) - removeIndex;
+        final int numberOfKeysToMove = numberOfKeys - 1;
+        final int numberOfValuesToMove = numberOfValues - 1;
 
-        assert extraValues >= 0;
-        assert pairsToMove >= 0;
+        assert numberOfKeysToMove >= 0;
+        assert numberOfValuesToMove >= 0;
 
         final long oldIndexOffset = getKeyIndexOffset(removeIndex);
         final long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
 
-        final int size = (pairsToMove * (KEY_SIZE + VALUE_SIZE)) + (extraValues * VALUE_SIZE);
+        final int size = (numberOfKeysToMove * KEY_SIZE) + (numberOfValuesToMove * VALUE_SIZE);
         MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 

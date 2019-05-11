@@ -1,10 +1,10 @@
 package org.borer.logdb.storage;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.bbtree.BTreePrinter;
 import org.borer.logdb.support.TestUtils;
 
+import static org.borer.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MemoryStorageTest
@@ -12,7 +12,7 @@ class MemoryStorageTest
 //    @Test
     void shouldBeAbleToReadBtreeAfterCommit()
     {
-        final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, Config.PAGE_SIZE_BYTES);
+        final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage);
         final BTree originalBTree = new BTree(nodesManager);

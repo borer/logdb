@@ -51,7 +51,7 @@ class BTreeNodePage
     static final int PAGE_PREV_SIZE = Long.BYTES;
 
     static final int PAGE_HEADER_OFFSET = PAGE_START_OFFSET;
-    static final int PAGE_HEADER_SIZE = PAGE_FLAGS_SIZE +
+    private static final int PAGE_HEADER_SIZE = PAGE_FLAGS_SIZE +
             PAGE_LOG_KEY_VALUE_NUMBERS_SIZE +
             PAGE_CHECKSUM_SIZE +
             PAGE_TIMESTAMP_SIZE +
@@ -69,4 +69,6 @@ class BTreeNodePage
 
     static final int KEY_SIZE = Long.BYTES;
     static final int VALUE_SIZE = Long.BYTES;
+
+    static final int MINIMUM_PAGE_SIZE = HEADER_SIZE_BYTES + (2 * (KEY_SIZE + VALUE_SIZE));
 }

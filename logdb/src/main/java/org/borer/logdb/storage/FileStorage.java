@@ -62,6 +62,11 @@ public final class FileStorage implements Storage, Closeable
     {
         Objects.requireNonNull(file, "Db file cannot be null");
 
+        if (pageSizeBytes < 128 || pageSizeBytes % 2 != 0)
+        {
+            throw new IllegalArgumentException("Page Size must be bigger than 128 bytes and a power of 2. Provided was " + pageSizeBytes);
+        }
+
         LOGGER.info("Opening database file " + file.getAbsolutePath());
         FileStorage fileStorage = null;
         try

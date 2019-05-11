@@ -1,6 +1,5 @@
 package org.borer.logdb.benchmark;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
@@ -18,7 +17,7 @@ import java.io.File;
 import java.nio.ByteOrder;
 import java.util.Random;
 
-import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
+import static org.borer.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestRandomKeysWritingBenchmark
 {
@@ -43,7 +42,7 @@ public class TestRandomKeysWritingBenchmark
                     dbFile,
                     MAPPED_CHUNK_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
-                    Config.PAGE_SIZE_BYTES);
+                    PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
             btree = new BTree(nodesManager);

@@ -5,8 +5,8 @@ import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
 import static org.borer.logdb.support.TestUtils.BYTE_ORDER;
+import static org.borer.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.borer.logdb.support.TestUtils.createLeafNodeWithKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

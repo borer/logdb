@@ -1,6 +1,5 @@
 package org.borer.logdb.benchmark;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTree;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
@@ -17,7 +16,7 @@ import org.openjdk.jmh.annotations.Threads;
 import java.io.File;
 import java.nio.ByteOrder;
 
-import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
+import static org.borer.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestSequentialKeysWritingBenchmark
 {
@@ -42,7 +41,7 @@ public class TestSequentialKeysWritingBenchmark
                     dbFile,
                     MAPPED_CHUNK_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
-                    Config.PAGE_SIZE_BYTES);
+                    PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
 

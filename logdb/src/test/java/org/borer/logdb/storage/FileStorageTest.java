@@ -1,6 +1,5 @@
 package org.borer.logdb.storage;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.bbtree.BTreeNodeLeaf;
 import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.IdSupplier;
@@ -14,9 +13,11 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.nio.file.Path;
 
+import static org.borer.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.parallel.ResourceAccessMode.READ_WRITE;
 
 class FileStorageTest
@@ -37,7 +38,7 @@ class FileStorageTest
                 tempDirectory.resolve(DB_FILENAME).toFile(),
                 TestUtils.MAPPED_CHUNK_SIZE,
                 TestUtils.BYTE_ORDER,
-                Config.PAGE_SIZE_BYTES);
+                PAGE_SIZE_BYTES);
 
         nodesManager = new NodesManager(storage);
     }
@@ -52,6 +53,38 @@ class FileStorageTest
         catch (Exception e)
         {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize()
+    {
+        try
+        {
+            FileStorage.createNewFileDb(
+                    tempDirectory.resolve(DB_FILENAME).toFile(),
+                    TestUtils.MAPPED_CHUNK_SIZE,
+                    TestUtils.BYTE_ORDER,
+                    100);
+            fail("should have failed creating file storage with invalid page size");
+        }
+        catch (final IllegalArgumentException e)
+        {
+            assertEquals(e.getMessage(), "Page Size must be bigger than 128 bytes and a power of 2. Provided was " + 100);
+        }
+
+        try
+        {
+            FileStorage.createNewFileDb(
+                    tempDirectory.resolve(DB_FILENAME).toFile(),
+                    TestUtils.MAPPED_CHUNK_SIZE,
+                    TestUtils.BYTE_ORDER,
+                    4097);
+            fail("should have failed creating file storage with invalid page size");
+        }
+        catch (final IllegalArgumentException e)
+        {
+            assertEquals(e.getMessage(), "Page Size must be bigger than 128 bytes and a power of 2. Provided was " + 4097);
         }
     }
 

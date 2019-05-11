@@ -1,6 +1,5 @@
 package org.borer.logdb.bbtree;
 
-import org.borer.logdb.Config;
 import org.borer.logdb.storage.NodesManager;
 
 import java.util.Objects;
@@ -355,10 +354,10 @@ public class BTree
 
         putWithLogInternal(null, -1, newRoot, key, value);
 
-        int keyCount = newRoot.getKeyCount();
-        if (keyCount > Config.MAX_CHILDREN_PER_NODE)
+        if (newRoot.needsSplitting())
         {
             this.nodesCount++;
+            int keyCount = newRoot.getKeyCount();
             final int at = keyCount >> 1;
             final long keyAt = newRoot.getKey(at);
             final BTreeNodeHeap split = nodesManager.splitNode(newRoot, at, newVersion);
@@ -431,9 +430,9 @@ public class BTree
         assert nodeIndexInParent >= 0 : "the index in parent node must be bigger than 0";
         assert node != null : "Cannot split null node";
 
-        int keyCount = node.getKeyCount();
-        if (keyCount > Config.MAX_CHILDREN_PER_NODE)
+        if (node.needsSplitting())
         {
+            int keyCount = node.getKeyCount();
             this.nodesCount++;
             final int at = keyCount >> 1;
             final long keyAt = node.getKey(at);
@@ -483,10 +482,10 @@ public class BTree
         BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
         currentNode.insert(key, value);
 
-        int keyCount = currentNode.getKeyCount();
-        while (keyCount > Config.MAX_CHILDREN_PER_NODE)
+        while (currentNode.needsSplitting())
         {
             this.nodesCount++;
+            int keyCount = currentNode.getKeyCount();
             final int at = keyCount >> 1;
             final long keyAt = currentNode.getKey(at);
             final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at, newVersion);

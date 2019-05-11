@@ -9,11 +9,11 @@ import org.borer.logdb.bit.MemoryFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import static org.borer.logdb.Config.PAGE_SIZE_BYTES;
-
 public class TestUtils
 {
     public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+
+    public static final int PAGE_SIZE_BYTES = 512;
 
     public static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
 
