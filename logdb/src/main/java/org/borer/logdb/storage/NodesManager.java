@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
@@ -109,7 +108,7 @@ public class NodesManager
         BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
         if (nonLeaf == null)
         {
-            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 1, new BTreeNodeHeap[1]);
+            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, 1, new BTreeNodeHeap[1]);
         }
 
         return nonLeaf;
@@ -120,7 +119,7 @@ public class NodesManager
         BTreeNodeLeaf leaf = leafNodesCache.poll();
         if (leaf == null)
         {
-            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0);
+            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, 0);
         }
 
         return leaf;
@@ -168,7 +167,7 @@ public class NodesManager
     public long commitNode(final BTreeNodeNonLeaf node)
     {
         final long pageNumber = commitNodeToStorage(node);
-        resetNode(node);
+        node.reset();
         nonLeafNodesCache.add(node);
         return pageNumber;
     }
@@ -181,18 +180,9 @@ public class NodesManager
     public long commitNode(final BTreeNodeLeaf node)
     {
         final long pageNumber = commitNodeToStorage(node);
-        resetNode(node);
+        node.reset();
         leafNodesCache.add(node);
         return pageNumber;
-    }
-
-    private void resetNode(final BTreeNodeHeap node)
-    {
-        final byte[] supportByteArrayIfAny = node.getBuffer().getSupportByteArrayIfAny();
-        if (supportByteArrayIfAny != null)
-        {
-            Arrays.fill(supportByteArrayIfAny, (byte)0);
-        }
     }
 
     private long commitNodeToStorage(final BTreeNodeHeap node)

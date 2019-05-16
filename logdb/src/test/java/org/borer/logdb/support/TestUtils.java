@@ -37,6 +37,7 @@ public class TestUtils
                 startId,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
+                0,
                 1, //there is always one child at least
                 new BTreeNodeHeap[1]);
 
@@ -50,6 +51,7 @@ public class TestUtils
         final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
                 0,
                 0);
         for (int i = 0; i < numKeys; i++)

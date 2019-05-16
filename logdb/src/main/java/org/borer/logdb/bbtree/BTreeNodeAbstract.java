@@ -3,6 +3,7 @@ package org.borer.logdb.bbtree;
 import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.MemoryCopy;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.borer.logdb.bbtree.BTreeNodePage.HEADER_SIZE_BYTES;
@@ -39,6 +40,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         this(pageNumber,
                 memory,
+                memory.getInt(PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
                 memory.getInt(NUMBER_OF_KEY_OFFSET),
                 memory.getInt(NUMBER_OF_VALUES_OFFSET));
     }
@@ -53,6 +55,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
      */
     BTreeNodeAbstract(final long pageNumber,
                       final Memory buffer,
+                      final int numberOfLogKeyValues,
                       final int numberOfKeys,
                       final int numberOfValues)
     {
@@ -60,6 +63,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.buffer = Objects.requireNonNull(buffer, "buffer must not be null");
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
+        this.numberOfLogKeyValues = numberOfLogKeyValues;
         this.freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
         this.isDirty = true;
     }
@@ -91,6 +95,23 @@ abstract class BTreeNodeAbstract implements BTreeNode
         setTimestamp(timestamp);
         setVersion(version);
         isDirty = false;
+    }
+
+    @Override
+    public void reset()
+    {
+        freeSizeLeftBytes = 0;
+        pageNumber = Integer.MIN_VALUE;
+        numberOfKeys = 0;
+        numberOfValues = 0;
+        numberOfLogKeyValues = 0;
+        isDirty = false;
+
+        final byte[] supportByteArrayIfAny = buffer.getSupportByteArrayIfAny();
+        if (supportByteArrayIfAny != null)
+        {
+            Arrays.fill(supportByteArrayIfAny, (byte)0);
+        }
     }
 
     private void setNodePageType(final BtreeNodeType type)
@@ -176,6 +197,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return pageSize - usedBytes;
     }
 
+    private void recalculateFreeSpaceLeft()
+    {
+        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
+    }
+
     @Override
     public int getKeyCount()
     {
@@ -239,7 +265,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         numberOfValues++;
         updateNumberOfValues(numberOfValues);
 
-        freeSizeLeftBytes -= KEY_SIZE + VALUE_SIZE;
+        recalculateFreeSpaceLeft();
     }
 
     void removeKeyAndValue(final int index, final int keyCount)
@@ -253,7 +279,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         numberOfValues--;
         updateNumberOfValues(numberOfValues);
 
-        freeSizeLeftBytes += KEY_SIZE + VALUE_SIZE;
+        recalculateFreeSpaceLeft();
     }
 
     void updateNumberOfKeys(final int numberOfKeys)
@@ -297,7 +323,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         numberOfLogKeyValues--;
         updateNumberOfLogKeyValues(numberOfLogKeyValues);
 
-        freeSizeLeftBytes += KEY_SIZE + VALUE_SIZE;
+        recalculateFreeSpaceLeft();
     }
 
     void insertLogKeyValue(final int index, final long key, final long value)
@@ -308,7 +334,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         numberOfLogKeyValues++;
         updateNumberOfLogKeyValues(numberOfLogKeyValues);
 
-        freeSizeLeftBytes -= KEY_SIZE + VALUE_SIZE;
+        recalculateFreeSpaceLeft();
     }
 
     void setLogKeyValue(final int index, final long key, final long value)
@@ -319,6 +345,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     public long[] spillLog()
     {
+        //TODO: optimize the copy in bulk
         final long[] keyValueLog = new long[numberOfLogKeyValues * 2];
         for (int i = 0; i < numberOfLogKeyValues; i++)
         {
@@ -327,8 +354,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             keyValueLog[index + 1] = getLogValue(i);
         }
 
-        freeSizeLeftBytes += numberOfLogKeyValues * (KEY_SIZE + VALUE_SIZE);
         updateNumberOfLogKeyValues(0);
+        recalculateFreeSpaceLeft();
 
         return keyValueLog;
     }
@@ -352,13 +379,36 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final int lengthOfSplit = (bNumberOfKeys + extraValues) * (KEY_SIZE + VALUE_SIZE);
         MemoryCopy.copy(buffer, getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bNode.buffer, getKeyIndexOffset(0), lengthOfSplit);
 
-        freeSizeLeftBytes += (numberOfKeys - aNumberOfKeys) * (KEY_SIZE + VALUE_SIZE);
-
         numberOfValues = aNumberOfKeys + extraValues;
         updateNumberOfValues(numberOfValues);
 
         numberOfKeys = aNumberOfKeys;
         updateNumberOfKeys(numberOfKeys);
+
+        recalculateFreeSpaceLeft();
+        bNode.recalculateFreeSpaceLeft();
+    }
+
+    void splitLog(final long key, final BTreeNodeAbstract bNode)
+    {
+        final int keyIndex = logBinarySearch(key);
+        final int aLogKeyValues = keyIndex + 1;
+        final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
+        final long sourceOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
+        final long destinationOffset = getLogKeyIndexOffset(bNode.buffer.getCapacity(), bLogKeyValues);
+        final int length = (bLogKeyValues + 1) * (KEY_SIZE + VALUE_SIZE);
+
+        MemoryCopy.copy(buffer,
+                sourceOffset,
+                bNode.buffer,
+                destinationOffset,
+                length);
+
+        updateNumberOfLogKeyValues(aLogKeyValues);
+        bNode.updateNumberOfLogKeyValues(bLogKeyValues);
+
+        recalculateFreeSpaceLeft();
+        bNode.recalculateFreeSpaceLeft();
     }
 
     void splitValues(final int aNumberOfValues, int bNumberOfValues, final BTreeNodeAbstract bNode)

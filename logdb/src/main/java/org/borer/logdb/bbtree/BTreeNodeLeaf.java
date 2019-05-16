@@ -21,10 +21,11 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public BTreeNodeLeaf(
             final long pageNumber,
             final Memory memory,
+            final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues)
     {
-        super(pageNumber, memory, numberOfKeys, numberOfValues);
+        super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
     }
 
     @Override
@@ -44,7 +45,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public int getKeyIndex(long key)
     {
         final int index = binarySearch(key);
-
         if (index < 0)
         {
             return -1;

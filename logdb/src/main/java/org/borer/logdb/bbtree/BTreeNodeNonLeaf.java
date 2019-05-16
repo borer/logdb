@@ -6,7 +6,7 @@ import org.borer.logdb.storage.NodesManager;
 
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
-    public static final int NON_COMMITTED_CHILD = -1;
+    public static final int NON_COMMITTED_CHILD = Integer.MIN_VALUE;
 
     private BTreeNodeHeap[] children;
 
@@ -25,11 +25,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public BTreeNodeNonLeaf(
             final long pageNumber,
             final Memory memory,
+            final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues,
             final BTreeNodeHeap[] children)
     {
-        super(pageNumber, memory, numberOfKeys, numberOfValues);
+        super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
         this.children = children;
     }
 
@@ -60,7 +61,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     /**
      * try to remove a key/value pair for this node log.
      * @param key the key that identifies the key/value pair to remove from the node log
-     * @return true if removed successfully, false if not in the log.
+     * @return true if removed successfully, false if key/value are not in the log.
      */
     public boolean removeLog(final long key)
     {
@@ -195,6 +196,12 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
 
         splitKeysAndValues(at, bNumberOfKeys, bTreeNodeLeaf);
+
+        if (numberOfLogKeyValues > 0)
+        {
+            final long keyAt = getKey(at);
+            splitLog(keyAt, bTreeNodeLeaf);
+        }
 
         bTreeNodeLeaf.setDirty();
         setDirty();

@@ -168,6 +168,7 @@ class BTreeNodeNonLeafTest
                 0L,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
+                0,
                 1, //there is always one child at least
                 new BTreeNodeHeap[1]);
         bTreeNonLeaf.split(at, split);
@@ -217,6 +218,209 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
+    void shouldBeAbleToSplitInTwoNodesWithEvenKeyNumberAndEvenLogNumber()
+    {
+        final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedLogKeysInCurrent = 6;
+        final int expectedLogKeysInSplit = 4;
+        final int expectedKeysInSplit = 4;
+        final int totalKeys = 10;
+        for (int i = 0; i < totalKeys; i++)
+        {
+            final long key = numKeysPerChild * i;
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+
+            bTreeNonLeaf.insertChild(i, key, child); //there is something funky with the byte order
+            bTreeNonLeaf.insertLog(key, key);
+        }
+
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                1, //there is always one child at least
+                new BTreeNodeHeap[1]);
+        bTreeNonLeaf.split(at, split);
+
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedLogKeysInCurrent, bTreeNonLeaf.getLogKeyValuesCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
+        assertEquals(expectedLogKeysInSplit, split.getLogKeyValuesCount());
+
+        ////////////////find the key/values in current
+        final long[] currentKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in current
+        for (int i = 0; i < expectedLogKeysInCurrent; i++)
+        {
+            final long expectedKey =  numKeysPerChild * i;
+            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
+            assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
+        }
+
+        //make sure current doesn't have the splitted key/values
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long currentKey = currentKeys[i];
+            for (int j = 0; j < expectedKeysInSplit; j++)
+            {
+                assertNotEquals(currentKey, split.getKey(j));
+            }
+        }
+
+        ////////////////find the key/values in split
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int keyOffsetDueToLostKey = i + 1;
+            final int keyOffsetDueToSplit = keyOffsetDueToLostKey + expectedKeysInCurrent;
+            final long expectedKey = numKeysPerChild * keyOffsetDueToSplit;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+
+            splitKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in split
+        final int maxLogKeyInCurrent = numKeysPerChild * expectedLogKeysInCurrent;
+        for (int i = 0; i < expectedLogKeysInSplit; i++)
+        {
+            final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final long splitKey = splitKeys[i];
+            for (int j = 0; j < expectedKeysInCurrent; j++)
+            {
+                assertNotEquals(splitKey, bTreeNonLeaf.getKey(j));
+            }
+        }
+    }
+
+    @Test
+    void shouldBeAbleToSplitInTwoNodesWithEvenKeyNumberAndOddLogNumber()
+    {
+        final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedLogKeysInCurrent = 6;
+        final int expectedLogKeysInSplit = 5;
+        final int expectedKeysInSplit = 4;
+        final int totalKeys = 10;
+        for (int i = 0; i < totalKeys; i++)
+        {
+            final long key = numKeysPerChild * i;
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+
+            bTreeNonLeaf.insertChild(i, key, child); //there is something funky with the byte order
+            bTreeNonLeaf.insertLog(key, key);
+        }
+
+        final long finalLogKey = totalKeys * numKeysPerChild;
+        bTreeNonLeaf.insertLog(finalLogKey, finalLogKey);
+
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                1, //there is always one child at least
+                new BTreeNodeHeap[1]);
+        bTreeNonLeaf.split(at, split);
+
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedLogKeysInCurrent, bTreeNonLeaf.getLogKeyValuesCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
+        assertEquals(expectedLogKeysInSplit, split.getLogKeyValuesCount());
+
+        ////////////////find the key/values in current
+        final long[] currentKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in current
+        for (int i = 0; i < expectedLogKeysInCurrent; i++)
+        {
+            final long expectedKey =  numKeysPerChild * i;
+            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
+            assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
+        }
+
+        //make sure current doesn't have the splitted key/values
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long currentKey = currentKeys[i];
+            for (int j = 0; j < expectedKeysInSplit; j++)
+            {
+                assertNotEquals(currentKey, split.getKey(j));
+            }
+        }
+
+        ////////////////find the key/values in split
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int keyOffsetDueToLostKey = i + 1;
+            final int keyOffsetDueToSplit = keyOffsetDueToLostKey + expectedKeysInCurrent;
+            final long expectedKey = numKeysPerChild * keyOffsetDueToSplit;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+
+            splitKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in split
+        final int maxLogKeyInCurrent = numKeysPerChild * expectedLogKeysInCurrent;
+        for (int i = 0; i < expectedLogKeysInSplit; i++)
+        {
+            final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final long splitKey = splitKeys[i];
+            for (int j = 0; j < expectedKeysInCurrent; j++)
+            {
+                assertNotEquals(splitKey, bTreeNonLeaf.getKey(j));
+            }
+        }
+    }
+
+    @Test
     void shouldBeAbleToSplitInTwoNodesWithOddKeyNumber()
     {
         final int numKeysPerChild = 5;
@@ -235,6 +439,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
                 0,
                 1, //there is always one child at least
                 new BTreeNodeHeap[1]);
@@ -276,6 +481,183 @@ class BTreeNodeNonLeafTest
     }
 
     @Test
+    void shouldBeAbleToSplitInTwoNodesWithOddKeyNumberWithEvenLog()
+    {
+        final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedKeysInSplit = 5;
+        final int expectedLogKeysInCurrent = 6;
+        final int expectedLogKeysInSplit = 6;
+
+        final int totalKeys = 11;
+        for (int i = 0; i < totalKeys; i++)
+        {
+            final long key = numKeysPerChild * i;
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+
+            bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
+            bTreeNonLeaf.insertLog(key, key);
+        }
+
+        final long key = numKeysPerChild * totalKeys;
+        bTreeNonLeaf.insertLog(key, key);
+
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                1, //there is always one child at least
+                new BTreeNodeHeap[1]);
+        bTreeNonLeaf.split(at, split);
+
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedLogKeysInCurrent, bTreeNonLeaf.getLogKeyValuesCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
+        assertEquals(expectedLogKeysInSplit, split.getLogKeyValuesCount());
+
+        ////////////////find the key/values in current
+        final long[] currentKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in current
+        for (int i = 0; i < expectedLogKeysInCurrent; i++)
+        {
+            final long expectedKey =  numKeysPerChild * i;
+            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
+            assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            assertNotEquals(currentKeys[i], split.getKey(i));
+        }
+
+        ////////////////find the key/values in split
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int expectedKeyIndex = (i + 1) + expectedKeysInCurrent; //we lose one key when split
+            final long expectedKey = numKeysPerChild * expectedKeyIndex;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            splitKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in split
+        final int maxLogKeyInCurrent = numKeysPerChild * expectedLogKeysInCurrent;
+        for (int i = 0; i < expectedLogKeysInSplit; i++)
+        {
+            final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            assertNotEquals(splitKeys[i], bTreeNonLeaf.getKey(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToSplitInTwoNodesWithOddKeyNumberWithOddLog()
+    {
+        final int numKeysPerChild = 5;
+        final int expectedKeysInCurrent = 5;
+        final int expectedKeysInSplit = 5;
+        final int expectedLogKeysInCurrent = 6;
+        final int expectedLogKeysInSplit = 5;
+
+        final int totalKeys = 11;
+        for (int i = 0; i < totalKeys; i++)
+        {
+            final long key = numKeysPerChild * i;
+            final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(0, i, new IdSupplier(i));
+
+            bTreeNonLeaf.insertChild(i, key, child);//there is something funky with the byte order
+            bTreeNonLeaf.insertLog(key, key);
+        }
+
+        final int at = totalKeys >> 1;
+        final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
+                0L,
+                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
+                0,
+                1, //there is always one child at least
+                new BTreeNodeHeap[1]);
+        bTreeNonLeaf.split(at, split);
+
+        assertEquals(expectedKeysInCurrent, bTreeNonLeaf.getKeyCount());
+        assertEquals(expectedLogKeysInCurrent, bTreeNonLeaf.getLogKeyValuesCount());
+        assertEquals(expectedKeysInSplit, split.getKeyCount());
+        assertEquals(expectedLogKeysInSplit, split.getLogKeyValuesCount());
+
+        ////////////////find the key/values in current
+        final long[] currentKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            final long expectedKey = numKeysPerChild * i;
+            final long keyAtIndex = bTreeNonLeaf.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            currentKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in current
+        for (int i = 0; i < expectedLogKeysInCurrent; i++)
+        {
+            final long expectedKey =  numKeysPerChild * i;
+            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
+            assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInCurrent; i++)
+        {
+            assertNotEquals(currentKeys[i], split.getKey(i));
+        }
+
+        ////////////////find the key/values in split
+        final long[] splitKeys = new long[expectedKeysInCurrent];
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            final int expectedKeyIndex = (i + 1) + expectedKeysInCurrent; //we lose one key when split
+            final long expectedKey = numKeysPerChild * expectedKeyIndex;
+            final long keyAtIndex = split.getKey(i);
+            assertEquals(expectedKey, keyAtIndex);
+
+            splitKeys[i] = keyAtIndex;
+        }
+
+        //find the log key/values in split
+        final int maxLogKeyInCurrent = numKeysPerChild * expectedLogKeysInCurrent;
+        for (int i = 0; i < expectedLogKeysInSplit; i++)
+        {
+            final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
+            final int logIndex = split.logBinarySearch(expectedKey);
+            assertEquals(expectedKey, split.getLogKey(logIndex));
+            assertEquals(expectedKey, split.getLogValue(logIndex));
+        }
+
+        for (int i = 0; i < expectedKeysInSplit; i++)
+        {
+            assertNotEquals(splitKeys[i], bTreeNonLeaf.getKey(i));
+        }
+    }
+
+    @Test
     void shouldDeepCopyNonLeafNode()
     {
         final int numKeysPerChild = 5;
@@ -298,6 +680,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf copy = new BTreeNodeNonLeaf(
                 bTreeNonLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
                 0,
                 0, //there is always one child at least
                 null);

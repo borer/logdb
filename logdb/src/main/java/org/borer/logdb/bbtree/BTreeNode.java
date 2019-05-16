@@ -108,4 +108,6 @@ public interface BTreeNode
     long getVersion();
 
     boolean needsSplitting();
+
+    void reset();
 }

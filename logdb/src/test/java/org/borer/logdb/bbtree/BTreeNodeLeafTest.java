@@ -22,6 +22,7 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
+                0,
                 0);
     }
 
@@ -212,6 +213,7 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
+                0,
                 0);
         bTreeLeaf.split(at, newBtree);
 
@@ -248,6 +250,7 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
+                0,
                 0);
         bTreeLeaf.split(at, newBtree);
 
@@ -280,6 +283,7 @@ class BTreeNodeLeafTest
         final BTreeNodeLeaf copy = new BTreeNodeLeaf(
                 bTreeLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                0,
                 0,
                 0
         );

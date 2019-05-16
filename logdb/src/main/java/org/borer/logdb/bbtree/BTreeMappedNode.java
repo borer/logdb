@@ -14,13 +14,14 @@ public class BTreeMappedNode extends BTreeNodeAbstract
 
     private long baseOffset;
 
+    //TODO: not rely on having an empty initial map.
     public BTreeMappedNode(
             final Storage storage,
             final DirectMemory memory,
             final long pageSize,
             final long pageNumber)
     {
-        super(pageNumber, memory.toMemory(), 0, 0);
+        super(pageNumber, memory.toMemory(), 0, 0, 0);
         this.storage = storage;
         this.memory = memory;
 
