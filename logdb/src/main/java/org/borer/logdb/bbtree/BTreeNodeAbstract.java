@@ -152,9 +152,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public boolean needsSplitting()
+    public boolean shouldSplit()
     {
-        return (KEY_SIZE + VALUE_SIZE) >= freeSizeLeftBytes;
+        final long freeSpaceWithoutConsideringLogBuffer = freeSizeLeftBytes + (numberOfLogKeyValues * (KEY_SIZE + VALUE_SIZE));
+        final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (KEY_SIZE + VALUE_SIZE);
+        return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
     }
 
     void setPreviousRoot(final long previousRootPageNumber)
@@ -217,6 +219,18 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public long getKey(final int index)
     {
         return buffer.getLong(getKeyIndexOffset(index));
+    }
+
+    @Override
+    public long getMinKey()
+    {
+        return buffer.getLong(getKeyIndexOffset(0));
+    }
+
+    @Override
+    public long getMaxKey()
+    {
+        return buffer.getLong(getKeyIndexOffset(numberOfKeys - 1));
     }
 
     private static long getKeyIndexOffset(final int index)

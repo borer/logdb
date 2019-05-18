@@ -42,6 +42,10 @@ public interface BTreeNode
      */
     long getKey(int index);
 
+    long getMinKey();
+
+    long getMaxKey();
+
     /**
      * Get the value corresponding to the key.
      * @param key key to search for
@@ -107,7 +111,12 @@ public interface BTreeNode
 
     long getVersion();
 
-    boolean needsSplitting();
+    /**
+     * Calculates if the node needs splitting. This only considers the node key/value paris and ignores the buffer size.
+     * So it's possible for the node to be full because the log is full.
+     * @return returns true if the node needs splitting, false other wise
+     */
+    boolean shouldSplit();
 
     void reset();
 }

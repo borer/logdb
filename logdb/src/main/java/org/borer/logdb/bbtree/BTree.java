@@ -8,12 +8,13 @@ import java.util.function.BiConsumer;
 
 public class BTree
 {
-    private static final int THRESHOLD_CHILDREN_PER_NODE = 4;
     /**
      * This designates the "last stored" version for a store which was
      * just open for the first time.
      */
     private static final long INITIAL_VERSION = 0;
+
+    private static final int LOG_VALUE_TO_REMOVE_SENTINEL = -1;
 
     /**
      * Reference to the current uncommitted root page.
@@ -133,11 +134,11 @@ public class BTree
 
         if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getKeyCount() == 1)
         {
-            this.nodesCount = this.nodesCount - 2;
             final int keyIndex = newRoot.getKeyIndex(key);
             final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(keyIndex, newRoot, mappedNode);
             if (nodeToRemoveFrom.getNodeType() == BtreeNodeType.Leaf && nodeToRemoveFrom.getKeyCount() == 0)
             {
+                this.nodesCount = this.nodesCount - 2;
                 newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, 1 - keyIndex);
             }
         }
@@ -166,7 +167,7 @@ public class BTree
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
             if (nonLeaf.logHasFreeSpace())
             {
-                nonLeaf.insertLog(key, -1);
+                nonLeaf.insertLog(key, LOG_VALUE_TO_REMOVE_SENTINEL);
             }
             else
             {
@@ -174,6 +175,20 @@ public class BTree
                 final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(nonLeaf, keyIndex);
                 nonLeaf.setChild(keyIndex, childrenCopy);
                 removeWithLogInternal(nonLeaf, keyIndex, childrenCopy, key);
+
+                final int childKeyIndex = nonLeaf.getKeyIndex(key);
+                final BTreeNodeHeap childToRemove = getOrCreateChildrenCopy(nonLeaf, childKeyIndex);
+                if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
+                {
+                    this.nodesCount--;
+                    nonLeaf.remove(keyIndex);
+                }
+                else if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
+                {
+                    this.nodesCount = this.nodesCount - 2;
+                    final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - childKeyIndex);
+                    parent.setChild(nodeIndexInParent, childrenCopy3);
+                }
 
                 //remove log if there is any, as we already removed the key/value in the previous step
                 nonLeaf.removeLog(key);
@@ -191,27 +206,30 @@ public class BTree
                     final int keyIndex2 = nonLeaf.getKeyIndex(key2);
                     final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
                     nonLeaf.setChild(keyIndex2, childrenCopy2);
-                    if (value2 < 0)
+
+                    final boolean shouldRemoveValue = value2 == LOG_VALUE_TO_REMOVE_SENTINEL;
+                    if (shouldRemoveValue)
                     {
                         removeWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2);
+
+                        final int childKeyIndex2 = nonLeaf.getKeyIndex(key2);
+                        final BTreeNodeHeap childToRemove2 = getOrCreateChildrenCopy(nonLeaf, childKeyIndex2);
+                        if (childToRemove2.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
+                        {
+                            this.nodesCount--;
+                            nonLeaf.remove(childKeyIndex2);
+                        }
+                        else if (childToRemove2.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
+                        {
+                            this.nodesCount = this.nodesCount - 2;
+                            final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - childKeyIndex2);
+                            parent.setChild(nodeIndexInParent, childrenCopy3);
+                        }
                     }
                     else
                     {
                         putWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
                     }
-                }
-
-                final BTreeNodeHeap childToRemove = getOrCreateChildrenCopy(nonLeaf, keyIndex);
-                if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
-                {
-                    this.nodesCount--;
-                    nonLeaf.remove(keyIndex);
-                }
-                else if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
-                {
-                    this.nodesCount = this.nodesCount - 2;
-                    final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - keyIndex);
-                    parent.setChild(nodeIndexInParent, childrenCopy3);
                 }
             }
         }
@@ -352,24 +370,28 @@ public class BTree
         BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
         nodesManager.returnMappedNode(mappedNode);
 
-        putWithLogInternal(null, -1, newRoot, key, value);
-
-        if (newRoot.needsSplitting())
+        if (newRoot.shouldSplit())
         {
-            this.nodesCount++;
+            this.nodesCount = this.nodesCount + 2;
             int keyCount = newRoot.getKeyCount();
             final int at = keyCount >> 1;
             final long keyAt = newRoot.getKey(at);
             final BTreeNodeHeap split = nodesManager.splitNode(newRoot, at, newVersion);
-            final BTreeNodeHeap temp = nodesManager.createEmptyNonLeafNode();
+            final BTreeNodeHeap parent = nodesManager.createEmptyNonLeafNode();
 
-            temp.insertChild(0, keyAt, newRoot);
-            temp.setChild(1, split);
+            parent.insertChild(0, keyAt, newRoot);
+            parent.setChild(1, split);
 
-            newRoot = temp;
+            newRoot = split.getMinKey() > key ? newRoot : split;
+            putWithLogInternal(parent, at, newRoot, key, value);
+
+            setNewRoot(parent);
         }
-
-        setNewRoot(newRoot);
+        else
+        {
+            putWithLogInternal(null, -1, newRoot, key, value);
+            setNewRoot(newRoot);
+        }
     }
 
     private void putWithLogInternal(
@@ -385,60 +407,77 @@ public class BTree
         }
         else
         {
-            final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
+            BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
             if (nonLeaf.logHasFreeSpace())
             {
                 nonLeaf.insertLog(key, value);
             }
             else
             {
-                final int keyIndex = nonLeaf.getKeyIndex(key);
-                final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(nonLeaf, keyIndex);
-                nonLeaf.setChild(keyIndex, childrenCopy);
-                putWithLogInternal(nonLeaf, keyIndex, childrenCopy, key, value);
-
                 final long[] keyValues = nonLeaf.spillLog();
                 assert keyValues.length % 2 == 0 : "log key/value array must even size. Current size " + keyValues.length;
                 final int maxIndex = keyValues.length / 2;
+
+                splitIfRequiredAndPutWithLogInternal(nonLeaf, key, value);
 
                 for (int i = 0; i < maxIndex; i++)
                 {
                     final int index = i * 2;
                     final long key2 = keyValues[index];
                     final long value2 = keyValues[index + 1];
-                    final int keyIndex2 = nonLeaf.getKeyIndex(key2);
-                    final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
-                    nonLeaf.setChild(keyIndex2, childrenCopy2);
-                    putWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
+
+                    splitIfRequiredAndPutWithLogInternal(nonLeaf, key2, value2);
                 }
             }
-        }
 
-        if (parent != null)
-        {
-            splitIfRequired(parent, nodeIndexInParent, node, parent.getVersion());
+            if (nonLeaf.shouldSplit() && parent != null)
+            {
+                this.nodesCount++;
+                final int nodeKeyCount = nonLeaf.getKeyCount();
+                final int nodeKeyIndex = nodeKeyCount >> 1;
+                final long splitKey = nonLeaf.getKey(nodeKeyIndex);
+
+                //split current nonleaf into children
+                final BTreeNodeHeap nonLeafSplit = nodesManager.splitNode(nonLeaf, nodeKeyIndex, nonLeaf.getVersion());
+
+                parent.insertChild(nodeIndexInParent, splitKey, nonLeaf);
+                parent.setChild(nodeIndexInParent +  1, nonLeafSplit);
+            }
         }
     }
 
-    private void splitIfRequired(
-            final BTreeNodeHeap parent,
-            final int nodeIndexInParent,
-            final BTreeNodeHeap node,
-            final long newVersion)
+    private void splitIfRequiredAndPutWithLogInternal(
+            final BTreeNodeNonLeaf parent,
+            final long key,
+            final long value)
     {
-        assert parent != null : "Parent cannot be null when trying to split node";
-        assert nodeIndexInParent >= 0 : "the index in parent node must be bigger than 0";
-        assert node != null : "Cannot split null node";
+        int keyIndex = parent.getKeyIndex(key);
+        final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(parent, keyIndex);
 
-        if (node.needsSplitting())
+        if (childrenCopy.shouldSplit())
         {
-            int keyCount = node.getKeyCount();
             this.nodesCount++;
-            final int at = keyCount >> 1;
-            final long keyAt = node.getKey(at);
-            final BTreeNodeHeap split = nodesManager.splitNode(node, at, newVersion);
-            parent.setChild(nodeIndexInParent, split);
-            parent.insertChild(nodeIndexInParent, keyAt, node);
+            final int childrenKeyCount = childrenCopy.getKeyCount();
+            final int at = childrenKeyCount >> 1;
+            final long splitKey = childrenCopy.getKey(at);
+
+            final BTreeNodeHeap childrenSplit = nodesManager.splitNode(childrenCopy, at, parent.getVersion());
+            parent.insertChild(keyIndex, splitKey, childrenCopy);
+            parent.setChild(keyIndex + 1, childrenSplit);
+
+            if (childrenSplit.getMinKey() > key)
+            {
+                putWithLogInternal(parent, keyIndex - 1, childrenCopy, key, value);
+            }
+            else
+            {
+                putWithLogInternal(parent, keyIndex, childrenSplit, key, value);
+            }
+        }
+        else
+        {
+            parent.setChild(keyIndex, childrenCopy);
+            putWithLogInternal(parent, keyIndex, childrenCopy, key, value);
         }
     }
 
@@ -482,7 +521,7 @@ public class BTree
         BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
         currentNode.insert(key, value);
 
-        while (currentNode.needsSplitting())
+        while (currentNode.shouldSplit())
         {
             this.nodesCount++;
             int keyCount = currentNode.getKeyCount();

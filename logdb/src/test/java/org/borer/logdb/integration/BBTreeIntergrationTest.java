@@ -188,6 +188,38 @@ public class BBTreeIntergrationTest
         loadedBTree.close();
     }
 
+    @Test
+    void shouldBeABleToCommitMultipleTimesWithLog()
+    {
+        final String filename = "testBtree6.logdb";
+        final BTree originalBTree = createNewPersistedBtree(filename);
+
+        final int numberOfPairs = 600;
+        for (long i = 0; i < numberOfPairs; i++)
+        {
+            originalBTree.putWithLog(i, i);
+            originalBTree.commit();
+        }
+
+        final String original = originalBTree.print();
+
+        originalBTree.commit();
+        originalBTree.close();
+
+        final BTree loadedBTree = loadPersistedBtree(filename);
+
+        final String loaded = loadedBTree.print();
+
+        assertEquals(original, loaded);
+
+        for (int i = 0; i < numberOfPairs; i++)
+        {
+            assertEquals(i, loadedBTree.getWithLog(i));
+        }
+
+        loadedBTree.close();
+    }
+
     private BTree createNewPersistedBtree(final String filename)
     {
         final FileStorage storage = FileStorage.createNewFileDb(
