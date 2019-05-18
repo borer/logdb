@@ -1,6 +1,6 @@
 package org.borer.logdb.storage;
 
-import org.borer.logdb.bbtree.BTree;
+import org.borer.logdb.bbtree.BTreeImpl;
 import org.borer.logdb.bbtree.BTreePrinter;
 import org.borer.logdb.support.TestUtils;
 
@@ -15,7 +15,7 @@ class MemoryStorageTest
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage);
-        final BTree originalBTree = new BTree(nodesManager);
+        final BTreeImpl originalBTree = new BTreeImpl(nodesManager);
 
         for (int i = 0; i < 100; i++)
         {
@@ -28,7 +28,7 @@ class MemoryStorageTest
 
         //load btree from existing memory
         final NodesManager readNodesManager = new NodesManager(memoryStorage);
-        final BTree loadedBTree = new BTree(readNodesManager);
+        final BTreeImpl loadedBTree = new BTreeImpl(readNodesManager);
 
         final String loadedBtreePrint = BTreePrinter.print(loadedBTree, readNodesManager);
 

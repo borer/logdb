@@ -1,6 +1,8 @@
 package org.borer.logdb.integration;
 
 import org.borer.logdb.bbtree.BTree;
+import org.borer.logdb.bbtree.BTreeImpl;
+import org.borer.logdb.bbtree.BTreeWithLog;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
 import org.borer.logdb.support.TestUtils;
@@ -110,7 +112,7 @@ public class BBTreeIntergrationTest
         expectedOrder.sort(Long::compareTo);
 
         final LinkedList<Long> actualOrder = new LinkedList<>();
-        final BTree loadedBTree = loadPersistedBtree(filename);
+        final BTreeImpl loadedBTree = loadPersistedBtree(filename);
 
         loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
@@ -143,7 +145,7 @@ public class BBTreeIntergrationTest
         expectedOrder.sort(Long::compareTo);
 
         final LinkedList<Long> actualOrder = new LinkedList<>();
-        final BTree loadedBTree = loadPersistedBtree(filename);
+        final BTreeImpl loadedBTree = loadPersistedBtree(filename);
 
         loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
@@ -173,7 +175,7 @@ public class BBTreeIntergrationTest
         originalBTree.commit();
         originalBTree.close();
 
-        final BTree loadedBTree = loadPersistedBtree(filename);
+        final BTreeImpl loadedBTree = loadPersistedBtree(filename);
 
         final int[] index = new int[1]; //ugh... lambdas
         for (index[0] = 0; index[0] < maxVersions; index[0]++)
@@ -192,12 +194,12 @@ public class BBTreeIntergrationTest
     void shouldBeABleToCommitMultipleTimesWithLog()
     {
         final String filename = "testBtree6.logdb";
-        final BTree originalBTree = createNewPersistedBtree(filename);
+        final BTreeWithLog originalBTree = createNewPersistedLogBtree(filename);
 
         final int numberOfPairs = 600;
         for (long i = 0; i < numberOfPairs; i++)
         {
-            originalBTree.putWithLog(i, i);
+            originalBTree.put(i, i);
             originalBTree.commit();
         }
 
@@ -206,7 +208,7 @@ public class BBTreeIntergrationTest
         originalBTree.commit();
         originalBTree.close();
 
-        final BTree loadedBTree = loadPersistedBtree(filename);
+        final BTreeWithLog loadedBTree = loadPersistedLogBtree(filename);
 
         final String loaded = loadedBTree.print();
 
@@ -214,13 +216,13 @@ public class BBTreeIntergrationTest
 
         for (int i = 0; i < numberOfPairs; i++)
         {
-            assertEquals(i, loadedBTree.getWithLog(i));
+            assertEquals(i, loadedBTree.get(i));
         }
 
         loadedBTree.close();
     }
 
-    private BTree createNewPersistedBtree(final String filename)
+    private BTreeWithLog createNewPersistedLogBtree(final String filename)
     {
         final FileStorage storage = FileStorage.createNewFileDb(
                 tempDirectory.resolve(filename).toFile(),
@@ -230,15 +232,37 @@ public class BBTreeIntergrationTest
 
         final NodesManager nodesManage = new NodesManager(storage);
 
-        return new BTree(nodesManage);
+        return new BTreeWithLog(nodesManage);
     }
 
-    private BTree loadPersistedBtree(final String filename)
+    private BTreeWithLog loadPersistedLogBtree(final String filename)
     {
         final FileStorage storage = FileStorage.openDbFile(
                 tempDirectory.resolve(filename).toFile());
 
         final NodesManager nodesManager = new NodesManager(storage);
-        return new BTree(nodesManager);
+        return new BTreeWithLog(nodesManager);
+    }
+
+    private BTreeImpl createNewPersistedBtree(final String filename)
+    {
+        final FileStorage storage = FileStorage.createNewFileDb(
+                tempDirectory.resolve(filename).toFile(),
+                TestUtils.MAPPED_CHUNK_SIZE,
+                TestUtils.BYTE_ORDER,
+                PAGE_SIZE_BYTES);
+
+        final NodesManager nodesManage = new NodesManager(storage);
+
+        return new BTreeImpl(nodesManage);
+    }
+
+    private BTreeImpl loadPersistedBtree(final String filename)
+    {
+        final FileStorage storage = FileStorage.openDbFile(
+                tempDirectory.resolve(filename).toFile());
+
+        final NodesManager nodesManager = new NodesManager(storage);
+        return new BTreeImpl(nodesManager);
     }
 }

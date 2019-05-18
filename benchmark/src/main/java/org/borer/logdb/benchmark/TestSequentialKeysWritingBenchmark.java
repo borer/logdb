@@ -1,6 +1,7 @@
 package org.borer.logdb.benchmark;
 
 import org.borer.logdb.bbtree.BTree;
+import org.borer.logdb.bbtree.BTreeImpl;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -45,7 +46,7 @@ public class TestSequentialKeysWritingBenchmark
 
             nodesManager = new NodesManager(storage);
 
-            btree = new BTree(nodesManager);
+            btree = new BTreeImpl(nodesManager);
 
             key = 1L;
         }

@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BTreeWithLogTest
 {
     private static final int PAGE_SIZE = 256;
-    private BTree bTree;
+    private BTreeWithLog bTree;
 
     @BeforeEach
     void setUp()
@@ -20,7 +20,31 @@ class BTreeWithLogTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTree(nodesManager);
+        bTree = new BTreeWithLog(nodesManager);
+    }
+
+    @Test
+    void shouldBeAbleToRetrieveNonExistingElementsWithLog()
+    {
+        for (long i = 0; i < 10; i++)
+        {
+            assertEquals(-1, bTree.get(i));
+        }
+    }
+
+    @Test
+    void shouldBeAbleToRetrievePastVersionsForElementsWithLog()
+    {
+        final long key = 123L;
+        for (long i = 0; i < 200; i++)
+        {
+            bTree.put(key, i);
+        }
+
+        for (long i = 0; i < 200; i++)
+        {
+            assertEquals(i, bTree.get(key, (int)i));
+        }
     }
 
     @Test
@@ -28,7 +52,7 @@ class BTreeWithLogTest
     {
         for (long i = 0; i < 500; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         final String expectedTree = "digraph g {\n" +
@@ -239,12 +263,12 @@ class BTreeWithLogTest
         final int size = 500;
         for (long i = 0; i < size; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         for (long i = 0; i < size; i++)
         {
-            assertEquals(i, bTree.getWithLog(i));
+            assertEquals(i, bTree.get(i));
         }
     }
 
@@ -256,27 +280,27 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithLogWithoutFalsePositives(i);
+            bTree.removeWithoutFalsePositives(i);
         }
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         assertEquals(39, bTree.getNodesCount());
 
-        bTree.removeWithLogWithoutFalsePositives(200);
-        bTree.removeWithLogWithoutFalsePositives(-20);
+        bTree.removeWithoutFalsePositives(200);
+        bTree.removeWithoutFalsePositives(-20);
 
         assertEquals(39, bTree.getNodesCount());
 
-        assertEquals(-1, bTree.getWithLog(200));
-        assertEquals(-1, bTree.getWithLog(-20));
+        assertEquals(-1, bTree.get(200));
+        assertEquals(-1, bTree.get(-20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            assertEquals(i, bTree.getWithLog(i));
+            assertEquals(i, bTree.get(i));
         }
     }
 
@@ -286,21 +310,21 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         assertEquals(39, bTree.getNodesCount());
 
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithLogWithoutFalsePositives(i);
+            bTree.removeWithoutFalsePositives(i);
 
             //verify that we still have the rest of the key/values
             if (i + 1 < numberOfPairs)
             {
                 for (int j = i + 1; j < numberOfPairs; j++)
                 {
-                    assertEquals(j, bTree.getWithLog(j));
+                    assertEquals(j, bTree.get(j));
                 }
             }
         }
@@ -323,27 +347,27 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithLog(i);
+            bTree.remove(i);
         }
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         assertEquals(39, bTree.getNodesCount());
 
-        bTree.removeWithLog(200);
-        bTree.removeWithLog(-20);
+        bTree.remove(200);
+        bTree.remove(-20);
 
         assertEquals(39, bTree.getNodesCount());
 
-        assertEquals(-1, bTree.getWithLog(200));
-        assertEquals(-1, bTree.getWithLog(-20));
+        assertEquals(-1, bTree.get(200));
+        assertEquals(-1, bTree.get(-20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            assertEquals(i, bTree.getWithLog(i));
+            assertEquals(i, bTree.get(i));
         }
     }
 
@@ -353,12 +377,12 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.putWithLog(i, i);
+            bTree.put(i, i);
         }
 
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithLog(i);
+            bTree.remove(i);
         }
 
         assertEquals(5, bTree.getNodesCount());

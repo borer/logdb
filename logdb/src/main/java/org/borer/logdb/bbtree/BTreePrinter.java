@@ -6,19 +6,18 @@ public class BTreePrinter
 {
     /**
      * Outputs graphivz format that represents the B+tree.
-     * @param bTree uses the current root node of the btree
      * @return a graphivz string formatted representation of the btree
      */
     public static String print(final BTree bTree, final NodesManager nodesManager)
     {
-        final BTreeNode currentUncommittedRootNode = bTree.getCurrentUncommittedRootNode();
+        final BTreeNode currentUncommittedRootNode = bTree.getUncommittedRoot();
         if (currentUncommittedRootNode != null)
         {
             return print(currentUncommittedRootNode, nodesManager);
         }
         else
         {
-            final long currentCommittedRootPageNumber = bTree.getCurrentCommittedRootNode();
+            final long currentCommittedRootPageNumber = bTree.getCommittedRoot();
             final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
             mappedNode.initNode(currentCommittedRootPageNumber);
             final String print = print(mappedNode, nodesManager);

@@ -1,6 +1,6 @@
 package org.borer.logdb.benchmark;
 
-import org.borer.logdb.bbtree.BTree;
+import org.borer.logdb.bbtree.BTreeWithLog;
 import org.borer.logdb.storage.FileStorage;
 import org.borer.logdb.storage.NodesManager;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -29,7 +29,7 @@ public class TestRandomKeysWritingWithLogBenchmark
         private File dbFile;
         private FileStorage storage;
         private NodesManager nodesManager;
-        private BTree btree;
+        private BTreeWithLog btree;
         private Random random;
 
         @Setup(Level.Trial)
@@ -45,7 +45,7 @@ public class TestRandomKeysWritingWithLogBenchmark
                     PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
-            btree = new BTree(nodesManager);
+            btree = new BTreeWithLog(nodesManager);
             random = new Random();
         }
 
@@ -58,7 +58,7 @@ public class TestRandomKeysWritingWithLogBenchmark
 
         void putKeyValue()
         {
-            btree.putWithLog(random.nextLong(), random.nextLong());
+            btree.put(random.nextLong(), random.nextLong());
         }
 
         void commit()

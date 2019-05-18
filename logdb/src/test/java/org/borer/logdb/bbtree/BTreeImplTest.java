@@ -14,9 +14,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-class BTreeTest
+class BTreeImplTest
 {
-    private BTree bTree;
+    private BTreeImpl bTree;
     private NodesManager nodesManager;
 
     @BeforeEach
@@ -25,31 +25,7 @@ class BTreeTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES);
 
         nodesManager = new NodesManager(storage);
-        bTree = new BTree(nodesManager);
-    }
-
-    @Test
-    void shouldBeAbleToRetrieveNonExistingElementsWithLog()
-    {
-        for (long i = 0; i < 10; i++)
-        {
-            assertEquals(-1, bTree.getWithLog(i));
-        }
-    }
-
-    @Test
-    void shouldBeAbleToRetrievePastVersionsForElementsWithLog()
-    {
-        final long key = 123L;
-        for (long i = 0; i < 200; i++)
-        {
-            bTree.putWithLog(key, i);
-        }
-
-        for (long i = 0; i < 200; i++)
-        {
-            assertEquals(i, bTree.getWithLog(key, (int)i));
-        }
+        bTree = new BTreeImpl(nodesManager);
     }
 
     @Test
