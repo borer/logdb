@@ -141,7 +141,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public boolean shouldSplit()
     {
-        final long freeSpaceWithoutConsideringLogBuffer = freeSizeLeftBytes + (numberOfLogKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
+        final long freeSpaceWithoutConsideringLogBuffer =
+                freeSizeLeftBytes + (numberOfLogKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
         return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
     }
@@ -182,7 +183,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private long calculateFreeSpaceLeft(final long pageSize)
     {
         final int extraValues = numberOfValues - numberOfKeys;
-        final int usedBytes = ((numberOfKeys + extraValues + numberOfLogKeyValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE)) + BTreeNodePage.HEADER_SIZE_BYTES;
+        final int numberOfKeyValues = numberOfKeys + extraValues + numberOfLogKeyValues;
+        final int sizeForKeyValues = numberOfKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final int usedBytes = sizeForKeyValues + BTreeNodePage.HEADER_SIZE_BYTES;
         return pageSize - usedBytes;
     }
 

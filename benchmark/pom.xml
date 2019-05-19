@@ -30,7 +30,7 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>logdb</groupId>
+            <groupId>org.logdb</groupId>
             <artifactId>logdb</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>

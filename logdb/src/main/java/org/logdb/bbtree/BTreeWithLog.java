@@ -434,7 +434,7 @@ public class BTreeWithLog extends BTreeAbstract
      * Gets a value for the key at time/instance t.
      *
      * @param key     the key to search for
-     * @param version the version that we are interested. Must be >= 0
+     * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
     public long get(final long key, final int version)
