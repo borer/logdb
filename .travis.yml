@@ -7,6 +7,6 @@ jdk:
   - oraclejdk11
 
 before_script:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
 
 script: mvn test -B
