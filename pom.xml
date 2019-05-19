@@ -13,8 +13,7 @@
         <developer>
             <name>Bogdan Gochev</name>
             <email>bogdan.dgochev@gmail.com</email>
-            <organization>Borer</organization>
-            <organizationUrl>http://bogdangochev.me/</organizationUrl>
+            <url>http://bogdangochev.me/</url>
         </developer>
     </developers>
 
