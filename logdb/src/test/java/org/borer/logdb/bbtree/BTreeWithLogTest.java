@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class BTreeWithLogTest
 {
@@ -270,6 +271,38 @@ class BTreeWithLogTest
         {
             assertEquals(i, bTree.get(i));
         }
+    }
+
+    @Test
+    void shouldBeAbleToGetElementsFromPast()
+    {
+        final long key = 5L;
+        final long expectedValue1 = 1L;
+        final long expectedValue2 = 2L;
+        final long expectedValue3 = 3L;
+
+        bTree.put(key, expectedValue1);
+        bTree.put(key, expectedValue2);
+        bTree.put(key, expectedValue3);
+
+        //index for history is 0 based
+        assertEquals(expectedValue1, bTree.get(key, 0));
+        assertEquals(expectedValue2, bTree.get(key, 1));
+        assertEquals(expectedValue3, bTree.get(key, 2));
+
+        try
+        {
+            bTree.get(key, 3);
+            fail();
+        }
+        catch (final IllegalArgumentException e)
+        {
+            assertEquals("Didn't have version 3", e.getMessage());
+        }
+
+        //get latest version by default
+        final long actualLatest = bTree.get(key);
+        assertEquals(expectedValue3, actualLatest);
     }
 
     @Test

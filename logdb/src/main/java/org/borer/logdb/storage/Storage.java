@@ -40,8 +40,6 @@ public interface Storage extends Closeable
 
     long getLastRootPageNumber();
 
-    Memory loadLastRoot();
-
     Memory loadPage(long pageNumber);
 
     long getBaseOffsetForPageNumber(long pageNumber);

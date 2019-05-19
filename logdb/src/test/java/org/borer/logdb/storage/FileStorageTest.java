@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 
@@ -22,7 +24,10 @@ import static org.junit.jupiter.api.parallel.ResourceAccessMode.READ_WRITE;
 
 class FileStorageTest
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileStorageTest.class);
+
     private static final String DB_FILE_CONDITION = "file";
+
     @TempDir
     Path tempDirectory;
 
@@ -34,8 +39,12 @@ class FileStorageTest
     @BeforeEach
     void setUp()
     {
+        final Path tempDbPath = tempDirectory.resolve(DB_FILENAME);
+
+        LOGGER.info("Using temp directory " + tempDbPath.toString());
+
         storage = FileStorage.createNewFileDb(
-                tempDirectory.resolve(DB_FILENAME).toFile(),
+                tempDbPath.toFile(),
                 TestUtils.MAPPED_CHUNK_SIZE,
                 TestUtils.BYTE_ORDER,
                 PAGE_SIZE_BYTES);

@@ -495,6 +495,12 @@ public class BTreeWithLog extends BTreeAbstract
             mappedNode.initNode(committedRoot.get());
             rootForVersion = mappedNode;
         }
+
+        if (rootForVersion.getVersion() != version)
+        {
+            throw new IllegalArgumentException("Didn't have version " + version);
+        }
+
         return rootForVersion;
     }
 }

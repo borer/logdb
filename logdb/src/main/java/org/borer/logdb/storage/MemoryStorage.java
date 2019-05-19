@@ -106,12 +106,6 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public Memory loadLastRoot()
-    {
-        return loadPage(lastPageRootNumber);
-    }
-
-    @Override
     public Memory loadPage(final long pageNumber)
     {
         return (Memory)maps.get(pageNumber);

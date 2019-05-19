@@ -8,6 +8,8 @@ import org.borer.logdb.storage.NodesManager;
 import org.borer.logdb.support.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -19,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BBTreeIntergrationTest
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BBTreeIntergrationTest.class);
+
     @TempDir
     Path tempDirectory;
 
@@ -224,8 +228,12 @@ public class BBTreeIntergrationTest
 
     private BTreeWithLog createNewPersistedLogBtree(final String filename)
     {
+        final Path tempDbPath = tempDirectory.resolve(filename);
+
+        LOGGER.info("Creating temporal path " + tempDbPath.toString());
+
         final FileStorage storage = FileStorage.createNewFileDb(
-                tempDirectory.resolve(filename).toFile(),
+                tempDbPath.toFile(),
                 TestUtils.MAPPED_CHUNK_SIZE,
                 TestUtils.BYTE_ORDER,
                 PAGE_SIZE_BYTES);
@@ -237,8 +245,12 @@ public class BBTreeIntergrationTest
 
     private BTreeWithLog loadPersistedLogBtree(final String filename)
     {
+        final Path tempDbPath = tempDirectory.resolve(filename);
+
+        LOGGER.info("Reading temporal path " + tempDbPath.toString());
+
         final FileStorage storage = FileStorage.openDbFile(
-                tempDirectory.resolve(filename).toFile());
+                tempDbPath.toFile());
 
         final NodesManager nodesManager = new NodesManager(storage);
         return new BTreeWithLog(nodesManager);

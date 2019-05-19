@@ -8,7 +8,6 @@ import org.borer.logdb.bbtree.BTreeNodeNonLeaf;
 import org.borer.logdb.bbtree.BtreeNodeType;
 import org.borer.logdb.bbtree.IdSupplier;
 import org.borer.logdb.bbtree.RootReference;
-import org.borer.logdb.bit.Memory;
 import org.borer.logdb.bit.ReadMemory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,30 +214,6 @@ public class NodesManager
     public long loadLastRootPageNumber()
     {
         return storage.getLastRootPageNumber();
-    }
-
-    public BTreeNode loadLastRoot()
-    {
-        final Memory memory = storage.loadLastRoot();
-        final long pageNumber = loadLastRootPageNumber();
-
-        if (memory != null)
-        {
-            final BtreeNodeType nodeType = BtreeNodeType.fromByte(memory.getByte(0));
-
-            if (BtreeNodeType.Leaf == nodeType)
-            {
-                return new BTreeNodeLeaf(pageNumber, memory);
-            }
-            else
-            {
-                return new BTreeNodeNonLeaf(pageNumber, memory);
-            }
-        }
-        else //Condition used when creating new btree
-        {
-            return createEmptyLeafNode();
-        }
     }
 
     public void close()

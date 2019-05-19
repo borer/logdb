@@ -4,6 +4,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FileUtilsTest
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileUtilsTest.class);
+
     private static final String PATHNAME = "io_test";
     private static final String TEST_CONTENT = "this is a test";
 
@@ -29,7 +33,11 @@ class FileUtilsTest
     @BeforeEach
     void setUp() throws FileNotFoundException
     {
-        final File tmpFile = tempDirectory.resolve(PATHNAME).toFile();
+        final Path tempPath = tempDirectory.resolve(PATHNAME);
+
+        LOGGER.info("Using temporal path " + tempPath.toString());
+
+        final File tmpFile = tempPath.toFile();
         file = new RandomAccessFile(tmpFile, "rw");
         channel = file.getChannel();
     }

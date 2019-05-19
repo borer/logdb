@@ -67,7 +67,8 @@ public final class FileStorage implements Storage, Closeable
             throw new IllegalArgumentException("Page Size must be bigger than 128 bytes and a power of 2. Provided was " + pageSizeBytes);
         }
 
-        LOGGER.info("Opening database file " + file.getAbsolutePath());
+        LOGGER.info("Creating database file " + file.getAbsolutePath());
+
         FileStorage fileStorage = null;
         try
         {
@@ -114,6 +115,8 @@ public final class FileStorage implements Storage, Closeable
     public static FileStorage openDbFile(final File file)
     {
         Objects.requireNonNull(file, "DB file cannot be null");
+
+        LOGGER.info("Loading database file " + file.getAbsolutePath());
 
         FileStorage fileStorage = null;
         try
@@ -276,32 +279,6 @@ public final class FileStorage implements Storage, Closeable
     public long getLastRootPageNumber()
     {
         return fileDbHeader.lastRootOffset;
-    }
-
-    @Override
-    public Memory loadLastRoot()
-    {
-        long currentRootPageNumber;
-        try
-        {
-            final long currentChanelPosition = channel.position();
-            dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
-            //this is big-endind, that is why we need to invert, as the header is always little endian
-            currentRootPageNumber = Long.reverseBytes(dbFile.readLong());
-            channel.position(currentChanelPosition);
-        }
-        catch (final IOException e)
-        {
-            LOGGER.error("Unable to load last root node", e);
-            return null;
-        }
-
-        if (currentRootPageNumber != NO_CURRENT_ROOT_PAGE_NUMBER)
-        {
-            return loadPage(currentRootPageNumber);
-        }
-
-        return null;
     }
 
     private long getRequiredNumberOfMaps() throws IOException
