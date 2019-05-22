@@ -18,7 +18,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
@@ -219,30 +218,16 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    @Deprecated
-    public void returnWritableMemory(final Memory writableMemory)
+    public long writeNode(final ReadMemory node)
     {
-        final byte[] byteArray = writableMemory.getSupportByteArrayIfAny();
-        if (byteArray != null)
-        {
-            //Only reset the byte array for heap memories
-            Arrays.fill(byteArray, (byte) 0);
-        }
-
-        availableWritableMemory.add(writableMemory);
-    }
-
-    @Override
-    public long commitNode(final ReadMemory node)
-    {
-        final byte[] nodeSupportArray = node.getSupportByteArrayIfAny();
-        if (nodeSupportArray != null)
+        final ByteBuffer nodeSupportBuffer = node.getSupportByteBufferIfAny();
+        if (nodeSupportBuffer != null)
         {
             long pageNumber = -1;
             try
             {
                 pageNumber = channel.position() / fileDbHeader.pageSize;
-                FileUtils.writeFully(channel, ByteBuffer.wrap(nodeSupportArray)); //TODO reuse bytebuffer
+                FileUtils.writeFully(channel, nodeSupportBuffer);
                 extendMapsIfRequired(getRequiredNumberOfMaps());
             }
             catch (final IOException e)

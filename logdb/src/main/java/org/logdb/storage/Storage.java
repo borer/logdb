@@ -25,13 +25,11 @@ public interface Storage extends Closeable
 {
     Memory allocateHeapMemory();
 
-    void returnWritableMemory(Memory writableMemory);
-
     DirectMemory getDirectMemory(long pageNumber);
 
     long getPageSize();
 
-    long commitNode(ReadMemory node);
+    long writeNode(ReadMemory node);
 
     void flush();
 

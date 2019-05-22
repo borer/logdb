@@ -43,7 +43,6 @@ class FileUtils
         {
             channel.write(sourceBuffer);
         }
-        channel.force(true);
         sourceBuffer.reset();
     }
 }

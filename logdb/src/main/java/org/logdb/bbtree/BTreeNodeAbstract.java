@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -94,10 +95,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
         numberOfLogKeyValues = 0;
         isDirty = false;
 
-        final byte[] supportByteArrayIfAny = buffer.getSupportByteArrayIfAny();
-        if (supportByteArrayIfAny != null)
+        final ByteBuffer supportByteBufferIfAny = buffer.getSupportByteBufferIfAny();
+        if (supportByteBufferIfAny != null)
         {
-            Arrays.fill(supportByteArrayIfAny, (byte)0);
+            Arrays.fill(supportByteBufferIfAny.array(), (byte)0);
         }
     }
 

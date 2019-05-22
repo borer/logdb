@@ -35,12 +35,6 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void returnWritableMemory(final Memory writableMemory)
-    {
-        //NO-OP
-    }
-
-    @Override
     public DirectMemory getDirectMemory(final long pageNumber)
     {
         return new DirectMemory()
@@ -71,7 +65,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long commitNode(final ReadMemory node)
+    public long writeNode(final ReadMemory node)
     {
         final long currentOffset = this.allocatedMemoryOffset;
         allocatedMemoryOffset += node.getCapacity();

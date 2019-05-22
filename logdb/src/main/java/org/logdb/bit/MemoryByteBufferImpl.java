@@ -16,9 +16,9 @@ public class MemoryByteBufferImpl implements Memory
     }
 
     @Override
-    public byte[] getSupportByteArrayIfAny()
+    public ByteBuffer getSupportByteBufferIfAny()
     {
-        return buffer.array();
+        return buffer;
     }
 
     @Override

@@ -187,7 +187,7 @@ public class NodesManager
     private long commitNodeToStorage(final BTreeNodeHeap node)
     {
         final ReadMemory buffer = node.getBuffer();
-        return storage.commitNode(buffer);
+        return storage.writeNode(buffer);
     }
 
     public BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)

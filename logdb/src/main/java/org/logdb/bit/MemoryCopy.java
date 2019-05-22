@@ -1,5 +1,6 @@
 package org.logdb.bit;
 
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 public class MemoryCopy
@@ -28,10 +29,22 @@ public class MemoryCopy
         }
         else
         {
+            final ByteBuffer sourceSupportByteBufferIfAny = sourceMemory.getSupportByteBufferIfAny();
+            final byte[] sourceArray =
+                    (sourceSupportByteBufferIfAny != null && !sourceSupportByteBufferIfAny.isDirect())
+                            ? sourceSupportByteBufferIfAny.array()
+                            : null;
+
+            final ByteBuffer destinationSupportByteBufferIfAny = destinationMemory.getSupportByteBufferIfAny();
+            final byte[] destinationArray =
+                    (destinationSupportByteBufferIfAny != null && !destinationSupportByteBufferIfAny.isDirect())
+                            ? destinationSupportByteBufferIfAny.array()
+                            : null;
+
             NativeMemoryAccess.copyBytes(
-                    sourceMemory.getSupportByteArrayIfAny(),
+                    sourceArray,
                     sourceMemory.getBaseAddress() + sourceOffset,
-                    destinationMemory.getSupportByteArrayIfAny(),
+                    destinationArray,
                     destinationMemory.getBaseAddress() + destinationOffset,
                     lengthBytes);
         }

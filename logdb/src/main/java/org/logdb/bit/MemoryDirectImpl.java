@@ -1,5 +1,7 @@
 package org.logdb.bit;
 
+import java.nio.ByteBuffer;
+
 public class MemoryDirectImpl implements Memory, DirectMemory
 {
     private final long capacity;
@@ -21,7 +23,7 @@ public class MemoryDirectImpl implements Memory, DirectMemory
     }
 
     @Override
-    public byte[] getSupportByteArrayIfAny()
+    public ByteBuffer getSupportByteBufferIfAny()
     {
         return null;
     }

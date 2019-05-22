@@ -1,8 +1,10 @@
 package org.logdb.bit;
 
+import java.nio.ByteBuffer;
+
 public interface ReadMemory
 {
-    byte[] getSupportByteArrayIfAny();
+    ByteBuffer getSupportByteBufferIfAny();
 
     long getBaseAddress();
 
