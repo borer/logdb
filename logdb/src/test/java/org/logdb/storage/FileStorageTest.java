@@ -8,7 +8,9 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.Memory;
+import org.logdb.bit.MemoryCopy;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +113,9 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemory);
+        final HeapMemory heapMemory = storage.allocateHeapMemory();
+        MemoryCopy.copy(persistedMemory, heapMemory);
+        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemory);
 
         assertTrue(loadedLeaf.isRoot());
         assertEquals(previousRootPageNumber, loadedLeaf.getPreviousRoot());
@@ -139,7 +143,9 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, persistedMemory);
+        final HeapMemory heapMemory = storage.allocateHeapMemory();
+        MemoryCopy.copy(persistedMemory, heapMemory);
+        final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, heapMemory);
 
         assertTrue(loadedNonLeaf.isRoot());
         assertEquals(previousRootPageNumber, loadedNonLeaf.getPreviousRoot());
@@ -148,7 +154,9 @@ class FileStorageTest
 
         final long pageNumberLeaf = loadedNonLeaf.getValue(0);
         final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
-        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, persistedMemoryLeaf);
+        final HeapMemory heapMemoryLeaf = storage.allocateHeapMemory();
+        MemoryCopy.copy(persistedMemoryLeaf, heapMemoryLeaf);
+        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemoryLeaf);
 
         assertFalse(loadedLeaf.isRoot());
 

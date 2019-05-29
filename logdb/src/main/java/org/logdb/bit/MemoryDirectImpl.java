@@ -2,7 +2,7 @@ package org.logdb.bit;
 
 import java.nio.ByteBuffer;
 
-public class MemoryDirectImpl implements Memory, DirectMemory
+public class MemoryDirectImpl implements DirectMemory
 {
     private final long capacity;
 
@@ -14,12 +14,6 @@ public class MemoryDirectImpl implements Memory, DirectMemory
         this.baseAddress = baseAddress;
         this.capacity = capacity;
         this.position = 0;
-    }
-
-    @Override
-    public Memory toMemory()
-    {
-        return this;
     }
 
     @Override

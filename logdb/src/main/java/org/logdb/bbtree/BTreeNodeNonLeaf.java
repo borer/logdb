@@ -1,6 +1,6 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.Memory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
 
@@ -13,7 +13,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     /**
      * Load constructor.
      */
-    public BTreeNodeNonLeaf(final long pageNumber, final Memory memory)
+    public BTreeNodeNonLeaf(final long pageNumber, final HeapMemory memory)
     {
         super(pageNumber, memory);
         this.children =  new BTreeNodeHeap[0];
@@ -24,7 +24,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
      */
     public BTreeNodeNonLeaf(
             final long pageNumber,
-            final Memory memory,
+            final HeapMemory memory,
             final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues,
@@ -97,7 +97,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     @Override
     public void insertChild(final int index, final long key, final BTreeNodeHeap child)
     {
-        final int rawChildPageCount = getChildrenNumber();
+        final int rawChildPageCount = getNumberOfChildren();
         //this will be replaced once we commit the child page
         insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
 
@@ -110,7 +110,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public int getChildrenNumber()
+    public int getNumberOfChildren()
     {
         return getKeyCount() + 1;
     }
@@ -303,8 +303,8 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public Memory getBuffer()
+    public HeapMemory getBuffer()
     {
-        return buffer;
+        return (HeapMemory)buffer;
     }
 }

@@ -5,7 +5,7 @@ import sun.misc.Unsafe;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class MemoryByteBufferImpl implements Memory
+public class MemoryByteBufferImpl implements HeapMemory
 {
     private final ByteBuffer buffer;
 

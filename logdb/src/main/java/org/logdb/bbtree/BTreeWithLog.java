@@ -477,6 +477,7 @@ public class BTreeWithLog extends BTreeAbstract
     {
         final BTreeNode rootForVersion;
         final RootReference currentRootReference = uncommittedRoot.get();
+        final long commitedRootPageNumber = committedRoot.get();
         if (currentRootReference != null)
         {
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
@@ -486,14 +487,28 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                mappedNode.initNode(committedRoot.get());
-                rootForVersion = mappedNode;
+                if (commitedRootPageNumber < 0)
+                {
+                    throw new IllegalArgumentException("Didn't have version " + version);
+                }
+                else
+                {
+                    mappedNode.initNode(commitedRootPageNumber);
+                    rootForVersion = mappedNode;
+                }
             }
         }
         else
         {
-            mappedNode.initNode(committedRoot.get());
-            rootForVersion = mappedNode;
+            if (commitedRootPageNumber < 0)
+            {
+                throw new IllegalArgumentException("Didn't have version " + version);
+            }
+            else
+            {
+                mappedNode.initNode(commitedRootPageNumber);
+                rootForVersion = mappedNode;
+            }
         }
 
         if (rootForVersion.getVersion() != version)

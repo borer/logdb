@@ -1,8 +1,6 @@
 package org.logdb.bit;
 
-public interface DirectMemory
+public interface DirectMemory extends Memory
 {
     void setBaseAddress(long baseAddress);
-
-    Memory toMemory();
 }

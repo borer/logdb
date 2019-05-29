@@ -1,11 +1,12 @@
 package org.logdb.storage;
 
 import org.logdb.bit.DirectMemory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.Memory;
+import org.logdb.bit.MemoryCopy;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.bit.ReadMemory;
 
-import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
@@ -13,7 +14,7 @@ public class MemoryStorage implements Storage
 {
     private final ByteOrder byteOrder;
     private final int pageSizeBytes;
-    private final HashMap<Long, ReadMemory> maps;
+    private final HashMap<Long, DirectMemory> maps;
 
     private long allocatedMemoryOffset;
     private long lastPageRootNumber;
@@ -29,7 +30,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public Memory allocateHeapMemory()
+    public HeapMemory allocateHeapMemory()
     {
         return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
     }
@@ -37,25 +38,12 @@ public class MemoryStorage implements Storage
     @Override
     public DirectMemory getDirectMemory(final long pageNumber)
     {
-        return new DirectMemory()
+        final DirectMemory directMemory = maps.get(pageNumber);
+        if (directMemory == null)
         {
-            @Override
-            public void setBaseAddress(long baseAddress)
-            {
-                //No-op
-            }
-
-            @Override
-            public Memory toMemory()
-            {
-                final Memory memory = (Memory) maps.get(pageNumber);
-                if (memory == null)
-                {
-                    return allocateHeapMemory();
-                }
-                return memory;
-            }
-        };
+            return MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
+        }
+        return directMemory;
     }
 
     @Override
@@ -70,7 +58,10 @@ public class MemoryStorage implements Storage
         final long currentOffset = this.allocatedMemoryOffset;
         allocatedMemoryOffset += node.getCapacity();
 
-        maps.put(currentOffset, node);
+        final DirectMemory directMemory = MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
+        MemoryCopy.copy((Memory)node, directMemory);
+
+        maps.put(currentOffset, directMemory);
 
         return currentOffset;
     }
@@ -82,7 +73,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void close() throws IOException
+    public void close()
     {
         //NO-OP
     }
@@ -100,14 +91,20 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public Memory loadPage(final long pageNumber)
+    public DirectMemory loadPage(final long pageNumber)
     {
-        return (Memory)maps.get(pageNumber);
+        return maps.get(pageNumber);
     }
 
     @Override
     public long getBaseOffsetForPageNumber(long pageNumber)
     {
-        return pageNumber;
+        final DirectMemory directMemory = maps.get(pageNumber);
+        if (directMemory == null)
+        {
+            return pageNumber;
+        }
+
+        return directMemory.getBaseAddress();
     }
 }

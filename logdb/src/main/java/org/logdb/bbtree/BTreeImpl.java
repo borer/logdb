@@ -162,7 +162,15 @@ public class BTreeImpl extends BTreeAbstract
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
             if (rootNodeForVersion == null)
             {
-                cursorPosition = traverseDown(committedRoot.get(), key);
+                final long commitedRootPageNumber = committedRoot.get();
+                if (commitedRootPageNumber >= 0)
+                {
+                    cursorPosition = traverseDown(commitedRootPageNumber, key);
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Didn't have version " + version);
+                }
             }
             else
             {
@@ -173,6 +181,7 @@ public class BTreeImpl extends BTreeAbstract
         {
             cursorPosition = traverseDown(committedRoot.get(), key);
         }
+
         return cursorPosition;
     }
 
@@ -292,7 +301,7 @@ public class BTreeImpl extends BTreeAbstract
         final BTreeMappedNode childNode = nodesManager.getOrCreateMappedNode();
 
         nonLeafNode.initNode(nonLeafPageNumber);
-        final int childPageCount = nonLeafNode.getChildrenNumber();
+        final int childPageCount = nonLeafNode.getNumberOfChildren();
         for (int i = 0; i < childPageCount; i++)
         {
             final BTreeNode childPage = nodesManager.loadNode(i, nonLeafNode, childNode);
@@ -316,7 +325,7 @@ public class BTreeImpl extends BTreeAbstract
 
         final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
 
-        final int childPageCount = nonLeaf.getChildrenNumber();
+        final int childPageCount = nonLeaf.getNumberOfChildren();
         for (int i = 0; i < childPageCount; i++)
         {
             final BTreeNode childPage = nodesManager.loadNode(i, nonLeaf, mappedNode);

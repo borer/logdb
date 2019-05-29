@@ -1,7 +1,7 @@
 package org.logdb.storage;
 
 import org.logdb.bit.DirectMemory;
-import org.logdb.bit.Memory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.ReadMemory;
 
 import java.io.Closeable;
@@ -23,7 +23,7 @@ import java.io.Closeable;
  */
 public interface Storage extends Closeable
 {
-    Memory allocateHeapMemory();
+    HeapMemory allocateHeapMemory();
 
     DirectMemory getDirectMemory(long pageNumber);
 
@@ -37,7 +37,7 @@ public interface Storage extends Closeable
 
     long getLastRootPageNumber();
 
-    Memory loadPage(long pageNumber);
+    DirectMemory loadPage(long pageNumber);
 
     long getBaseOffsetForPageNumber(long pageNumber);
 }

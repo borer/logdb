@@ -1,7 +1,7 @@
 package org.logdb.storage;
 
 import org.logdb.bit.DirectMemory;
-import org.logdb.bit.Memory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.bit.ReadMemory;
 import org.slf4j.Logger;
@@ -33,7 +33,7 @@ public final class FileStorage implements Storage, Closeable
 
     private final File file;
     private final List<MappedByteBuffer> mappedBuffers;
-    private final Queue<Memory> availableWritableMemory;
+    private final Queue<HeapMemory> availableWritableMemory;
 
     private final RandomAccessFile dbFile;
     private final FileChannel channel;
@@ -204,9 +204,9 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public Memory allocateHeapMemory()
+    public HeapMemory allocateHeapMemory()
     {
-        final Memory writableMemory = availableWritableMemory.poll();
+        final HeapMemory writableMemory = availableWritableMemory.poll();
         if (writableMemory != null)
         {
             return writableMemory;
@@ -272,7 +272,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public Memory loadPage(final long pageNumber)
+    public DirectMemory loadPage(final long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
@@ -297,6 +297,7 @@ public final class FileStorage implements Storage, Closeable
     public long getBaseOffsetForPageNumber(final long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
+        assert pageNumber >= 0 : "Page Number can only be positive";
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);

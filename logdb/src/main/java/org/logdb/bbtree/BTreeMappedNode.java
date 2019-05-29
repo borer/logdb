@@ -19,7 +19,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
             final long pageSize,
             final long pageNumber)
     {
-        super(pageNumber, memory.toMemory(), 0, 0, 0);
+        super(pageNumber, memory, 0, 0, 0);
         this.storage = storage;
         this.memory = memory;
 
@@ -126,7 +126,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     }
 
     @Override
-    public int getChildrenNumber()
+    public int getNumberOfChildren()
     {
         return numberOfValues;
     }

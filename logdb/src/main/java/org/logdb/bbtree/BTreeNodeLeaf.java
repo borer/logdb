@@ -1,6 +1,6 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.Memory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
 
@@ -9,7 +9,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     /**
      * Load constructor.
      */
-    public BTreeNodeLeaf(final long pageNumber, final Memory memory)
+    public BTreeNodeLeaf(final long pageNumber, final HeapMemory memory)
     {
         super(pageNumber, memory);
     }
@@ -20,7 +20,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
      */
     public BTreeNodeLeaf(
             final long pageNumber,
-            final Memory memory,
+            final HeapMemory memory,
             final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues)
@@ -147,14 +147,14 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public int getChildrenNumber()
+    public int getNumberOfChildren()
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");
     }
 
     @Override
-    public Memory getBuffer()
+    public HeapMemory getBuffer()
     {
-        return buffer;
+        return (HeapMemory)buffer;
     }
 }

@@ -416,18 +416,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         bNode.recalculateFreeSpaceLeft();
     }
 
-    void splitValues(final int aNumberOfValues, int bNumberOfValues, final BTreeNodeAbstract bNode)
-    {
-        //copy values
-        final byte[] bValuesBuffer = new byte[bNumberOfValues * BTreeNodePage.VALUE_SIZE];
-        buffer.getBytes(getLogKeyIndexOffset(buffer.getCapacity(), aNumberOfValues + bNumberOfValues - 1), bValuesBuffer);
-        bNode.buffer.putBytes(getLogKeyIndexOffset(buffer.getCapacity(), bNumberOfValues - 1), bValuesBuffer);
-
-        freeSizeLeftBytes += (numberOfValues - aNumberOfValues) * BTreeNodePage.VALUE_SIZE;
-        numberOfValues = aNumberOfValues;
-        updateNumberOfValues(numberOfValues);
-    }
-
     void setDirty()
     {
         isDirty = true;
