@@ -3,7 +3,6 @@ package org.logdb.storage;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
-import org.logdb.bit.ReadMemory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,9 +187,10 @@ public final class FileStorage implements Storage, Closeable
                     fileDbHeader.memoryMappedChunkSizeBytes);
 
             //try to get file size down after the mapping
-//            final long fileSize = FileDbHeader.getSizeBytes()
-//                    + (mappedBuffers.size() * fileDbHeader.memoryMappedChunkSizeBytes);
-//            channel.truncate(fileSize); //doesn't work on windows
+            //final long fileSize = FileDbHeader.getSizeBytes()
+            //        + (mappedBuffers.size() * fileDbHeader.memoryMappedChunkSizeBytes);
+            //doesn't work on windows
+            //channel.truncate(fileSize);
 
             mappedBuffers.add(map);
 
@@ -218,29 +218,23 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long writeNode(final ReadMemory node)
+    public long write(final ByteBuffer buffer)
     {
-        final ByteBuffer nodeSupportBuffer = node.getSupportByteBufferIfAny();
-        if (nodeSupportBuffer != null)
-        {
-            long pageNumber = -1;
-            try
-            {
-                pageNumber = channel.position() / fileDbHeader.pageSize;
-                FileUtils.writeFully(channel, nodeSupportBuffer);
-                extendMapsIfRequired(getRequiredNumberOfMaps());
-            }
-            catch (final IOException e)
-            {
-                LOGGER.error("Unable to persist node to database file. Page number " + pageNumber, e);
-            }
+        assert buffer != null : "buffer to persist must be non null";
 
-            return pageNumber;
-        }
-        else
+        long pageNumber = -1;
+        try
         {
-            throw new RuntimeException("Cannot commit node without support byte array");
+            pageNumber = channel.position() / fileDbHeader.pageSize;
+            FileUtils.writeFully(channel, buffer);
+            extendMapsIfRequired(getRequiredNumberOfMaps());
         }
+        catch (final IOException e)
+        {
+            LOGGER.error("Unable to persist node to database file. Page number " + pageNumber, e);
+        }
+
+        return pageNumber;
     }
 
     @Override

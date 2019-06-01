@@ -2,11 +2,9 @@ package org.logdb.storage;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
-import org.logdb.bit.Memory;
-import org.logdb.bit.MemoryCopy;
 import org.logdb.bit.MemoryFactory;
-import org.logdb.bit.ReadMemory;
 
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
@@ -53,13 +51,13 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long writeNode(final ReadMemory node)
+    public long write(final ByteBuffer buffer)
     {
         final long currentOffset = this.allocatedMemoryOffset;
-        allocatedMemoryOffset += node.getCapacity();
+        allocatedMemoryOffset += buffer.capacity();
 
         final DirectMemory directMemory = MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
-        MemoryCopy.copy((Memory)node, directMemory);
+        directMemory.putBytes(buffer.array());
 
         maps.put(currentOffset, directMemory);
 

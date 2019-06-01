@@ -2,9 +2,9 @@ package org.logdb.storage;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
-import org.logdb.bit.ReadMemory;
 
 import java.io.Closeable;
+import java.nio.ByteBuffer;
 
 /**
  * Storage interface for the underlying persistence of the btree.
@@ -29,7 +29,7 @@ public interface Storage extends Closeable
 
     long getPageSize();
 
-    long writeNode(ReadMemory node);
+    long write(ByteBuffer buffer);
 
     void flush();
 
