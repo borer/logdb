@@ -29,7 +29,19 @@ public interface Storage extends Closeable
 
     long getPageSize();
 
+    /**
+     * Write any arbitrary buffer.
+     * @param buffer the buffer to store. Can be any size
+     * @return the byte offset where the buffer start is located.
+     */
     long write(ByteBuffer buffer);
+
+    /**
+     * Writes a page aligned bytebuffer.
+     * @param buffer the buffer to store, must be of size of a page
+     * @return the page number where the buffer is located
+     */
+    long writePageAligned(ByteBuffer buffer);
 
     void flush();
 

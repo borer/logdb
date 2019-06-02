@@ -63,6 +63,13 @@ public final class FileStorage implements Storage, Closeable
             throw new IllegalArgumentException("Page Size must be bigger than 128 bytes and a power of 2. Provided was " + pageSizeBytes);
         }
 
+        if (memoryMappedChunkSizeBytes % pageSizeBytes != 0)
+        {
+            throw new IllegalArgumentException(
+                    "Memory mapped chunk size must be multiple of page size. Provided page size was " + pageSizeBytes +
+                            " , provided memory maped chunk size was " + memoryMappedChunkSizeBytes);
+        }
+
         LOGGER.info("Creating database file " + file.getAbsolutePath());
 
         FileStorage fileStorage = null;
@@ -209,19 +216,30 @@ public final class FileStorage implements Storage, Closeable
     {
         assert buffer != null : "buffer to persist must be non null";
 
-        long pageNumber = -1;
+        long positionOffset = -1;
         try
         {
-            pageNumber = channel.position() / fileDbHeader.pageSize;
+            positionOffset = channel.position();
             FileUtils.writeFully(channel, buffer);
             extendMapsIfRequired(getRequiredNumberOfMaps());
         }
         catch (final IOException e)
         {
-            LOGGER.error("Unable to persist node to database file. Page number " + pageNumber, e);
+            LOGGER.error("Unable to persist node to database file. Position offset " + positionOffset, e);
         }
 
-        return pageNumber;
+        return positionOffset;
+    }
+
+    @Override
+    public long writePageAligned(final ByteBuffer buffer)
+    {
+        assert buffer.capacity() == fileDbHeader.pageSize :
+                "buffer must be of page size " + fileDbHeader.pageSize +
+                        " capacity. Current buffer capacity " + buffer.capacity();
+
+        final long positionOffset = write(buffer);
+        return positionOffset / fileDbHeader.pageSize;
     }
 
     @Override

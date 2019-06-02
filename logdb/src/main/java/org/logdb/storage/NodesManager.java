@@ -186,7 +186,7 @@ public class NodesManager
     private long commitNodeToStorage(final BTreeNodeHeap node)
     {
         final ReadMemory buffer = node.getBuffer();
-        return storage.write(buffer.getSupportByteBufferIfAny());
+        return storage.writePageAligned(buffer.getSupportByteBufferIfAny());
     }
 
     public BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)

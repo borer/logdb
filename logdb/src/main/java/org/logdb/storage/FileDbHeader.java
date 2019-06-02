@@ -31,7 +31,7 @@ public class FileDbHeader
     final long lastRootOffset;
     final ByteOrder byteOrder;
     final int pageSize; // Must be a power of two
-    final long memoryMappedChunkSizeBytes;
+    final long memoryMappedChunkSizeBytes; //must be multiple of pageSize
 
     FileDbHeader(
             final ByteOrder byteOrder,
@@ -40,6 +40,9 @@ public class FileDbHeader
             final long memoryMappedChunkSizeBytes,
             final long lastRootOffset)
     {
+        assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
+        assert memoryMappedChunkSizeBytes % pageSize == 0 : "memoryMappedChunkSizeBytes must be multiple of pageSize";
+
         this.byteOrder = byteOrder;
         this.version = version;
         this.pageSize = pageSize;

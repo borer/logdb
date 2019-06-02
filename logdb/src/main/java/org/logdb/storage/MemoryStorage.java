@@ -65,6 +65,12 @@ public class MemoryStorage implements Storage
     }
 
     @Override
+    public long writePageAligned(final ByteBuffer buffer)
+    {
+        return write(buffer);
+    }
+
+    @Override
     public void flush()
     {
         //NO-OP
