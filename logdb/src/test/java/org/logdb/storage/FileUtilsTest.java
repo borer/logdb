@@ -56,7 +56,8 @@ class FileUtilsTest
         final ByteBuffer readBuffer = ByteBuffer.allocate(buffer.capacity());
 
         FileUtils.writeFully(channel, buffer);
-        FileUtils.readFully(channel, readBuffer, 0);
+        channel.position(0);
+        FileUtils.readFully(channel, readBuffer);
 
         assertEquals(TEST_CONTENT, new String(readBuffer.array()));
     }

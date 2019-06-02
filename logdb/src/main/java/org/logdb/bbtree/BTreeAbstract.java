@@ -66,7 +66,8 @@ abstract class BTreeAbstract implements BTree
         if (uncommittedRootReference != null)
         {
             final long pageNumber = uncommittedRootReference.getPageNumber();
-            nodesManager.commitLastRootPage(pageNumber);
+            final long version = uncommittedRootReference.version;
+            nodesManager.commitLastRootPage(pageNumber, version);
 
             uncommittedRoot.set(null);
             committedRoot.set(pageNumber);

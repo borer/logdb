@@ -3,6 +3,8 @@ package org.logdb.storage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 class FileUtils
 {
@@ -12,31 +14,23 @@ class FileUtils
      *
      * @param channel File channel containing the data to read from
      * @param destinationBuffer The buffer into which bytes are to be transferred
-     * @param position The file position at which the transfer is to begin; it must be non-negative
      *
      * @throws IllegalArgumentException If position is negative
      * @throws IOException If an I/O error occurs, see {@link FileChannel#read(ByteBuffer, long)} for details on the
      *                  possible exceptions
      */
-    static void readFully(final FileChannel channel,
-                          final ByteBuffer destinationBuffer,
-                          final long position) throws IOException
+    static void readFully(final ReadableByteChannel channel,
+                          final ByteBuffer destinationBuffer) throws IOException
     {
-        if (position < 0)
-        {
-            throw new IllegalArgumentException("The file channel position cannot be negative, but it is " + position);
-        }
-        long currentPosition = position;
         int bytesRead;
         do
         {
-            bytesRead = channel.read(destinationBuffer, currentPosition);
-            currentPosition += bytesRead;
+            bytesRead = channel.read(destinationBuffer);
         }
         while (bytesRead != -1 && destinationBuffer.hasRemaining());
     }
 
-    static void writeFully(final FileChannel channel, final ByteBuffer sourceBuffer) throws IOException
+    static void writeFully(final WritableByteChannel channel, final ByteBuffer sourceBuffer) throws IOException
     {
         sourceBuffer.mark();
         while (sourceBuffer.hasRemaining())

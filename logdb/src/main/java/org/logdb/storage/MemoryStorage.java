@@ -83,7 +83,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void commitMetadata(final long lastRootPageNumber)
+    public void commitMetadata(final long lastRootPageNumber, long version)
     {
         this.lastPageRootNumber = lastRootPageNumber;
     }

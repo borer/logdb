@@ -206,9 +206,9 @@ public class NodesManager
         }
     }
 
-    public void commitLastRootPage(final long offsetLastRoot)
+    public void commitLastRootPage(final long offsetLastRoot, final long version)
     {
-        storage.commitMetadata(offsetLastRoot);
+        storage.commitMetadata(offsetLastRoot, version);
     }
 
     public long loadLastRootPageNumber()

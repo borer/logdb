@@ -27,10 +27,8 @@ public final class FileStorage implements Storage, Closeable
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-    private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
     private static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
 
-    private final File file;
     private final List<MappedByteBuffer> mappedBuffers;
     private final Queue<HeapMemory> availableWritableMemory;
 
@@ -44,7 +42,7 @@ public final class FileStorage implements Storage, Closeable
             final RandomAccessFile dbFile,
             final FileChannel channel)
     {
-        this.file = Objects.requireNonNull(file, "db file cannot be null");
+        Objects.requireNonNull(file, "db file cannot be null");
         this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
         this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
         this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
@@ -73,7 +71,6 @@ public final class FileStorage implements Storage, Closeable
             final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
             final FileChannel channel = dbFile.getChannel();
 
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
             final FileDbHeader fileDbHeader = new FileDbHeader(
                     byteOrder,
                     LOG_DB_VERSION,
@@ -82,12 +79,8 @@ public final class FileStorage implements Storage, Closeable
                     NO_CURRENT_ROOT_PAGE_NUMBER
             );
 
-            headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
-            fileDbHeader.writeTo(headerBuffer);
-            headerBuffer.rewind();
-
-            FileUtils.writeFully(channel, headerBuffer);
-            channel.position(fileDbHeader.headerSizeInPages * pageSizeBytes);
+            fileDbHeader.writeTo(channel);
+            fileDbHeader.alignChannelToHeaderPage(channel);
 
             fileStorage = new FileStorage(
                     file,
@@ -122,13 +115,8 @@ public final class FileStorage implements Storage, Closeable
             final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
             final FileChannel channel = dbFile.getChannel();
 
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(FileDbHeader.getSizeBytes());
-            headerBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
-            FileUtils.readFully(channel, headerBuffer, 0);
-            headerBuffer.rewind();
-
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(headerBuffer);
-            channel.position(fileDbHeader.headerSizeInPages * fileDbHeader.pageSize);
+            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(channel);
+            fileDbHeader.alignChannelToHeaderPage(channel);
 
             fileStorage = new FileStorage(
                     file,
@@ -193,7 +181,6 @@ public final class FileStorage implements Storage, Closeable
             //channel.truncate(fileSize);
 
             mappedBuffers.add(map);
-
         }
         catch (final IOException e)
         {
@@ -238,15 +225,11 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public void commitMetadata(final long lastRootPageNumber)
+    public void commitMetadata(final long lastRootPageNumber, final long version)
     {
         try
         {
-            final long currentChanelPosition = channel.position();
-            dbFile.seek(FileDbHeader.getHeaderOffsetForLastRoot());
-            //this is big-endind, that is why we need to invert, as the header is always little endian
-            dbFile.writeLong(Long.reverseBytes(lastRootPageNumber));
-            channel.position(currentChanelPosition);
+            fileDbHeader.updateMeta(dbFile, lastRootPageNumber, version);
         }
         catch (final IOException e)
         {
