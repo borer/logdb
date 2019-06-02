@@ -60,6 +60,7 @@ public class NodesManager
         else
         {
             return new BTreeMappedNode(
+                    this,
                     storage,
                     storage.getDirectMemory(0),
                     storage.getPageSize(),
@@ -67,8 +68,6 @@ public class NodesManager
         }
     }
 
-    //TODO: make this a bit smarter, like try-with-resources or some other automatic way of recycling the mapped node
-    @Deprecated
     public void returnMappedNode(final BTreeMappedNode mappedNode)
     {
         mappedNodes.add(mappedNode);

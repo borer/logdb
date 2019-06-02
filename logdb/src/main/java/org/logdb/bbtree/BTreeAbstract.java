@@ -122,46 +122,47 @@ abstract class BTreeAbstract implements BTree
         CursorPosition cursor = null;
         int index;
 
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        while (node.getNodeType() == BtreeNodeType.NonLeaf)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            assert node.getKeyCount() > 0
-                    : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+            while (node.getNodeType() == BtreeNodeType.NonLeaf)
+            {
+                assert node.getKeyCount() > 0
+                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+                index = node.getKeyIndex(key);
+                cursor = createCursorPosition(node, index, cursor);
+                node = nodesManager.loadNode(index, node, mappedNode);
+            }
+
             index = node.getKeyIndex(key);
             cursor = createCursorPosition(node, index, cursor);
-            node = nodesManager.loadNode(index, node, mappedNode);
         }
-
-        index = node.getKeyIndex(key);
-        cursor = createCursorPosition(node, index, cursor);
-        nodesManager.returnMappedNode(mappedNode);
 
         return cursor;
     }
 
     protected CursorPosition traverseDown(final long rootPageNumber, final long key)
     {
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        mappedNode.initNode(rootPageNumber);
-
-        BTreeNode node = mappedNode;
-        CursorPosition cursor = null;
-        int index;
-
-        while (node.getNodeType() == BtreeNodeType.NonLeaf)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            assert node.getKeyCount() > 0
-                    : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+            mappedNode.initNode(rootPageNumber);
+
+            BTreeNode node = mappedNode;
+            CursorPosition cursor = null;
+            int index;
+
+            while (node.getNodeType() == BtreeNodeType.NonLeaf)
+            {
+                assert node.getKeyCount() > 0
+                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+                index = node.getKeyIndex(key);
+                cursor = createCursorPosition(node, index, cursor);
+                node = nodesManager.loadNode(index, node, mappedNode);
+            }
+
             index = node.getKeyIndex(key);
             cursor = createCursorPosition(node, index, cursor);
-            node = nodesManager.loadNode(index, node, mappedNode);
+            return cursor;
         }
-
-        index = node.getKeyIndex(key);
-        cursor = createCursorPosition(node, index, cursor);
-        nodesManager.returnMappedNode(mappedNode);
-
-        return cursor;
     }
 
     private CursorPosition createCursorPosition(

@@ -18,12 +18,11 @@ public class BTreePrinter
         else
         {
             final long currentCommittedRootPageNumber = bTree.getCommittedRoot();
-            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-            mappedNode.initNode(currentCommittedRootPageNumber);
-            final String print = print(mappedNode, nodesManager);
-            nodesManager.returnMappedNode(mappedNode);
-
-            return print;
+            try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
+            {
+                mappedNode.initNode(currentCommittedRootPageNumber);
+                return print(mappedNode, nodesManager);
+            }
         }
     }
 
@@ -132,13 +131,14 @@ public class BTreePrinter
         printer.append(String.format("\"%s\":lastChild -> \"%s\"", id, lastChildId));
         printer.append("\n");
 
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        for (int i = 0; i < node.numberOfValues; i++)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);
-            print(printer, child, nodesManager);
+            for (int i = 0; i < node.numberOfValues; i++)
+            {
+                final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);
+                print(printer, child, nodesManager);
+            }
         }
-        nodesManager.returnMappedNode(mappedNode);
     }
 
     private static String getPageUniqueId(final int index, BTreeNode node)

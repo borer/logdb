@@ -19,38 +19,38 @@ public class BTreeWithLog extends BTreeAbstract
     @Override
     public void remove(final long key)
     {
-        BTreeNode currentNode;
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        final long newVersion = writeVersion++;
-
-        final RootReference rootReference = uncommittedRoot.get();
-        if (rootReference != null && rootReference.root != null)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            currentNode = rootReference.root;
-        }
-        else
-        {
-            mappedNode.initNode(committedRoot.get());
-            currentNode = mappedNode;
-        }
-        BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
+            BTreeNode currentNode;
+            final long newVersion = writeVersion++;
 
-        removeWithLogInternal(null, -1, newRoot, key);
-
-        if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getKeyCount() == 1)
-        {
-            final int keyIndex = newRoot.getKeyIndex(key);
-            final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(keyIndex, newRoot, mappedNode);
-            if (nodeToRemoveFrom.getNodeType() == BtreeNodeType.Leaf && nodeToRemoveFrom.getKeyCount() == 0)
+            final RootReference rootReference = uncommittedRoot.get();
+            if (rootReference != null && rootReference.root != null)
             {
-                this.nodesCount = this.nodesCount - 2;
-                newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, 1 - keyIndex);
+                currentNode = rootReference.root;
             }
+            else
+            {
+                mappedNode.initNode(committedRoot.get());
+                currentNode = mappedNode;
+            }
+            BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
+
+            removeWithLogInternal(null, -1, newRoot, key);
+
+            if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getKeyCount() == 1)
+            {
+                final int keyIndex = newRoot.getKeyIndex(key);
+                final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(keyIndex, newRoot, mappedNode);
+                if (nodeToRemoveFrom.getNodeType() == BtreeNodeType.Leaf && nodeToRemoveFrom.getKeyCount() == 0)
+                {
+                    this.nodesCount = this.nodesCount - 2;
+                    newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, 1 - keyIndex);
+                }
+            }
+
+            setNewRoot(newRoot);
         }
-
-        nodesManager.returnMappedNode(mappedNode);
-
-        setNewRoot(newRoot);
     }
 
     private void removeWithLogInternal(
@@ -150,131 +150,132 @@ public class BTreeWithLog extends BTreeAbstract
         final CursorPosition cursorPosition = getLastCursorPosition(key);
         final long newVersion = writeVersion + 1;
 
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-
-        int index = cursorPosition.index;
-        BTreeNode newRoot = cursorPosition.getNode(mappedNode);
-        CursorPosition parentCursor = cursorPosition.parent;
-        boolean wasFound = false;
-
-        if (index >= 0 && newRoot.getNodeType() == BtreeNodeType.Leaf)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            wasFound = true;
-            boolean isSafeToRemoveParent = false;
-            BTreeNode parent = null;
-            if (parentCursor != null)
-            {
-                parent = parentCursor.getNode(mappedNode);
-                assert parent.getNodeType() == BtreeNodeType.NonLeaf;
-                final int logKeyValuesCount = ((BTreeNodeAbstract) parent).getLogKeyValuesCount();
-                isSafeToRemoveParent = logKeyValuesCount == 0;
-            }
+            int index = cursorPosition.index;
+            BTreeNode newRoot = cursorPosition.getNode(mappedNode);
+            CursorPosition parentCursor = cursorPosition.parent;
+            boolean wasFound = false;
 
-            //if current leaf has only one element, try to remove directly from parent
-            if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() == 1 && isSafeToRemoveParent)
+            if (index >= 0 && newRoot.getNodeType() == BtreeNodeType.Leaf)
             {
-                this.nodesCount = this.nodesCount - 2;
-                index = parentCursor.index;
-                final BTreeNode child = nodesManager.loadNode(1 - index, parent, mappedNode);
-                newRoot = nodesManager.copyNode(child, newVersion);
-
-                parentCursor = parentCursor.parent;
-            }
-            else if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() > 1)
-            {
-                this.nodesCount--;
-                final BTreeNodeHeap parentCopy = nodesManager.copyNode(parent, newVersion);
-                index = parentCursor.index;
-                parentCopy.remove(index);
-
-                final int logIndex = ((BTreeNodeAbstract) parentCopy).logBinarySearch(key);
-                if (logIndex > 0)
+                wasFound = true;
+                boolean isSafeToRemoveParent = false;
+                BTreeNode parent = null;
+                if (parentCursor != null)
                 {
-                    ((BTreeNodeAbstract) parentCopy).removeLogKeyValue(logIndex);
+                    parent = parentCursor.getNode(mappedNode);
+                    assert parent.getNodeType() == BtreeNodeType.NonLeaf;
+                    final int logKeyValuesCount = ((BTreeNodeAbstract) parent).getLogKeyValuesCount();
+                    isSafeToRemoveParent = logKeyValuesCount == 0;
                 }
 
-                newRoot = parentCopy;
-
-                parentCursor = parentCursor.parent;
-            }
-            else
-            {
-                final BTreeNodeHeap copyNode = nodesManager.copyNode(newRoot, newVersion);
-                copyNode.remove(index);
-                newRoot = copyNode;
-            }
-        }
-
-        //remove from parent logs
-        while (parentCursor != null)
-        {
-            index = parentCursor.index;
-
-            final BTreeNode parentNode = parentCursor.getNode(mappedNode);
-            if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
-            {
-                final int logIndex = ((BTreeNodeAbstract) parentNode).logBinarySearch(key);
-                if (wasFound)
+                //if current leaf has only one element, try to remove directly from parent
+                if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() == 1 && isSafeToRemoveParent)
                 {
-                    final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
-                    copyParent.setChild(index, (BTreeNodeHeap) newRoot);
+                    this.nodesCount = this.nodesCount - 2;
+                    index = parentCursor.index;
+                    final BTreeNode child = nodesManager.loadNode(1 - index, parent, mappedNode);
+                    newRoot = nodesManager.copyNode(child, newVersion);
 
-                    if (logIndex >= 0)
+                    parentCursor = parentCursor.parent;
+                }
+                else if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() > 1)
+                {
+                    this.nodesCount--;
+                    final BTreeNodeHeap parentCopy = nodesManager.copyNode(parent, newVersion);
+                    index = parentCursor.index;
+                    parentCopy.remove(index);
+
+                    final int logIndex = ((BTreeNodeAbstract) parentCopy).logBinarySearch(key);
+                    if (logIndex > 0)
                     {
-                        ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                        ((BTreeNodeAbstract) parentCopy).removeLogKeyValue(logIndex);
                     }
 
-                    newRoot = copyParent;
+                    newRoot = parentCopy;
+
+                    parentCursor = parentCursor.parent;
                 }
                 else
                 {
-                    if (logIndex >= 0) //found in current node
+                    final BTreeNodeHeap copyNode = nodesManager.copyNode(newRoot, newVersion);
+                    copyNode.remove(index);
+                    newRoot = copyNode;
+                }
+            }
+
+            //remove from parent logs
+            while (parentCursor != null)
+            {
+                index = parentCursor.index;
+
+                final BTreeNode parentNode = parentCursor.getNode(mappedNode);
+                if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
+                {
+                    final int logIndex = ((BTreeNodeAbstract) parentNode).logBinarySearch(key);
+                    if (wasFound)
                     {
-                        wasFound = true;
                         final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
-                        ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                        copyParent.setChild(index, (BTreeNodeHeap) newRoot);
+
+                        if (logIndex >= 0)
+                        {
+                            ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                        }
 
                         newRoot = copyParent;
                     }
+                    else
+                    {
+                        if (logIndex >= 0) //found in current node
+                        {
+                            wasFound = true;
+                            final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
+                            ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+
+                            newRoot = copyParent;
+                        }
+                    }
+                }
+                else
+                {
+                    throw new IllegalStateException("Should not have leafs in the middle of the tree.");
                 }
 
+                parentCursor = parentCursor.parent;
             }
-            else
+
+            if (wasFound)
             {
-                throw new IllegalStateException("Should not have leafs in the middle of the tree.");
+                writeVersion = newVersion;
+                setNewRoot((BTreeNodeHeap) newRoot);
             }
-
-            parentCursor = parentCursor.parent;
-        }
-
-        nodesManager.returnMappedNode(mappedNode);
-
-        if (wasFound)
-        {
-            writeVersion = newVersion;
-            setNewRoot((BTreeNodeHeap) newRoot);
         }
     }
 
     @Override
     public void put(final long key, final long value)
     {
-        BTreeNode currentNode;
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
+        BTreeNodeHeap newRoot;
         final long newVersion = writeVersion++;
 
-        final RootReference rootReference = uncommittedRoot.get();
-        if (rootReference != null && rootReference.root != null)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            currentNode = rootReference.root;
+            BTreeNode currentNode;
+
+            final RootReference rootReference = uncommittedRoot.get();
+            if (rootReference != null && rootReference.root != null)
+            {
+                currentNode = rootReference.root;
+            }
+            else
+            {
+                mappedNode.initNode(committedRoot.get());
+                currentNode = mappedNode;
+            }
+            newRoot = nodesManager.copyNode(currentNode, newVersion);
         }
-        else
-        {
-            mappedNode.initNode(committedRoot.get());
-            currentNode = mappedNode;
-        }
-        BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
-        nodesManager.returnMappedNode(mappedNode);
 
         if (newRoot.shouldSplit())
         {
@@ -389,45 +390,46 @@ public class BTreeWithLog extends BTreeAbstract
 
     private BTreeNodeHeap getOrCreateChildrenCopy(final BTreeNodeNonLeaf parent, final int keyIndex)
     {
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        final BTreeNode child = nodesManager.loadNode(keyIndex, parent, mappedNode);
-
-        final BTreeNodeHeap childrenCopy;
-        if (child instanceof BTreeMappedNode || child.getVersion() != parent.getVersion())
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            childrenCopy = nodesManager.copyNode(child, parent.getVersion());
-        }
-        else
-        {
-            assert child instanceof  BTreeNodeHeap;
-            childrenCopy = (BTreeNodeHeap) child;
-        }
 
-        nodesManager.returnMappedNode(mappedNode);
-        return childrenCopy;
+            final BTreeNode child = nodesManager.loadNode(keyIndex, parent, mappedNode);
+
+            final BTreeNodeHeap childrenCopy;
+            if (child instanceof BTreeMappedNode || child.getVersion() != parent.getVersion())
+            {
+                childrenCopy = nodesManager.copyNode(child, parent.getVersion());
+            }
+            else
+            {
+                assert child instanceof BTreeNodeHeap;
+                childrenCopy = (BTreeNodeHeap) child;
+            }
+
+            return childrenCopy;
+        }
     }
 
     @Override
     public long get(final long key)
     {
         BTreeNode currentNode;
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-
-        final RootReference rootReference = uncommittedRoot.get();
-        if (rootReference != null && rootReference.root != null)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            currentNode = rootReference.root;
-        }
-        else
-        {
-            mappedNode.initNode(committedRoot.get());
-            currentNode = mappedNode;
-        }
 
-        final long value = getKey(key, currentNode);
-        nodesManager.returnMappedNode(mappedNode);
+            final RootReference rootReference = uncommittedRoot.get();
+            if (rootReference != null && rootReference.root != null)
+            {
+                currentNode = rootReference.root;
+            }
+            else
+            {
+                mappedNode.initNode(committedRoot.get());
+                currentNode = mappedNode;
+            }
 
-        return value;
+            return getKey(key, currentNode);
+        }
     }
 
     /**
@@ -439,38 +441,34 @@ public class BTreeWithLog extends BTreeAbstract
     @Override
     public long get(final long key, final int version)
     {
-        BTreeNode currentNode;
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        currentNode = getRootNode(version, mappedNode);
-
-        final long value = getKey(key, currentNode);
-        nodesManager.returnMappedNode(mappedNode);
-
-        return value;
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
+        {
+            final BTreeNode currentNode = getRootNode(version, mappedNode);
+            return getKey(key, currentNode);
+        }
     }
 
     private long getKey(final long key, final BTreeNode root)
     {
-        final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-        BTreeNode currentNode = root;
-
-        while (currentNode.getNodeType() == BtreeNodeType.NonLeaf)
+        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            if (((BTreeNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
+            BTreeNode currentNode = root;
+            while (currentNode.getNodeType() == BtreeNodeType.NonLeaf)
             {
-                final int logIndex = ((BTreeNodeAbstract) currentNode).logBinarySearch(key);
-                if (logIndex >= 0)
+                if (((BTreeNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
                 {
-                    return ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                    final int logIndex = ((BTreeNodeAbstract) currentNode).logBinarySearch(key);
+                    if (logIndex >= 0)
+                    {
+                        return ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                    }
                 }
+                final int keyIndex = currentNode.getKeyIndex(key);
+                currentNode = nodesManager.loadNode(keyIndex, currentNode, mappedNode);
             }
-            final int keyIndex = currentNode.getKeyIndex(key);
-            currentNode = nodesManager.loadNode(keyIndex, currentNode, mappedNode);
-        }
 
-        final long value = currentNode.get(key);
-        nodesManager.returnMappedNode(mappedNode);
-        return value;
+            return currentNode.get(key);
+        }
     }
 
     private BTreeNode getRootNode(final int version, final BTreeMappedNode mappedNode)

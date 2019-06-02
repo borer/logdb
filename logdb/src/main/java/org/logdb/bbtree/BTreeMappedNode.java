@@ -5,8 +5,9 @@ import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.Storage;
 
-public class BTreeMappedNode extends BTreeNodeAbstract
+public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
 {
+    private final NodesManager nodesManager;
     private final Storage storage;
     private final DirectMemory memory;
 
@@ -14,12 +15,14 @@ public class BTreeMappedNode extends BTreeNodeAbstract
 
     //TODO: not rely on having an empty initial map.
     public BTreeMappedNode(
+            final NodesManager nodesManager,
             final Storage storage,
             final DirectMemory memory,
             final long pageSize,
             final long pageNumber)
     {
         super(pageNumber, memory, 0, 0, 0);
+        this.nodesManager = nodesManager;
         this.storage = storage;
         this.memory = memory;
 
@@ -129,5 +132,11 @@ public class BTreeMappedNode extends BTreeNodeAbstract
     public int getNumberOfChildren()
     {
         return numberOfValues;
+    }
+
+    @Override
+    public void close()
+    {
+        nodesManager.returnMappedNode(this);
     }
 }
