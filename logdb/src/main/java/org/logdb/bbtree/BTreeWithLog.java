@@ -19,7 +19,7 @@ public class BTreeWithLog extends BTreeAbstract
     @Override
     public void remove(final long key)
     {
-        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
+        try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
             BTreeNode currentNode;
             final long newVersion = writeVersion++;

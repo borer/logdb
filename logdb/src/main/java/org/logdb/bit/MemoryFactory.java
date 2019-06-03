@@ -15,7 +15,7 @@ public class MemoryFactory
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
 
-        return getGetDirectMemory(getPageOffset(mappedBuffer, offset), capacity, byteOrder);
+        return getDirectMemory(getPageOffset(mappedBuffer, offset), capacity, byteOrder);
     }
 
     public static long getPageOffset(final MappedByteBuffer mappedBuffer, long offset)
@@ -25,7 +25,21 @@ public class MemoryFactory
         return NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset;
     }
 
-    public static DirectMemory getGetDirectMemory(final long baseAddress, final int capacity, final ByteOrder byteOrder)
+    public static DirectMemory getUninitiatedDirectMemory(final int pageSize, final ByteOrder byteOrder)
+    {
+        final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
+
+        if (nativeOrder)
+        {
+            return new MemoryDirectImpl(pageSize);
+        }
+        else
+        {
+            return new MemoryDirectNonNativeImpl(pageSize);
+        }
+    }
+
+    private static DirectMemory getDirectMemory(final long baseAddress, final int capacity, final ByteOrder byteOrder)
     {
         final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
 
@@ -44,7 +58,7 @@ public class MemoryFactory
         final ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
         final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
 
-        return getGetDirectMemory(baseAddress, capacity, byteOrder);
+        return getDirectMemory(baseAddress, capacity, byteOrder);
     }
 
     public static HeapMemory allocateHeap(final int capacity, final ByteOrder byteOrder)

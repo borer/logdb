@@ -4,10 +4,17 @@ import java.nio.ByteBuffer;
 
 public class MemoryDirectNonNativeImpl implements DirectMemory
 {
+    private static final long UNINITIALIZED_ADDRESS = Long.MIN_VALUE;
+
     private final long capacity;
 
     private long baseAddress;
     private long position;
+
+    MemoryDirectNonNativeImpl(final int capacity)
+    {
+        this(UNINITIALIZED_ADDRESS, capacity);
+    }
 
     MemoryDirectNonNativeImpl(final long baseAddress, final long capacity)
     {
@@ -171,6 +178,8 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
     @Override
     public void assertBounds(final long requestOffset, final int requestLength)
     {
+        assert baseAddress != UNINITIALIZED_ADDRESS : "Base address is uninitialized";
+
         assert ((requestOffset |
                 requestLength |
                 (requestOffset + requestLength) |
@@ -182,6 +191,8 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
     @Override
     public void assertBounds(final long requestOffset, final long requestLength)
     {
+        assert baseAddress != UNINITIALIZED_ADDRESS : "Base address is uninitialized";
+
         assert ((requestOffset |
                 requestLength |
                 (requestOffset + requestLength) |

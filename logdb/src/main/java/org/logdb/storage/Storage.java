@@ -23,9 +23,9 @@ import java.nio.ByteBuffer;
  */
 public interface Storage extends Closeable
 {
-    HeapMemory allocateHeapMemory();
+    HeapMemory allocateHeapPage();
 
-    DirectMemory getDirectMemory(long pageNumber);
+    DirectMemory getUninitiatedDirectMemoryPage();
 
     long getPageSize();
 

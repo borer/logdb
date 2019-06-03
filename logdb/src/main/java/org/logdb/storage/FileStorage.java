@@ -15,11 +15,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 
 import static org.logdb.Config.LOG_DB_VERSION;
 
@@ -28,9 +26,9 @@ public final class FileStorage implements Storage, Closeable
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
     private static final int NO_CURRENT_ROOT_PAGE_NUMBER = -1;
+    private static final int MAX_MAPPED_SIZE = Integer.MAX_VALUE;
 
     private final List<MappedByteBuffer> mappedBuffers;
-    private final Queue<HeapMemory> availableWritableMemory;
 
     private final RandomAccessFile dbFile;
     private final FileChannel channel;
@@ -47,7 +45,6 @@ public final class FileStorage implements Storage, Closeable
         this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
         this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
         this.mappedBuffers = new ArrayList<>();
-        this.availableWritableMemory = new ArrayDeque<>();
     }
 
     public static FileStorage createNewFileDb(
@@ -95,8 +92,7 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            final long requiredNumberOfMaps = getRequiredFileMapsForWholeFile(fileDbHeader.memoryMappedChunkSizeBytes, channel.size());
-            fileStorage.extendMapsIfRequired(requiredNumberOfMaps);
+            fileStorage.initFromFile();
         }
         catch (final FileNotFoundException e)
         {
@@ -131,8 +127,7 @@ public final class FileStorage implements Storage, Closeable
                     dbFile,
                     channel);
 
-            final long requiredNumberOfMaps = getRequiredFileMapsForWholeFile(fileDbHeader.memoryMappedChunkSizeBytes, channel.size());
-            fileStorage.extendMapsIfRequired(requiredNumberOfMaps);
+            fileStorage.initFromFile();
         }
         catch (final FileNotFoundException e)
         {
@@ -146,22 +141,37 @@ public final class FileStorage implements Storage, Closeable
         return fileStorage;
     }
 
-    private static long getRequiredFileMapsForWholeFile(final long memoryMappedChunkSizeBytes, final long fileSize)
+    private void initFromFile() throws IOException
     {
-        return (fileSize / memoryMappedChunkSizeBytes) + 1;
+        final long fileSize = channel.size();
+        final long maxMappedChunks = fileSize / MAX_MAPPED_SIZE;
+        final long lastChunkSize = fileSize - (maxMappedChunks * MAX_MAPPED_SIZE);
+
+        for (int i = 0; i < maxMappedChunks; i++)
+        {
+            mapMemory(i * MAX_MAPPED_SIZE, MAX_MAPPED_SIZE);
+        }
+
+        if (lastChunkSize > 0)
+        {
+
+            final long mapLength = Math.max(lastChunkSize, fileDbHeader.memoryMappedChunkSizeBytes);
+            mapMemory(maxMappedChunks * MAX_MAPPED_SIZE, mapLength);
+        }
     }
 
-    private void extendMapsIfRequired(final long requiredNumberOfMaps)
+    private void extendMapsIfRequired()
     {
         try
         {
+            final long requiredNumberOfMaps = getRequiredNumberOfMaps();
             long originalChannelPosition = channel.position();
 
             final int existingRegions = mappedBuffers.size();
             final long regionsToMap = requiredNumberOfMaps - existingRegions;
             for (long i = 0; i < regionsToMap; i++)
             {
-                mapMemory((existingRegions + i) * fileDbHeader.memoryMappedChunkSizeBytes);
+                mapMemory((existingRegions + i) * fileDbHeader.memoryMappedChunkSizeBytes, fileDbHeader.memoryMappedChunkSizeBytes);
             }
 
             channel.position(originalChannelPosition);
@@ -172,15 +182,11 @@ public final class FileStorage implements Storage, Closeable
         }
     }
 
-    private void mapMemory(final long offset)
+    private void mapMemory(final long offset, final long mapLength)
     {
         try
         {
-            final MappedByteBuffer map = channel.map(
-                    FileChannel.MapMode.READ_ONLY,
-                    offset,
-                    fileDbHeader.memoryMappedChunkSizeBytes);
-
+            final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, offset, mapLength);
             //try to get file size down after the mapping
             //final long fileSize = FileDbHeader.getSizeBytes()
             //        + (mappedBuffers.size() * fileDbHeader.memoryMappedChunkSizeBytes);
@@ -198,17 +204,15 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public HeapMemory allocateHeapMemory()
+    public HeapMemory allocateHeapPage()
     {
-        final HeapMemory writableMemory = availableWritableMemory.poll();
-        if (writableMemory != null)
-        {
-            return writableMemory;
-        }
-        else
-        {
-            return MemoryFactory.allocateHeap(fileDbHeader.pageSize, fileDbHeader.byteOrder);
-        }
+        return MemoryFactory.allocateHeap(fileDbHeader.pageSize, fileDbHeader.byteOrder);
+    }
+
+    @Override
+    public DirectMemory getUninitiatedDirectMemoryPage()
+    {
+        return MemoryFactory.getUninitiatedDirectMemory(fileDbHeader.pageSize, fileDbHeader.byteOrder);
     }
 
     @Override
@@ -221,7 +225,7 @@ public final class FileStorage implements Storage, Closeable
         {
             positionOffset = channel.position();
             FileUtils.writeFully(channel, buffer);
-            extendMapsIfRequired(getRequiredNumberOfMaps());
+            extendMapsIfRequired();
         }
         catch (final IOException e)
         {
@@ -234,8 +238,8 @@ public final class FileStorage implements Storage, Closeable
     @Override
     public long writePageAligned(final ByteBuffer buffer)
     {
-        assert buffer.capacity() == fileDbHeader.pageSize :
-                "buffer must be of page size " + fileDbHeader.pageSize +
+        assert buffer.capacity() == fileDbHeader.pageSize
+                : "buffer must be of page size " + fileDbHeader.pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
         final long positionOffset = write(buffer);
@@ -270,10 +274,10 @@ public final class FileStorage implements Storage, Closeable
     public DirectMemory loadPage(final long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
+        long offsetMappedBuffer = 0;
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final long offsetMappedBuffer = i * fileDbHeader.memoryMappedChunkSizeBytes;
             final long pageOffset = pageNumber * fileDbHeader.pageSize;
             if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
@@ -283,6 +287,8 @@ public final class FileStorage implements Storage, Closeable
                         fileDbHeader.pageSize,
                         fileDbHeader.byteOrder);
             }
+
+            offsetMappedBuffer += mappedBuffer.limit();
         }
 
         return null;
@@ -293,27 +299,20 @@ public final class FileStorage implements Storage, Closeable
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         assert pageNumber >= 0 : "Page Number can only be positive";
+        long offsetMappedBuffer = 0;
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final long offsetMappedBuffer = i * fileDbHeader.memoryMappedChunkSizeBytes;
             final long pageOffset = pageNumber * fileDbHeader.pageSize;
             if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
             }
+
+            offsetMappedBuffer += mappedBuffer.limit();
         }
 
         return -1;
-    }
-
-    public DirectMemory getDirectMemory(final long pageNumber)
-    {
-        final long baseOffsetForPageNumber = getBaseOffsetForPageNumber(pageNumber);
-        return MemoryFactory.getGetDirectMemory(
-                baseOffsetForPageNumber,
-                fileDbHeader.pageSize,
-                fileDbHeader.byteOrder);
     }
 
     @Override
@@ -328,7 +327,7 @@ public final class FileStorage implements Storage, Closeable
         try
         {
             channel.force(true);
-            extendMapsIfRequired(getRequiredNumberOfMaps());
+            extendMapsIfRequired();
         }
         catch (final IOException e)
         {

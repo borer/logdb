@@ -113,7 +113,7 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        final HeapMemory heapMemory = storage.allocateHeapMemory();
+        final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
         final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemory);
 
@@ -143,7 +143,7 @@ class FileStorageTest
         storage.flush();
 
         final Memory persistedMemory = storage.loadPage(pageNumber);
-        final HeapMemory heapMemory = storage.allocateHeapMemory();
+        final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
         final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, heapMemory);
 
@@ -154,7 +154,7 @@ class FileStorageTest
 
         final long pageNumberLeaf = loadedNonLeaf.getValue(0);
         final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
-        final HeapMemory heapMemoryLeaf = storage.allocateHeapMemory();
+        final HeapMemory heapMemoryLeaf = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemoryLeaf, heapMemoryLeaf);
         final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemoryLeaf);
 

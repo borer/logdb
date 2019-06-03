@@ -62,7 +62,7 @@ public class NodesManager
             return new BTreeMappedNode(
                     this,
                     storage,
-                    storage.getDirectMemory(0),
+                    storage.getUninitiatedDirectMemoryPage(),
                     storage.getPageSize(),
                     0);
         }
@@ -106,7 +106,7 @@ public class NodesManager
         BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
         if (nonLeaf == null)
         {
-            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, 1, new BTreeNodeHeap[1]);
+            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0, 1, new BTreeNodeHeap[1]);
         }
 
         return nonLeaf;
@@ -117,7 +117,7 @@ public class NodesManager
         BTreeNodeLeaf leaf = leafNodesCache.poll();
         if (leaf == null)
         {
-            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapMemory(), 0, 0, 0);
+            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0, 0);
         }
 
         return leaf;

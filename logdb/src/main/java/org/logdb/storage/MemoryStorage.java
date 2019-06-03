@@ -28,20 +28,15 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public HeapMemory allocateHeapMemory()
+    public HeapMemory allocateHeapPage()
     {
         return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
     }
 
     @Override
-    public DirectMemory getDirectMemory(final long pageNumber)
+    public DirectMemory getUninitiatedDirectMemoryPage()
     {
-        final DirectMemory directMemory = maps.get(pageNumber);
-        if (directMemory == null)
-        {
-            return MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
-        }
-        return directMemory;
+        return MemoryFactory.getUninitiatedDirectMemory(pageSizeBytes, byteOrder);
     }
 
     @Override
