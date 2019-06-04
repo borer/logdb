@@ -20,9 +20,13 @@ public interface ReadMemory
 
     int getInt(long offset);
 
-    void getBytes(byte[] array);
+    void getBytes(byte[] destinationArray);
 
-    void getBytes(long sourceOffset, byte[] destinationArray);
+    void getBytes(long length, byte[] destinationArray);
+
+    void getBytes(long offset, long length, byte[] destinationArray);
+
+    void getBytes(long offset, long length, byte[] destinationArray, long destinationArrayOffset);
 
     byte getByte();
 

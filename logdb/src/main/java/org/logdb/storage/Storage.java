@@ -29,6 +29,10 @@ public interface Storage extends Closeable
 
     long getPageSize();
 
+    long getPageNumber(long offset);
+
+    long getOffset(long pageNumber);
+
     /**
      * Write any arbitrary buffer.
      * @param buffer the buffer to store. Can be any size

@@ -44,20 +44,20 @@ final class NonNativeMemoryAccess extends MemoryAccess
         }
     }
 
-    public static void getBytes(final long sourceAddress, final byte[] destinationArray)
+    public static void getBytes(final long sourceAddress, final byte[] destinationArray, final long offset, final long length)
     {
         //unsafe.copyMemory(src, srcOffset, dst, dstOffset, size);
         //unsafe.copyMemory(src, dst, size);
         //don't try to get the address of the msgBytes array or any other java object as it may be invalidated by GC
         //unsafe.setMemory(src, srcOffset, size, (byte)val); - set from address to address+size to val -- an easy fill
         long srcAdd = sourceAddress;
-        long dstAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;
-        long lengthBytes = destinationArray.length;
-        while (lengthBytes > 0)
+        long dstAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET + offset;
+        long remainingBytes = length;
+        while (remainingBytes > 0)
         {
-            final long chunk = Math.min(lengthBytes, UNSAFE_COPY_THRESHOLD_BYTES);
+            final long chunk = Math.min(remainingBytes, UNSAFE_COPY_THRESHOLD_BYTES);
             THE_UNSAFE.copyMemory(null, srcAdd, destinationArray, dstAdd, chunk);
-            lengthBytes -= chunk;
+            remainingBytes -= chunk;
             srcAdd += chunk;
             dstAdd += chunk;
         }

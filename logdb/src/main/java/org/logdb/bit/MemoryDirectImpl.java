@@ -116,17 +116,39 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public void getBytes(final byte[] array)
+    public void getBytes(final byte[] destinationArray)
     {
-        getBytes(position, array);
+        getBytes(position, destinationArray.length, destinationArray);
     }
 
     @Override
-    public void getBytes(final long sourceOffset, final byte[] destinationArray)
+    public void getBytes(final long length, final byte[] destinationArray)
     {
-        assertBounds(sourceOffset, destinationArray.length);
+        getBytes(position, length, destinationArray);
+    }
 
-        NativeMemoryAccess.getBytes(baseAddress + sourceOffset, destinationArray);
+    @Override
+    public void getBytes(final long offset, final long length, final byte[] destinationArray)
+    {
+        assertBounds(offset, destinationArray.length);
+
+        NativeMemoryAccess.getBytes(baseAddress + offset, destinationArray, 0, length);
+    }
+
+    @Override
+    public void getBytes(
+            final long offset,
+            final long length,
+            final byte[] destinationArray,
+            final long destinationArrayOffset)
+    {
+        assertBounds(offset, destinationArray.length);
+
+        NativeMemoryAccess.getBytes(
+                baseAddress + offset,
+                destinationArray,
+                destinationArrayOffset,
+                length);
     }
 
     @Override

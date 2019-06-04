@@ -45,7 +45,7 @@ class NativeMemoryAccessTest
         final long addressForByteBuffer = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
 
         NativeMemoryAccess.putBytes(addressForByteBuffer, expected);
-        NativeMemoryAccess.getBytes(addressForByteBuffer, actual);
+        NativeMemoryAccess.getBytes(addressForByteBuffer, actual, 0, actual.length);
 
         for (int i = 0; i < expected.length; i++)
         {

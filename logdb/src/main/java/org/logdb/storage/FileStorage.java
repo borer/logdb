@@ -329,6 +329,18 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
+    public long getPageNumber(final long offset)
+    {
+        return offset / fileDbHeader.pageSize;
+    }
+
+    @Override
+    public long getOffset(final long pageNumber)
+    {
+        return pageNumber * fileDbHeader.pageSize;
+    }
+
+    @Override
     public void flush()
     {
         try

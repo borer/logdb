@@ -116,17 +116,39 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
     }
 
     @Override
-    public void getBytes(final byte[] array)
+    public void getBytes(final byte[] destinationArray)
     {
-        getBytes(position, array);
+        getBytes(position, destinationArray.length, destinationArray);
     }
 
     @Override
-    public void getBytes(final long sourceOffset, final byte[] destinationArray)
+    public void getBytes(final long length, final byte[] destinationArray)
     {
-        assertBounds(sourceOffset, destinationArray.length);
+        getBytes(position, length, destinationArray);
+    }
 
-        NonNativeMemoryAccess.getBytes(baseAddress + sourceOffset, destinationArray);
+    @Override
+    public void getBytes(final long offset, final long length, final byte[] destinationArray)
+    {
+        assertBounds(offset, length);
+
+        NonNativeMemoryAccess.getBytes(
+                baseAddress + offset,
+                destinationArray,
+                0,
+                destinationArray.length);
+    }
+
+    @Override
+    public void getBytes(long offset, long length, byte[] destinationArray, long destinationArrayOffset)
+    {
+        assertBounds(offset, destinationArray.length);
+
+        NonNativeMemoryAccess.getBytes(
+                baseAddress + offset,
+                destinationArray,
+                destinationArrayOffset,
+                length);
     }
 
     @Override

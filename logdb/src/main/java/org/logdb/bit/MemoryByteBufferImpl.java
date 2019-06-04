@@ -88,17 +88,37 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void getBytes(final byte[] array)
+    public void getBytes(final byte[] destinationArray)
     {
-        buffer.get(array);
+        buffer.get(destinationArray);
     }
 
     @Override
-    public void getBytes(long sourceOffset, byte[] destinationArray)
+    public void getBytes(final long length, final byte[] destinationArray)
     {
-        for (int i = 0; i < destinationArray.length; i++)
+        buffer.get(destinationArray, 0, (int)length);
+    }
+
+    @Override
+    public void getBytes(final long offset, final long length, byte[] destinationArray)
+    {
+        for (int i = 0; i < length; i++)
         {
-            destinationArray[i] = buffer.get((int)sourceOffset + i);
+            destinationArray[i] = buffer.get((int) offset + i);
+        }
+    }
+
+    @Override
+    public void getBytes(
+            final long offset,
+            final long length,
+            final byte[] destinationArray,
+            final long destinationArrayOffset)
+    {
+        for (int i = 0; i < length; i++)
+        {
+            final int destinationOffset = (int)destinationArrayOffset + i;
+            destinationArray[destinationOffset] = buffer.get((int) offset + i);
         }
     }
 

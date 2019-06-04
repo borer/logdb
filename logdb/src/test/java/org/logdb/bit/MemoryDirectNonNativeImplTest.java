@@ -182,7 +182,7 @@ class MemoryDirectNonNativeImplTest
 
         try
         {
-            memory.getBytes(0, actual);
+            memory.getBytes(0, actual.length, actual);
         }
         catch (final AssertionError e)
         {
@@ -191,7 +191,7 @@ class MemoryDirectNonNativeImplTest
 
         try
         {
-            memory.getBytes(-1, actual);
+            memory.getBytes(-1, actual.length, actual);
         }
         catch (final AssertionError e)
         {

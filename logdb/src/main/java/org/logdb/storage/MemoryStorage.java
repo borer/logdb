@@ -46,6 +46,18 @@ public class MemoryStorage implements Storage
     }
 
     @Override
+    public long getPageNumber(final long offset)
+    {
+        return offset;
+    }
+
+    @Override
+    public long getOffset(long pageNumber)
+    {
+        return pageNumber;
+    }
+
+    @Override
     public long write(final ByteBuffer buffer)
     {
         final long currentOffset = this.allocatedMemoryOffset;
