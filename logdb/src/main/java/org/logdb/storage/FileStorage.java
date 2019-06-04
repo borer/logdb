@@ -186,6 +186,13 @@ public final class FileStorage implements Storage, Closeable
     {
         try
         {
+            //Try to grow the file first as it may crash the VM if it doesn't the mapping doesn't grow it.
+            final long newLength = offset + mapLength;
+            if (dbFile.length() < newLength)
+            {
+                dbFile.setLength(newLength);
+            }
+
             final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, offset, mapLength);
             //try to get file size down after the mapping
             //final long fileSize = FileDbHeader.getSizeBytes()
