@@ -128,28 +128,47 @@
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-compiler-plugin</artifactId>
                             <version>${maven-compiler-plugin.version}</version>
-                            <configuration>
-                                <compilerVersion>${javac.target}</compilerVersion>
-                                <source>${javac.target}</source>
-                                <target>${javac.target}</target>
-                                <compilerArgs>
-                                    <arg>-Xlint:all,-options,-path</arg>
-                                </compilerArgs>
-                                <annotationProcessors>
-                                    <!--<annotationProcessor>-->
-                                    <!--org.checkerframework.checker.nullness.NullnessChecker-->
-                                    <!--</annotationProcessor>-->
-                                    <annotationProcessor>
-                                        org.checkerframework.checker.interning.InterningChecker
-                                    </annotationProcessor>
-                                    <annotationProcessor>
-                                        org.checkerframework.checker.fenum.FenumChecker
-                                    </annotationProcessor>
-                                    <annotationProcessor>
-                                        org.checkerframework.checker.formatter.FormatterChecker
-                                    </annotationProcessor>
-                                </annotationProcessors>
-                            </configuration>
+                            <executions>
+                                <execution>
+                                    <id>default-compile</id>
+                                    <configuration>
+                                        <compilerVersion>${javac.target}</compilerVersion>
+                                        <source>${javac.target}</source>
+                                        <target>${javac.target}</target>
+                                        <compilerArgs>
+                                            <arg>-Xlint:all,-options,-path</arg>
+                                        </compilerArgs>
+                                    </configuration>
+                                </execution>
+                                <execution>
+                                    <id>annotation-processing</id>
+                                    <phase>compile</phase>
+                                    <goals>
+                                        <goal>compile</goal>
+                                    </goals>
+                                    <configuration>
+                                        <compilerVersion>${javac.target}</compilerVersion>
+                                        <source>${javac.target}</source>
+                                        <target>${javac.target}</target>
+                                        <annotationProcessors>
+                                            <!--<annotationProcessor>-->
+                                            <!--org.checkerframework.checker.nullness.NullnessChecker-->
+                                            <!--</annotationProcessor>-->
+                                            <annotationProcessor>
+                                                org.checkerframework.checker.interning.InterningChecker
+                                            </annotationProcessor>
+                                            <annotationProcessor>
+                                                org.checkerframework.checker.units.UnitsChecker
+                                            </annotationProcessor>
+                                        </annotationProcessors>
+                                        <compilerArgs>
+                                            <arg>-proc:only</arg>
+                                            <arg>-Aunits=org.logdb.time.Milliseconds</arg>
+                                            <arg>-AskipUses=org.logdb.time.TimeUnits</arg>
+                                        </compilerArgs>
+                                    </configuration>
+                                </execution>
+                            </executions>
                         </plugin>
                         <plugin>
                             <groupId>com.github.spotbugs</groupId>

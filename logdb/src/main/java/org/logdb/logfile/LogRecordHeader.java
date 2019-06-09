@@ -1,5 +1,8 @@
 package org.logdb.logfile;
 
+import org.logdb.time.Milliseconds;
+import org.logdb.time.TimeUnits;
+
 import java.nio.ByteBuffer;
 
 class LogRecordHeader
@@ -25,7 +28,7 @@ class LogRecordHeader
     private int keyLength;
     private int valueLength;
     private long version;
-    private long timestamp;
+    private @Milliseconds long timestamp;
 
     public int getChecksum()
     {
@@ -57,7 +60,7 @@ class LogRecordHeader
             final int keyLength,
             final int valueLength,
             final long version,
-            final long timestamp)
+            final @Milliseconds long timestamp)
     {
         this.checksum = checksum;
         this.keyLength = keyLength;
@@ -73,7 +76,7 @@ class LogRecordHeader
         this.keyLength = buffer.getInt();
         this.valueLength = buffer.getInt();
         this.version = buffer.getLong();
-        this.timestamp = buffer.getLong();
+        this.timestamp = TimeUnits.millis(buffer.getLong());
         buffer.rewind();
     }
 

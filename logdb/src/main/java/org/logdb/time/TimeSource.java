@@ -2,5 +2,5 @@ package org.logdb.time;
 
 public interface TimeSource
 {
-    long getCurrentMillis();
+    @Milliseconds long getCurrentMillis();
 }

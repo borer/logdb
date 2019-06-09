@@ -1,6 +1,7 @@
 package org.logdb.logfile;
 
 import org.logdb.storage.Storage;
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ public class LogFile
     {
         version++;
 
-        final long timestamp = timeSource.getCurrentMillis();
+        final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
 
         storage.flush();

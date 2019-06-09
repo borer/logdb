@@ -1,5 +1,6 @@
 package org.logdb.support;
 
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
 public class StubTimeSource implements TimeSource
@@ -7,7 +8,7 @@ public class StubTimeSource implements TimeSource
     long currentTime = 0;
 
     @Override
-    public long getCurrentMillis()
+    public @Milliseconds long getCurrentMillis()
     {
         currentTime++;
 

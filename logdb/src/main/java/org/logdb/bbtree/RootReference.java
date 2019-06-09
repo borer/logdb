@@ -1,5 +1,7 @@
 package org.logdb.bbtree;
 
+import org.logdb.time.Milliseconds;
+
 public final class RootReference
 {
     private long pageNumber;
@@ -11,7 +13,7 @@ public final class RootReference
     /**
      * The version used for writing.
      */
-    public final long timestamp;
+    public final @Milliseconds long timestamp;
     /**
      * The version used for writing.
      */
@@ -23,7 +25,7 @@ public final class RootReference
     public final RootReference previous;
 
     RootReference(final BTreeNodeHeap root,
-                  final long timestamp,
+                  final @Milliseconds long timestamp,
                   final long version,
                   final RootReference previous)
     {
@@ -32,15 +34,6 @@ public final class RootReference
         this.timestamp = timestamp;
         this.version = version;
         this.previous = previous;
-    }
-
-    public RootReference(final long pageNumber, final long timestamp, final long version)
-    {
-        this.pageNumber = pageNumber;
-        this.root = null;
-        this.timestamp = timestamp;
-        this.version = version;
-        this.previous = null;
     }
 
     public void setPageNumber(final long pageNumber)

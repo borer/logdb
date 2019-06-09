@@ -3,6 +3,7 @@ package org.logdb.logfile;
 import org.logdb.bit.ChecksumUtil;
 import org.logdb.bit.DirectMemory;
 import org.logdb.storage.Storage;
+import org.logdb.time.Milliseconds;
 
 import java.nio.ByteBuffer;
 
@@ -35,7 +36,7 @@ class LogRecordStorage
         this.logRecordHeader = new LogRecordHeader();
     }
 
-    long write(final byte[] key, final byte[] value, final long version, final long timestamp)
+    long write(final byte[] key, final byte[] value, final long version, final @Milliseconds long timestamp)
     {
         final int checksum = calculateChecksum(key, value, version, timestamp);
         logRecordHeader.init(checksum, key.length, value.length, version, timestamp);
@@ -52,7 +53,7 @@ class LogRecordStorage
             final byte[] key,
             final byte[] value,
             final long version,
-            final long timestamp)
+            final @Milliseconds long timestamp)
     {
         checksumer.updateChecksum(key, 0, key.length);
         checksumer.updateChecksum(value, 0, value.length);

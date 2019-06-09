@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
 import java.util.Objects;
@@ -196,8 +197,7 @@ abstract class BTreeAbstract implements BTree
         Objects.requireNonNull(newRootPage, "current uncommittedRoot cannot be null");
         final RootReference currentRoot = uncommittedRoot.get();
 
-        //TODO: extract timestamp retriever
-        final long timestamp = timeSource.getCurrentMillis();
+        final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final RootReference updatedRootReference = new RootReference(newRootPage, timestamp, newRootPage.getVersion(), currentRoot);
         boolean success = uncommittedRoot.compareAndSet(currentRoot, updatedRootReference);
 
