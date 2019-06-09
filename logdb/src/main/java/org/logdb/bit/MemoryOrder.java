@@ -5,8 +5,9 @@ import java.nio.ByteOrder;
 public class MemoryOrder
 {
     static final ByteOrder nativeOrder = ByteOrder.nativeOrder();
-    static final ByteOrder nonNativeOrder = (nativeOrder == ByteOrder.LITTLE_ENDIAN)
-            ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+    static final ByteOrder nonNativeOrder = (ByteOrder.LITTLE_ENDIAN.equals(nativeOrder))
+            ? ByteOrder.BIG_ENDIAN
+            : ByteOrder.LITTLE_ENDIAN;
 
     public static boolean isNativeOrder(final ByteOrder byteOrder)
     {
@@ -14,6 +15,6 @@ public class MemoryOrder
         {
             throw new IllegalArgumentException("ByteOrder parameter cannot be null.");
         }
-        return (nativeOrder == byteOrder);
+        return (nativeOrder.equals(byteOrder));
     }
 }

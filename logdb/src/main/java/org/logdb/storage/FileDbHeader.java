@@ -146,7 +146,7 @@ public class FileDbHeader
 
     private static byte getEncodedByteOrder(final ByteOrder byteOrder)
     {
-        return (byte) ((byteOrder == ByteOrder.BIG_ENDIAN) ? 1 : 0);
+        return (byte) ((ByteOrder.BIG_ENDIAN.equals(byteOrder)) ? 1 : 0);
     }
 
     private static ByteOrder getByteOrder(final byte byteOrderEncoded)
