@@ -18,16 +18,30 @@ public class FileDbHeader
 
     private static byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDB
     private static int BYTE_ORDER_OFFSET = LOG_DB_MAGIC_STRING.length; // size 7
-    private static int PAGE_SIZE_OFFSET = BYTE_ORDER_OFFSET + Byte.BYTES; // size 7 + 1 = 8
-    private static int MEMORY_MAPPED_CHUNK_SIZE_OFFSET = PAGE_SIZE_OFFSET + Integer.BYTES;
-    private static int VERSION_OFFSET = MEMORY_MAPPED_CHUNK_SIZE_OFFSET + Long.BYTES;
-    private static int LAST_ROOT_OFFSET = VERSION_OFFSET + Long.BYTES;
+    private static int BYTE_ORDER_SIZE = Byte.BYTES; // size 1
 
-    static int HEADER_SIZE = LAST_ROOT_OFFSET + Long.BYTES;
+    private static int PAGE_SIZE_OFFSET = BYTE_ORDER_OFFSET + BYTE_ORDER_SIZE; // size 7 + 1 = 8
+    private static int PAGE_SIZE_BYTES = Integer.BYTES;
+
+    private static int MEMORY_MAPPED_CHUNK_SIZE_OFFSET = PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES;
+    private static int MEMORY_MAPPED_CHUNK_SIZE_BYTES = Long.BYTES;
+
+    private static int VERSION_OFFSET = MEMORY_MAPPED_CHUNK_SIZE_OFFSET + MEMORY_MAPPED_CHUNK_SIZE_BYTES;
+    private static int VERSION_SIZE = Long.BYTES;
+
+    private static int LAST_ROOT_OFFSET = VERSION_OFFSET + VERSION_SIZE;
+    private static int LAST_ROOT_SIZE = Long.BYTES;
+
+    static int HEADER_SIZE = LOG_DB_MAGIC_STRING.length +
+            BYTE_ORDER_SIZE +
+            PAGE_SIZE_BYTES +
+            MEMORY_MAPPED_CHUNK_SIZE_BYTES +
+            VERSION_SIZE +
+            LAST_ROOT_SIZE;
 
     private final int headerSizeInPages;
 
-    private int version;
+    private long version;
     private long lastRootOffset;
 
     final ByteOrder byteOrder;
@@ -36,7 +50,7 @@ public class FileDbHeader
 
     FileDbHeader(
             final ByteOrder byteOrder,
-            final int version,
+            final long version,
             final int pageSize,
             final long memoryMappedChunkSizeBytes,
             final long lastRootOffset)
@@ -68,7 +82,7 @@ public class FileDbHeader
         }
 
         final ByteOrder byteOrder = getByteOrder(buffer.get(BYTE_ORDER_OFFSET));
-        final int version = getIntegerInCorrectByteOrder(buffer.getInt(VERSION_OFFSET));
+        final long version = getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET));
         final int pageSize = getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET));
         final long memoryMappedChunkSizeBytes = getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET));
         final long lastRootOffset = getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET));
@@ -84,7 +98,7 @@ public class FileDbHeader
 
         buffer.put(LOG_DB_MAGIC_STRING);
         buffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
-        buffer.putInt(VERSION_OFFSET, getIntegerInCorrectByteOrder(version));
+        buffer.putLong(VERSION_OFFSET, getLongInCorrectByteOrder(version));
         buffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
         buffer.putLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET, getLongInCorrectByteOrder(memoryMappedChunkSizeBytes));
         buffer.putLong(LAST_ROOT_OFFSET, getLongInCorrectByteOrder(lastRootOffset));
@@ -104,7 +118,7 @@ public class FileDbHeader
         return lastRootOffset;
     }
 
-    void updateMeta(final long newRootPageNumber, final int version)
+    void updateMeta(final long newRootPageNumber, final long version)
     {
         this.lastRootOffset = newRootPageNumber;
         this.version = version;

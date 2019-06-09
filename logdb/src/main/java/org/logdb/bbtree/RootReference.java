@@ -53,7 +53,7 @@ public final class RootReference
         return pageNumber;
     }
 
-    RootReference getRootReferenceForVersion(final int version)
+    RootReference getRootReferenceForVersion(final long version)
     {
         RootReference rootReference = this;
         while (rootReference != null && rootReference.version > version)

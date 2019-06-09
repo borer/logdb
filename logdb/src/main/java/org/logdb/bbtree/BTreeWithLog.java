@@ -440,7 +440,7 @@ public class BTreeWithLog extends BTreeAbstract
      * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
-    public long get(final long key, final int version)
+    public long get(final long key, final long version)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -472,7 +472,7 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
-    private BTreeNode getRootNode(final int version, final BTreeMappedNode mappedNode)
+    private BTreeNode getRootNode(final long version, final BTreeMappedNode mappedNode)
     {
         final BTreeNode rootForVersion;
         final RootReference currentRootReference = uncommittedRoot.get();

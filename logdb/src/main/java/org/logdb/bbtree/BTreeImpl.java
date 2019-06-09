@@ -121,7 +121,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
-    public long get(final long key, final int version)
+    public long get(final long key, final long version)
     {
         assert version >= 0;
 
@@ -150,7 +150,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private CursorPosition getLastCursorPosition(long key, int version)
+    private CursorPosition getLastCursorPosition(final long key, final long version)
     {
         final CursorPosition cursorPosition;
         final RootReference currentRootReference = uncommittedRoot.get();
@@ -159,10 +159,10 @@ public class BTreeImpl extends BTreeAbstract
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
             if (rootNodeForVersion == null)
             {
-                final long commitedRootPageNumber = committedRoot.get();
-                if (commitedRootPageNumber >= 0)
+                final long committedRootPageNumber = committedRoot.get();
+                if (committedRootPageNumber >= 0)
                 {
-                    cursorPosition = traverseDown(commitedRootPageNumber, key);
+                    cursorPosition = traverseDown(committedRootPageNumber, key);
                 }
                 else
                 {

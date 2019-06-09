@@ -16,7 +16,7 @@ class FileDbHeaderTest
     {
         final FileDbHeader expectedHeader = new FileDbHeader(
                 ByteOrder.BIG_ENDIAN,
-                123,
+                123L,
                 4096,
                 4096 << 5,
                 987654321L);

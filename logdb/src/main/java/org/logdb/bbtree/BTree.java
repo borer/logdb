@@ -6,7 +6,7 @@ public interface BTree
 
     void put(long key, long value);
 
-    long get(long key, int version);
+    long get(long key, long version);
 
     long get(long key);
 

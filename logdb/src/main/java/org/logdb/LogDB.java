@@ -31,8 +31,7 @@ public class LogDB
         return logFile.read(offset);
     }
 
-    //TODO: make version long
-    public byte[] get(final long key, final int version)
+    public byte[] get(final long key, final long version)
     {
         final long offset = index.get(key, version);
         return logFile.read(offset);
