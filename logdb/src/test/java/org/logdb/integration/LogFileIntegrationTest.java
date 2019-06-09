@@ -5,31 +5,25 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.logfile.LogFile;
-import org.logdb.storage.FileStorage;
-import org.logdb.support.TestUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import static org.logdb.integration.TestIntegrationUtils.createNewLogFile;
 import static org.logdb.support.Assertions.assertByteArrayEquals;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class LogFileIntegrationTest
 {
     private LogFile logFile;
-    private FileStorage storage;
     @TempDir Path tempDirectory;
 
     @BeforeEach
     void setUp()
     {
-        storage = FileStorage.createNewFileDb(
-                tempDirectory.resolve("test.logdb").toFile(),
-                TestUtils.MAPPED_CHUNK_SIZE,
-                TestUtils.BYTE_ORDER,
-                PAGE_SIZE_BYTES);
-
-        logFile = new LogFile(storage);
+        final File file = tempDirectory.resolve("test.logdb").toFile();
+        logFile = createNewLogFile(file);
     }
 
     @AfterEach
@@ -37,7 +31,7 @@ class LogFileIntegrationTest
     {
         try
         {
-            storage.close();
+            logFile.close();
         }
         catch (IOException e)
         {
@@ -73,7 +67,7 @@ class LogFileIntegrationTest
     @Test
     void shouldPersistAndReadKeyValuesBiggerThanPageSize()
     {
-        final int length = (int) storage.getPageSize() * 2;
+        final int length = PAGE_SIZE_BYTES * 2;
         final byte[] keyBytes = generateByteArray(length);
         final byte[] valueBytes = generateByteArray(length);
 
@@ -93,6 +87,4 @@ class LogFileIntegrationTest
         }
         return buffer;
     }
-
-
 }

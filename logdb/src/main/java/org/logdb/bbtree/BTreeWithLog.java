@@ -285,6 +285,7 @@ public class BTreeWithLog extends BTreeAbstract
             final long keyAt = newRoot.getKey(at);
             final BTreeNodeHeap split = nodesManager.splitNode(newRoot, at, newVersion);
             final BTreeNodeHeap parent = nodesManager.createEmptyNonLeafNode();
+            parent.setVersion(newVersion);
 
             parent.insertChild(0, keyAt, newRoot);
             parent.setChild(1, split);
@@ -505,6 +506,17 @@ public class BTreeWithLog extends BTreeAbstract
             else
             {
                 mappedNode.initNode(commitedRootPageNumber);
+
+                while (mappedNode.getVersion() > version)
+                {
+                    final long previousRoot = mappedNode.getPreviousRoot();
+                    if (previousRoot < 0)
+                    {
+                        throw new IllegalArgumentException("Didn't have version " + version);
+                    }
+                    mappedNode.initNode(previousRoot);
+                }
+
                 rootForVersion = mappedNode;
             }
         }

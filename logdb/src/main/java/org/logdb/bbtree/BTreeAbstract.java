@@ -35,7 +35,7 @@ abstract class BTreeAbstract implements BTree
         final long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
-        final boolean isNewBtree = lastRootPageNumber == -1;
+        final boolean isNewBtree = lastRootPageNumber < 0;
         if (isNewBtree)
         {
             final RootReference rootReference = new RootReference(
@@ -45,6 +45,8 @@ abstract class BTreeAbstract implements BTree
                     null);
             this.uncommittedRoot = new AtomicReference<>(rootReference);
             this.writeVersion = INITIAL_VERSION;
+
+            nodesManager.addDirtyRoot(rootReference);
         }
         else
         {

@@ -91,10 +91,10 @@ public class BTreeImpl extends BTreeAbstract
                 {
                     this.nodesCount++;
                     final BTreeNodeHeap temp = nodesManager.createEmptyNonLeafNode();
+                    temp.setVersion(newVersion);
 
                     temp.insertChild(0, keyAt, currentNode);
                     temp.setChild(1, split);
-                    temp.setVersion(newVersion);
 
                     currentNode = temp;
 

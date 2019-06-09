@@ -2,6 +2,8 @@ package org.logdb.logfile;
 
 import org.logdb.storage.Storage;
 
+import java.io.IOException;
+
 public class LogFile
 {
     private final LogRecordStorage logRecordStorage;
@@ -31,5 +33,10 @@ public class LogFile
     public byte[] read(final long offset)
     {
         return logRecordStorage.readRecordValue(offset);
+    }
+
+    public void close() throws IOException
+    {
+        storage.close();
     }
 }

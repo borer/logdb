@@ -27,8 +27,9 @@ public class FileDbHeader
 
     private final int headerSizeInPages;
 
-    final int version;
-    final long lastRootOffset;
+    private int version;
+    private long lastRootOffset;
+
     final ByteOrder byteOrder;
     final int pageSize; // Must be a power of two
     final long memoryMappedChunkSizeBytes; //must be multiple of pageSize
@@ -98,13 +99,24 @@ public class FileDbHeader
         channel.position(headerSizeInPages * pageSize);
     }
 
-    void updateMeta(final RandomAccessFile file, final long newRootPageNumber, final long version) throws IOException
+    public long getLastRootOffset()
+    {
+        return lastRootOffset;
+    }
+
+    void updateMeta(final long newRootPageNumber, final int version)
+    {
+        this.lastRootOffset = newRootPageNumber;
+        this.version = version;
+    }
+
+    void writeMeta(final RandomAccessFile file) throws IOException
     {
         final long currentFilePosition = file.getFilePointer();
         file.seek(FileDbHeader.VERSION_OFFSET);
         //RandomAccessFile.writeLong always writes the long in big endian. that is why we need to invert it.
         file.writeLong(Long.reverseBytes(version));
-        file.writeLong(Long.reverseBytes(newRootPageNumber));
+        file.writeLong(Long.reverseBytes(lastRootOffset));
         file.seek(currentFilePosition);
     }
 

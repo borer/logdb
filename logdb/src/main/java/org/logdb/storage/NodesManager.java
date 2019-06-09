@@ -78,6 +78,7 @@ public class NodesManager
         final BTreeNodeHeap splitNode = createSameNodeType(originalNode);
         originalNode.split(at, splitNode);
         splitNode.setVersion(newVersion);
+        originalNode.setVersion(newVersion);
         return splitNode;
     }
 
@@ -138,11 +139,15 @@ public class NodesManager
             return;
         }
 
+        final long lastRootPageNumber = storage.getLastRootPageNumber();
+
         //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
 
         for (final RootReference dirtyRootNode : dirtyRootNodes)
         {
-            final long previousRootPageNumber = dirtyRootNode.previous != null ? dirtyRootNode.previous.getPageNumber() : -1;
+            final long previousRootPageNumber = dirtyRootNode.previous == null
+                    ? lastRootPageNumber
+                    : dirtyRootNode.previous.getPageNumber();
             final long pageNumber = dirtyRootNode.root.commit(
                     this,
                     true,
