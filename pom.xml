@@ -107,7 +107,7 @@
             <!--Enable checker framework-->
             <id>java8</id>
             <activation>
-                <jdk>(,9.0)</jdk>
+                <jdk>1.8</jdk>
             </activation>
             <build>
                 <pluginManagement>
@@ -142,10 +142,6 @@
                                 </execution>
                                 <execution>
                                     <id>annotation-processing</id>
-                                    <phase>compile</phase>
-                                    <goals>
-                                        <goal>compile</goal>
-                                    </goals>
                                     <configuration>
                                         <compilerVersion>${javac.target}</compilerVersion>
                                         <source>${javac.target}</source>
