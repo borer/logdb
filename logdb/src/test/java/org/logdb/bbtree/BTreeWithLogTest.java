@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.logdb.storage.MemoryStorage;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.Storage;
+import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,7 +22,7 @@ class BTreeWithLogTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTreeWithLog(nodesManager);
+        bTree = new BTreeWithLog(nodesManager, new StubTimeSource());
     }
 
     @Test

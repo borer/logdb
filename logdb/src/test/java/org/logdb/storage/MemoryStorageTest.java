@@ -1,7 +1,10 @@
 package org.logdb.storage;
 
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreePrinter;
+import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,13 +12,14 @@ import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class MemoryStorageTest
 {
-//    @Test
+    @Test
+    @Disabled
     void shouldBeAbleToReadBtreeAfterCommit()
     {
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage);
-        final BTreeImpl originalBTree = new BTreeImpl(nodesManager);
+        final BTreeImpl originalBTree = new BTreeImpl(nodesManager, new StubTimeSource());
 
         for (int i = 0; i < 100; i++)
         {
@@ -28,7 +32,7 @@ class MemoryStorageTest
 
         //load btree from existing memory
         final NodesManager readNodesManager = new NodesManager(memoryStorage);
-        final BTreeImpl loadedBTree = new BTreeImpl(readNodesManager);
+        final BTreeImpl loadedBTree = new BTreeImpl(readNodesManager, new StubTimeSource());
 
         final String loadedBtreePrint = BTreePrinter.print(loadedBTree, readNodesManager);
 

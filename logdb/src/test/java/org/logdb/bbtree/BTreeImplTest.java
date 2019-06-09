@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.logdb.storage.MemoryStorage;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.Storage;
+import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ class BTreeImplTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTreeImpl(nodesManager);
+        bTree = new BTreeImpl(nodesManager, new StubTimeSource());
     }
 
     @Test

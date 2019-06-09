@@ -3,6 +3,7 @@ package org.logdb.benchmark;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.NodesManager;
+import org.logdb.time.SystemTimeSource;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -43,7 +44,7 @@ public class TestRandomKeysWritingWithLogBenchmark
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
-            btree = new BTreeWithLog(nodesManager);
+            btree = new BTreeWithLog(nodesManager, new SystemTimeSource());
             random = new Random();
         }
 

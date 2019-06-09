@@ -1,14 +1,15 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.time.TimeSource;
 
 import java.util.function.BiConsumer;
 
 public class BTreeImpl extends BTreeAbstract
 {
-    public BTreeImpl(final NodesManager nodesManager)
+    public BTreeImpl(final NodesManager nodesManager, final TimeSource timeSource)
     {
-        super(nodesManager);
+        super(nodesManager, timeSource);
     }
 
     /**

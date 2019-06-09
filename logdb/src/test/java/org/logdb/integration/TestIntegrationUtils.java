@@ -5,6 +5,7 @@ import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.NodesManager;
+import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,7 @@ class TestIntegrationUtils
                 TestUtils.BYTE_ORDER,
                 PAGE_SIZE_BYTES);
 
-        return new LogFile(storageLogFile);
+        return new LogFile(storageLogFile, new StubTimeSource());
     }
 
     static BTreeWithLog createNewPersistedLogBtree(final File file)
@@ -40,7 +41,7 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
-        return new BTreeWithLog(nodesManage);
+        return new BTreeWithLog(nodesManage, new StubTimeSource());
     }
 
     static BTreeWithLog loadPersistedLogBtree(final File file)
@@ -50,7 +51,7 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorage.openDbFile(file);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        return new BTreeWithLog(nodesManager);
+        return new BTreeWithLog(nodesManager, new StubTimeSource());
     }
 
     static BTreeImpl createNewPersistedBtree(final File file)
@@ -63,7 +64,7 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
-        return new BTreeImpl(nodesManage);
+        return new BTreeImpl(nodesManage, new StubTimeSource());
     }
 
     static BTreeImpl loadPersistedBtree(final File file)
@@ -71,6 +72,6 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorage.openDbFile(file);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        return new BTreeImpl(nodesManager);
+        return new BTreeImpl(nodesManager, new StubTimeSource());
     }
 }

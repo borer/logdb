@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.time.TimeSource;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,15 +24,17 @@ abstract class BTreeAbstract implements BTree
     final AtomicReference<Long> committedRoot;
 
     protected final NodesManager nodesManager;
+    final TimeSource timeSource;
 
     long nodesCount;
 
     long writeVersion;
 
-    BTreeAbstract(final NodesManager nodesManager)
+    BTreeAbstract(final NodesManager nodesManager, final TimeSource timeSource)
     {
         this.nodesManager = Objects.requireNonNull(
                 nodesManager, "nodesManager must not be null");
+        this.timeSource = timeSource;
         final long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
@@ -40,7 +43,7 @@ abstract class BTreeAbstract implements BTree
         {
             final RootReference rootReference = new RootReference(
                     nodesManager.createEmptyLeafNode(),
-                    System.currentTimeMillis(),
+                    timeSource.getCurrentMillis(),
                     INITIAL_VERSION,
                     null);
             this.uncommittedRoot = new AtomicReference<>(rootReference);
@@ -194,7 +197,7 @@ abstract class BTreeAbstract implements BTree
         final RootReference currentRoot = uncommittedRoot.get();
 
         //TODO: extract timestamp retriever
-        final long timestamp = System.currentTimeMillis();
+        final long timestamp = timeSource.getCurrentMillis();
         final RootReference updatedRootReference = new RootReference(newRootPage, timestamp, newRootPage.getVersion(), currentRoot);
         boolean success = uncommittedRoot.compareAndSet(currentRoot, updatedRootReference);
 
