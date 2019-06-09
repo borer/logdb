@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 
 public class BTreeImpl extends BTreeAbstract
 {
-    public BTreeImpl(NodesManager nodesManager)
+    public BTreeImpl(final NodesManager nodesManager)
     {
         super(nodesManager);
     }

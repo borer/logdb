@@ -2,12 +2,17 @@ package org.logdb;
 
 import org.logdb.bbtree.BTree;
 import org.logdb.logfile.LogFile;
+import org.logdb.storage.NodesManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class LogDB
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodesManager.class);
+
     private final LogFile logFile;
     private final BTree index;
 
@@ -56,9 +61,9 @@ public class LogDB
             logFile.close();
             index.close();
         }
-        catch (IOException e)
+        catch (final IOException e)
         {
-            e.printStackTrace();
+            LOGGER.error("Unable to close DB", e);
         }
     }
 }

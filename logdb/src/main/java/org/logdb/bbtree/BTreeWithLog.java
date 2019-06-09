@@ -6,7 +6,7 @@ public class BTreeWithLog extends BTreeAbstract
 {
     private static final int LOG_VALUE_TO_REMOVE_SENTINEL = -1;
 
-    public BTreeWithLog(NodesManager nodesManager)
+    public BTreeWithLog(final NodesManager nodesManager)
     {
         super(nodesManager);
     }
