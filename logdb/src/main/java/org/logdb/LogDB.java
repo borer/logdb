@@ -3,6 +3,7 @@ package org.logdb;
 import org.logdb.bbtree.BTree;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public class LogDB
         return logFile.read(offset);
     }
 
-    public byte[] get(final long key, final long version)
+    public byte[] get(final long key, final @Version long version)
     {
         final long offset = index.get(key, version);
         return logFile.read(offset);

@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 
 import java.util.function.BiConsumer;
@@ -21,7 +22,7 @@ public class BTreeImpl extends BTreeAbstract
     public void remove(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final long newVersion = writeVersion++;
+        final @Version long newVersion = writeVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -69,7 +70,7 @@ public class BTreeImpl extends BTreeAbstract
     public void put(final long key, final long value)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final long newVersion = writeVersion++;
+        final @Version long newVersion = writeVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -122,7 +123,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
-    public long get(final long key, final long version)
+    public long get(final long key, final @Version long version)
     {
         assert version >= 0;
 
@@ -151,7 +152,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private CursorPosition getLastCursorPosition(final long key, final long version)
+    private CursorPosition getLastCursorPosition(final long key, final @Version long version)
     {
         final CursorPosition cursorPosition;
         final RootReference currentRootReference = uncommittedRoot.get();
@@ -228,9 +229,9 @@ public class BTreeImpl extends BTreeAbstract
      * @param version Version that we want to scan for
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(final int version, final BiConsumer<Long, Long> consumer)
+    public void consumeAll(final @Version long version, final BiConsumer<Long, Long> consumer)
     {
-        assert version >= 0;
+        assert version >= 0 : "version must be positive. Provided " + version;
 
         final RootReference rootReference = uncommittedRoot.get();
         if (rootReference != null)
@@ -386,7 +387,7 @@ public class BTreeImpl extends BTreeAbstract
     {
         BTreeNodeHeap currentNode = current;
         CursorPosition parentCursor = cursor;
-        final long version = current.getVersion();
+        final @Version long version = current.getVersion();
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {

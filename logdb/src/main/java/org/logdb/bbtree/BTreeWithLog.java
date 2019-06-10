@@ -1,6 +1,8 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
+import org.logdb.storage.VersionUnit;
 import org.logdb.time.TimeSource;
 
 public class BTreeWithLog extends BTreeAbstract
@@ -23,7 +25,7 @@ public class BTreeWithLog extends BTreeAbstract
         try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
             BTreeNode currentNode;
-            final long newVersion = writeVersion++;
+            final @Version long newVersion = writeVersion++;
 
             final RootReference rootReference = uncommittedRoot.get();
             if (rootReference != null && rootReference.root != null)
@@ -149,7 +151,7 @@ public class BTreeWithLog extends BTreeAbstract
     public void removeWithoutFalsePositives(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final long newVersion = writeVersion + 1;
+        final @Version long newVersion = VersionUnit.version(writeVersion + 1);
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -259,7 +261,7 @@ public class BTreeWithLog extends BTreeAbstract
     public void put(final long key, final long value)
     {
         BTreeNodeHeap newRoot;
-        final long newVersion = writeVersion++;
+        final @Version long newVersion = writeVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -441,7 +443,7 @@ public class BTreeWithLog extends BTreeAbstract
      * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
-    public long get(final long key, final long version)
+    public long get(final long key, final @Version long version)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -473,11 +475,11 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
-    private BTreeNode getRootNode(final long version, final BTreeMappedNode mappedNode)
+    private BTreeNode getRootNode(final @Version long version, final BTreeMappedNode mappedNode)
     {
         final BTreeNode rootForVersion;
         final RootReference currentRootReference = uncommittedRoot.get();
-        final long commitedRootPageNumber = committedRoot.get();
+        final long committedRootPageNumber = committedRoot.get();
         if (currentRootReference != null)
         {
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
@@ -487,26 +489,26 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                if (commitedRootPageNumber < 0)
+                if (committedRootPageNumber < 0)
                 {
                     throw new IllegalArgumentException("Didn't have version " + version);
                 }
                 else
                 {
-                    mappedNode.initNode(commitedRootPageNumber);
+                    mappedNode.initNode(committedRootPageNumber);
                     rootForVersion = mappedNode;
                 }
             }
         }
         else
         {
-            if (commitedRootPageNumber < 0)
+            if (committedRootPageNumber < 0)
             {
                 throw new IllegalArgumentException("Didn't have version " + version);
             }
             else
             {
-                mappedNode.initNode(commitedRootPageNumber);
+                mappedNode.initNode(committedRootPageNumber);
 
                 while (mappedNode.getVersion() > version)
                 {

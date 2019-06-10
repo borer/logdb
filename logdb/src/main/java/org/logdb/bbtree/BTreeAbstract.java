@@ -1,6 +1,8 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
+import org.logdb.storage.VersionUnit;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
@@ -13,7 +15,7 @@ abstract class BTreeAbstract implements BTree
      * This designates the "last stored" version for a store which was
      * just open for the first time.
      */
-    private static final long INITIAL_VERSION = 0;
+    private static final @Version long INITIAL_VERSION = VersionUnit.version(0);
 
     /**
      * Reference to the current uncommitted root page.
@@ -29,7 +31,7 @@ abstract class BTreeAbstract implements BTree
 
     long nodesCount;
 
-    long writeVersion;
+    @Version long writeVersion;
 
     BTreeAbstract(final NodesManager nodesManager, final TimeSource timeSource)
     {
@@ -72,7 +74,7 @@ abstract class BTreeAbstract implements BTree
         if (uncommittedRootReference != null)
         {
             final long pageNumber = uncommittedRootReference.getPageNumber();
-            final long version = uncommittedRootReference.version;
+            final @Version long version = uncommittedRootReference.version;
             nodesManager.commitLastRootPage(pageNumber, version);
 
             uncommittedRoot.set(null);

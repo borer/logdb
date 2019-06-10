@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
 public final class RootReference
@@ -17,7 +18,7 @@ public final class RootReference
     /**
      * The version used for writing.
      */
-    public final long version;
+    public final @Version long version;
 
     /**
      * Reference to the previous root in the chain.
@@ -26,7 +27,7 @@ public final class RootReference
 
     RootReference(final BTreeNodeHeap root,
                   final @Milliseconds long timestamp,
-                  final long version,
+                  final @Version long version,
                   final RootReference previous)
     {
         this.pageNumber = -1;
@@ -46,7 +47,7 @@ public final class RootReference
         return pageNumber;
     }
 
-    RootReference getRootReferenceForVersion(final long version)
+    RootReference getRootReferenceForVersion(final @Version long version)
     {
         RootReference rootReference = this;
         while (rootReference != null && rootReference.version > version)

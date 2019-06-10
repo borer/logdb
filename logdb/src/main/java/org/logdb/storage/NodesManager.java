@@ -73,7 +73,10 @@ public class NodesManager
         mappedNodes.add(mappedNode);
     }
 
-    public BTreeNodeHeap splitNode(final BTreeNode originalNode, final int at, final long newVersion)
+    public BTreeNodeHeap splitNode(
+            final BTreeNode originalNode,
+            final int at,
+            final @Version long newVersion)
     {
         final BTreeNodeHeap splitNode = createSameNodeType(originalNode);
         originalNode.split(at, splitNode);
@@ -82,7 +85,7 @@ public class NodesManager
         return splitNode;
     }
 
-    public BTreeNodeHeap copyNode(final BTreeNode originalNode, final long newVersion)
+    public BTreeNodeHeap copyNode(final BTreeNode originalNode, final @Version long newVersion)
     {
         final BTreeNodeHeap copyNode = createSameNodeType(originalNode);
         originalNode.copy(copyNode);
@@ -210,7 +213,7 @@ public class NodesManager
         }
     }
 
-    public void commitLastRootPage(final long offsetLastRoot, final long version)
+    public void commitLastRootPage(final long offsetLastRoot, final @Version long version)
     {
         storage.commitMetadata(offsetLastRoot, version);
     }

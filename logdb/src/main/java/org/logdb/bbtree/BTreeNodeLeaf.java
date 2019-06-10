@@ -3,6 +3,8 @@ package org.logdb.bbtree;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
@@ -111,7 +113,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long commit(final NodesManager nodesManager, final boolean isRoot, long previousRootPageNumber, final long timestamp, final long version)
+    public long commit(
+            final NodesManager nodesManager,
+            final boolean isRoot,
+            final long previousRootPageNumber,
+            final @Milliseconds long timestamp,
+            final @Version long version)
     {
         if (isDirty)
         {

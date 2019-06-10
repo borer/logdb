@@ -2,6 +2,9 @@ package org.logdb.bbtree;
 
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.Version;
+import org.logdb.storage.VersionUnit;
+import org.logdb.time.Milliseconds;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -56,7 +59,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.isDirty = true;
     }
 
-    void preCommit(final boolean isRoot, final long previousRootPageNumber, final long timestamp, final long version)
+    void preCommit(
+            final boolean isRoot,
+            final long previousRootPageNumber,
+            final @Milliseconds long timestamp,
+            final @Version long version)
     {
         if (isRoot)
         {
@@ -75,7 +82,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
         isDirty = false;
     }
 
-    private void preCommitRoot(final long previousRootPageNumber, final long timestamp, final long version)
+    private void preCommitRoot(
+            final long previousRootPageNumber,
+            final @Milliseconds long timestamp,
+            final @Version long version)
     {
         setNodePageType(getNodeType());
         setRootFlag(true);
@@ -117,7 +127,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getByte(BTreeNodePage.PAGE_IS_ROOT_OFFSET) == 1;
     }
 
-    void setTimestamp(final long timestamp)
+    void setTimestamp(final @Milliseconds long timestamp)
     {
         buffer.putLong(BTreeNodePage.PAGE_TIMESTAMP_OFFSET, timestamp);
     }
@@ -128,15 +138,15 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public void setVersion(final long version)
+    public void setVersion(final @Version long version)
     {
         buffer.putLong(BTreeNodePage.PAGE_VERSION_OFFSET, version);
     }
 
     @Override
-    public long getVersion()
+    public @Version long getVersion()
     {
-        return buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET);
+        return VersionUnit.version(buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET));
     }
 
     @Override

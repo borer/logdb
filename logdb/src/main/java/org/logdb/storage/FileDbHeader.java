@@ -41,7 +41,7 @@ public class FileDbHeader
 
     private final int headerSizeInPages;
 
-    private long version;
+    private @Version long version;
     private long lastRootOffset;
 
     final ByteOrder byteOrder;
@@ -50,7 +50,7 @@ public class FileDbHeader
 
     FileDbHeader(
             final ByteOrder byteOrder,
-            final long version,
+            final @Version long version,
             final int pageSize,
             final long memoryMappedChunkSizeBytes,
             final long lastRootOffset)
@@ -82,7 +82,7 @@ public class FileDbHeader
         }
 
         final ByteOrder byteOrder = getByteOrder(buffer.get(BYTE_ORDER_OFFSET));
-        final long version = getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET));
+        final @Version long version = VersionUnit.version(getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET)));
         final int pageSize = getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET));
         final long memoryMappedChunkSizeBytes = getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET));
         final long lastRootOffset = getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET));
@@ -118,7 +118,7 @@ public class FileDbHeader
         return lastRootOffset;
     }
 
-    void updateMeta(final long newRootPageNumber, final long version)
+    void updateMeta(final long newRootPageNumber, final @Version long version)
     {
         this.lastRootOffset = newRootPageNumber;
         this.version = version;

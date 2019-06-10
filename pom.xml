@@ -144,6 +144,10 @@
                                 </execution>
                                 <execution>
                                     <id>annotation-processing</id>
+                                    <phase>compile</phase>
+                                    <goals>
+                                        <goal>compile</goal>
+                                    </goals>
                                     <configuration>
                                         <annotationProcessors>
                                             <!--<annotationProcessor>-->
@@ -158,8 +162,8 @@
                                         </annotationProcessors>
                                         <compilerArgs>
                                             <arg>-proc:only</arg>
-                                            <arg>-Aunits=org.logdb.time.Milliseconds</arg>
-                                            <arg>-AskipUses=org.logdb.time.TimeUnits</arg>
+                                            <arg>-Aunits=org.logdb.time.Milliseconds,org.logdb.storage.Version</arg>
+                                            <arg>-AskipUses=org\.logdb\.time\.TimeUnits|org\.logdb\.storage\.VersionUnit</arg>
                                         </compilerArgs>
                                     </configuration>
                                 </execution>

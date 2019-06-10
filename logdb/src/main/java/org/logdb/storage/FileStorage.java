@@ -254,11 +254,11 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public void commitMetadata(final long lastRootPageNumber, final long version)
+    public void commitMetadata(final long lastRootPageNumber, final @Version long version)
     {
         try
         {
-            fileDbHeader.updateMeta(lastRootPageNumber, (int)version);
+            fileDbHeader.updateMeta(lastRootPageNumber, version);
             fileDbHeader.writeMeta(dbFile);
         }
         catch (final IOException e)

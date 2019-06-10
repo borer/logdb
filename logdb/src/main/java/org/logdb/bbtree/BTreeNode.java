@@ -1,6 +1,8 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 
 public interface BTreeNode
 {
@@ -81,7 +83,12 @@ public interface BTreeNode
      * @param previousRootPageNumber the page number of the previous root node. If first root, then this value is -1
      * @return the address offset where the node was stored
      */
-    long commit(NodesManager nodesManager, boolean isRoot, long previousRootPageNumber, long timestamp, long version);
+    long commit(
+            NodesManager nodesManager,
+            boolean isRoot,
+            long previousRootPageNumber,
+            @Milliseconds long timestamp,
+            @Version long version);
 
     boolean isDirty();
 
@@ -107,9 +114,9 @@ public interface BTreeNode
 
     int getNumberOfChildren();
 
-    void setVersion(long newVersion);
+    void setVersion(@Version long newVersion);
 
-    long getVersion();
+    @Version long getVersion();
 
     /**
      * Calculates if the node needs splitting. This only considers the node key/value paris and ignores the buffer size.

@@ -4,6 +4,8 @@ import org.logdb.bit.DirectMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.Storage;
+import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 
 public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
 {
@@ -104,8 +106,8 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     public long commit(final NodesManager nodesManager,
                        final boolean isRoot,
                        final long previousRootPageNumber,
-                       final long timestamp,
-                       final long version)
+                       final @Milliseconds long timestamp,
+                       final @Version long version)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support commit");
     }
