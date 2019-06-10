@@ -29,9 +29,9 @@ public interface Storage extends Closeable
 
     long getPageSize();
 
-    long getPageNumber(long offset);
+    @PageNumber long getPageNumber(long offset);
 
-    long getOffset(long pageNumber);
+    long getOffset(@PageNumber long pageNumber);
 
     /**
      * Write any arbitrary buffer.
@@ -45,15 +45,15 @@ public interface Storage extends Closeable
      * @param buffer the buffer to store, must be of size of a page
      * @return the page number where the buffer is located
      */
-    long writePageAligned(ByteBuffer buffer);
+    @PageNumber long writePageAligned(ByteBuffer buffer);
 
     void flush();
 
-    void commitMetadata(long lastRootPageNumber, @Version long version);
+    void commitMetadata(@PageNumber long lastRootPageNumber, @Version long version);
 
-    long getLastRootPageNumber();
+    @PageNumber long getLastRootPageNumber();
 
-    DirectMemory loadPage(long pageNumber);
+    DirectMemory loadPage(@PageNumber long pageNumber);
 
-    long getBaseOffsetForPageNumber(long pageNumber);
+    long getBaseOffsetForPageNumber(@PageNumber long pageNumber);
 }

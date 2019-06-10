@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 
 public interface BTree
@@ -20,7 +21,7 @@ public interface BTree
 
     long getNodesCount();
 
-    long getCommittedRoot();
+    @PageNumber long getCommittedRoot();
 
     BTreeNode getUncommittedRoot();
 }

@@ -60,7 +60,7 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            assertEquals(-1, bTreeNonLeaf.logBinarySearch(i));
+            assertEquals(-1, bTreeNonLeaf.binarySearchInLog(i));
         }
     }
 
@@ -262,7 +262,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
             final long expectedKey =  numKeysPerChild * i;
-            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            final int logIndex = bTreeNonLeaf.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
             assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
         }
@@ -287,7 +287,7 @@ class BTreeNodeNonLeafTest
             final long keyAtIndex = split.getKey(i);
             assertEquals(expectedKey, keyAtIndex);
 
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
 
@@ -299,7 +299,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
         }
@@ -365,7 +365,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
             final long expectedKey =  numKeysPerChild * i;
-            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            final int logIndex = bTreeNonLeaf.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
             assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
         }
@@ -390,7 +390,7 @@ class BTreeNodeNonLeafTest
             final long keyAtIndex = split.getKey(i);
             assertEquals(expectedKey, keyAtIndex);
 
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
 
@@ -402,7 +402,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
         }
@@ -529,7 +529,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
             final long expectedKey =  numKeysPerChild * i;
-            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            final int logIndex = bTreeNonLeaf.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
             assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
         }
@@ -556,7 +556,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
         }
@@ -616,7 +616,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
             final long expectedKey =  numKeysPerChild * i;
-            final int logIndex = bTreeNonLeaf.logBinarySearch(expectedKey);
+            final int logIndex = bTreeNonLeaf.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, bTreeNonLeaf.getLogKey(logIndex));
             assertEquals(expectedKey, bTreeNonLeaf.getLogValue(logIndex));
         }
@@ -643,7 +643,7 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final long expectedKey = maxLogKeyInCurrent + (numKeysPerChild * i);
-            final int logIndex = split.logBinarySearch(expectedKey);
+            final int logIndex = split.binarySearchInLog(expectedKey);
             assertEquals(expectedKey, split.getLogKey(logIndex));
             assertEquals(expectedKey, split.getLogValue(logIndex));
         }

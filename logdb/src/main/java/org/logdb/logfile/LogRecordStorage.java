@@ -2,7 +2,9 @@ package org.logdb.logfile;
 
 import org.logdb.bit.ChecksumUtil;
 import org.logdb.bit.DirectMemory;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
+import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
 import java.nio.ByteBuffer;
@@ -36,7 +38,7 @@ class LogRecordStorage
         this.logRecordHeader = new LogRecordHeader();
     }
 
-    long write(final byte[] key, final byte[] value, final long version, final @Milliseconds long timestamp)
+    long write(final byte[] key, final byte[] value, final @Version long version, final @Milliseconds long timestamp)
     {
         final int checksum = calculateChecksum(key, value, version, timestamp);
         logRecordHeader.init(checksum, key.length, value.length, version, timestamp);
@@ -52,7 +54,7 @@ class LogRecordStorage
     private int calculateChecksum(
             final byte[] key,
             final byte[] value,
-            final long version,
+            final @Version long version,
             final @Milliseconds long timestamp)
     {
         checksumer.updateChecksum(key, 0, key.length);
@@ -70,7 +72,7 @@ class LogRecordStorage
 
     private PagePosition readHeader(final long offset)
     {
-        long pageNumber = storage.getPageNumber(offset);
+        @PageNumber long pageNumber = storage.getPageNumber(offset);
         long offsetInsidePage = offset - storage.getOffset(pageNumber);
 
         //get page address
@@ -106,7 +108,7 @@ class LogRecordStorage
 
     private byte[] readValue(final PagePosition pagePosition)
     {
-        long pageNumber = pagePosition.pageNumber;
+        @PageNumber long pageNumber = pagePosition.pageNumber;
 
         final ByteBuffer valueBuffer = ByteBuffer.allocate(logRecordHeader.getValueLength());
         final boolean isKeyValueInsidePage =
@@ -121,7 +123,7 @@ class LogRecordStorage
         }
         else
         {
-            final long keyLengthInPages = storage.getPageNumber(logRecordHeader.getKeyLength());
+            final @PageNumber long keyLengthInPages = storage.getPageNumber(logRecordHeader.getKeyLength());
             long offsetPage = pagePosition.offsetInPage + (logRecordHeader.getKeyLength() - storage.getOffset(keyLengthInPages));
 
             //skip the key bytes
@@ -146,10 +148,10 @@ class LogRecordStorage
 
     private static final class PagePosition
     {
-        final long pageNumber;
+        final @PageNumber long pageNumber;
         final long offsetInPage;
 
-        PagePosition(long pageNumber, long offsetInPage)
+        PagePosition(final @PageNumber long pageNumber, final long offsetInPage)
         {
             this.pageNumber = pageNumber;
             this.offsetInPage = offsetInPage;

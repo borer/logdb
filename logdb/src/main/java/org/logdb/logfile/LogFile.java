@@ -1,6 +1,8 @@
 package org.logdb.logfile;
 
 import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
@@ -12,13 +14,13 @@ public class LogFile
     private final Storage storage;
     private final TimeSource timeSource;
 
-    private int version;
+    private @Version long version;
 
     public LogFile(final Storage storage, final TimeSource timeSource)
     {
         this.storage = storage;
         this.timeSource = timeSource;
-        this.version = 0;
+        this.version = StorageUnits.version(0);
         this.logRecordStorage = new LogRecordStorage(storage);
     }
 

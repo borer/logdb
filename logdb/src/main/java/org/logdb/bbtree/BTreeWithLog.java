@@ -1,8 +1,9 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
-import org.logdb.storage.VersionUnit;
 import org.logdb.time.TimeSource;
 
 public class BTreeWithLog extends BTreeAbstract
@@ -34,7 +35,7 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                mappedNode.initNode(committedRoot.get());
+                mappedNode.initNode(StorageUnits.pageNumber(committedRoot.get()));
                 currentNode = mappedNode;
             }
             BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
@@ -151,7 +152,7 @@ public class BTreeWithLog extends BTreeAbstract
     public void removeWithoutFalsePositives(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final @Version long newVersion = VersionUnit.version(writeVersion + 1);
+        final @Version long newVersion = StorageUnits.version(writeVersion + 1);
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -190,7 +191,7 @@ public class BTreeWithLog extends BTreeAbstract
                     index = parentCursor.index;
                     parentCopy.remove(index);
 
-                    final int logIndex = ((BTreeNodeAbstract) parentCopy).logBinarySearch(key);
+                    final int logIndex = ((BTreeNodeAbstract) parentCopy).binarySearchInLog(key);
                     if (logIndex > 0)
                     {
                         ((BTreeNodeAbstract) parentCopy).removeLogKeyValue(logIndex);
@@ -216,7 +217,7 @@ public class BTreeWithLog extends BTreeAbstract
                 final BTreeNode parentNode = parentCursor.getNode(mappedNode);
                 if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
                 {
-                    final int logIndex = ((BTreeNodeAbstract) parentNode).logBinarySearch(key);
+                    final int logIndex = ((BTreeNodeAbstract) parentNode).binarySearchInLog(key);
                     if (wasFound)
                     {
                         final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
@@ -274,7 +275,7 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                mappedNode.initNode(committedRoot.get());
+                mappedNode.initNode(StorageUnits.pageNumber(committedRoot.get()));
                 currentNode = mappedNode;
             }
             newRoot = nodesManager.copyNode(currentNode, newVersion);
@@ -428,7 +429,7 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                mappedNode.initNode(committedRoot.get());
+                mappedNode.initNode(StorageUnits.pageNumber(committedRoot.get()));
                 currentNode = mappedNode;
             }
 
@@ -461,7 +462,7 @@ public class BTreeWithLog extends BTreeAbstract
             {
                 if (((BTreeNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
                 {
-                    final int logIndex = ((BTreeNodeAbstract) currentNode).logBinarySearch(key);
+                    final int logIndex = ((BTreeNodeAbstract) currentNode).binarySearchInLog(key);
                     if (logIndex >= 0)
                     {
                         return ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
@@ -479,7 +480,7 @@ public class BTreeWithLog extends BTreeAbstract
     {
         final BTreeNode rootForVersion;
         final RootReference currentRootReference = uncommittedRoot.get();
-        final long committedRootPageNumber = committedRoot.get();
+        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
         if (currentRootReference != null)
         {
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
@@ -512,7 +513,7 @@ public class BTreeWithLog extends BTreeAbstract
 
                 while (mappedNode.getVersion() > version)
                 {
-                    final long previousRoot = mappedNode.getPreviousRoot();
+                    final @PageNumber long previousRoot = mappedNode.getPreviousRoot();
                     if (previousRoot < 0)
                     {
                         throw new IllegalArgumentException("Didn't have version " + version);

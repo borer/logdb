@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
@@ -10,7 +11,7 @@ public interface BTreeNode
      * The page number where this node is persisted or a generated id if it's not yet persisted.
       * @return pagenumber
      */
-    long getPageNumber();
+    @PageNumber long getPageNumber();
 
     /**
      * Reload node in memory data from backing storage.
@@ -83,10 +84,10 @@ public interface BTreeNode
      * @param previousRootPageNumber the page number of the previous root node. If first root, then this value is -1
      * @return the address offset where the node was stored
      */
-    long commit(
+    @PageNumber long commit(
             NodesManager nodesManager,
             boolean isRoot,
-            long previousRootPageNumber,
+            @PageNumber long previousRootPageNumber,
             @Milliseconds long timestamp,
             @Version long version);
 

@@ -1,6 +1,8 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 
@@ -161,7 +163,7 @@ public class BTreeImpl extends BTreeAbstract
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
             if (rootNodeForVersion == null)
             {
-                final long committedRootPageNumber = committedRoot.get();
+                final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
                 if (committedRootPageNumber >= 0)
                 {
                     cursorPosition = traverseDown(committedRootPageNumber, key);
@@ -178,7 +180,7 @@ public class BTreeImpl extends BTreeAbstract
         }
         else
         {
-            cursorPosition = traverseDown(committedRoot.get(), key);
+            cursorPosition = traverseDown(StorageUnits.pageNumber(committedRoot.get()), key);
         }
 
         return cursorPosition;
@@ -205,7 +207,7 @@ public class BTreeImpl extends BTreeAbstract
         }
         else
         {
-            final Long committedRootPageNumber = committedRoot.get();
+            final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
             boolean isNonLeaf = false;
             try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
             {
@@ -250,7 +252,7 @@ public class BTreeImpl extends BTreeAbstract
             }
             else
             {
-                long committedRootPageNumber = committedRoot.get();
+                @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
                 boolean isNonLeaf = false;
                 try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
                 {
@@ -276,7 +278,7 @@ public class BTreeImpl extends BTreeAbstract
         }
         else
         {
-            long committedRootPageNumber = committedRoot.get();
+            @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
             boolean isNonLeaf = false;
             try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
             {
@@ -302,7 +304,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final long nonLeafPageNumber)
+    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final @PageNumber long nonLeafPageNumber)
     {
         assert nonLeafPageNumber > 0;
 
@@ -350,7 +352,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final long leafPageNumber)
+    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final @PageNumber long leafPageNumber)
     {
         assert leafPageNumber > 0;
 

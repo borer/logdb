@@ -1,25 +1,28 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
+
 import java.util.function.LongSupplier;
 
 public class IdSupplier implements LongSupplier
 {
-    private long id;
+    private @PageNumber long id;
 
     public IdSupplier()
     {
-        this.id = 0;
+        this.id = StorageUnits.pageNumber(0);
     }
 
-    public IdSupplier(long id)
+    public IdSupplier(final @PageNumber long id)
     {
         this.id = id;
     }
 
     @Override
-    public long getAsLong()
+    public @PageNumber long getAsLong()
     {
-        final long idToReturn = id;
+        final @PageNumber long idToReturn = id;
         id++;
         return idToReturn;
     }

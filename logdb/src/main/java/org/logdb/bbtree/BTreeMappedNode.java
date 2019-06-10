@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
@@ -21,7 +22,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
             final Storage storage,
             final DirectMemory memory,
             final long pageSize,
-            final long pageNumber)
+            final @PageNumber long pageNumber)
     {
         super(pageNumber, memory, 0, 0, 0);
         this.nodesManager = nodesManager;
@@ -35,7 +36,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
      * After setting the page number and pagen number offset, read memory to initialize the node.
      * @param pageNumber the page number
      */
-    public void initNode(final long pageNumber)
+    public void initNode(final @PageNumber long pageNumber)
     {
         this.pageNumber = pageNumber;
         this.baseOffset = storage.getBaseOffsetForPageNumber(pageNumber);
@@ -50,19 +51,19 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     }
 
     @Override
-    public void insert(long key, long value)
+    public void insert(final long key, final long value)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support insertion");
     }
 
     @Override
-    public void remove(int index)
+    public void remove(final int index)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support removal");
     }
 
     @Override
-    public long get(long key)
+    public long get(final long key)
     {
         int index = getKeyIndex(key);
         if (getNodeType() == BtreeNodeType.Leaf)
@@ -73,7 +74,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     }
 
     @Override
-    public int getKeyIndex(long key)
+    public int getKeyIndex(final long key)
     {
         int index = binarySearch(key) + 1;
         if (index < 0)
@@ -103,9 +104,9 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     }
 
     @Override
-    public long commit(final NodesManager nodesManager,
+    public @PageNumber long commit(final NodesManager nodesManager,
                        final boolean isRoot,
-                       final long previousRootPageNumber,
+                       final @PageNumber long previousRootPageNumber,
                        final @Milliseconds long timestamp,
                        final @Version long version)
     {
@@ -113,7 +114,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     }
 
     @Override
-    public BTreeNode getChildAt(int index)
+    public BTreeNode getChildAt(final int index)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support getting children at position");
     }

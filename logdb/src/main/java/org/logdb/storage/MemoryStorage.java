@@ -15,7 +15,7 @@ public class MemoryStorage implements Storage
     private final HashMap<Long, DirectMemory> maps;
 
     private long allocatedMemoryOffset;
-    private long lastPageRootNumber;
+    private @PageNumber long lastPageRootNumber;
 
     public MemoryStorage(final ByteOrder byteOrder,
                          final int pageSizeBytes)
@@ -24,7 +24,7 @@ public class MemoryStorage implements Storage
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = 0L;
-        this.lastPageRootNumber = -1L;
+        this.lastPageRootNumber = StorageUnits.pageNumber(-1L);
     }
 
     @Override
@@ -46,13 +46,13 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long getPageNumber(final long offset)
+    public @PageNumber long getPageNumber(final long offset)
     {
-        return offset;
+        return StorageUnits.pageNumber(offset);
     }
 
     @Override
-    public long getOffset(long pageNumber)
+    public long getOffset(final @PageNumber long pageNumber)
     {
         return pageNumber;
     }
@@ -72,9 +72,9 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long writePageAligned(final ByteBuffer buffer)
+    public @PageNumber long writePageAligned(final ByteBuffer buffer)
     {
-        return write(buffer);
+        return StorageUnits.pageNumber(write(buffer));
     }
 
     @Override
@@ -90,25 +90,25 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long getLastRootPageNumber()
+    public @PageNumber long getLastRootPageNumber()
     {
         return lastPageRootNumber;
     }
 
     @Override
-    public void commitMetadata(final long lastRootPageNumber, long version)
+    public void commitMetadata(final @PageNumber long lastRootPageNumber, @Version long version)
     {
         this.lastPageRootNumber = lastRootPageNumber;
     }
 
     @Override
-    public DirectMemory loadPage(final long pageNumber)
+    public DirectMemory loadPage(final @PageNumber long pageNumber)
     {
         return maps.get(pageNumber);
     }
 
     @Override
-    public long getBaseOffsetForPageNumber(long pageNumber)
+    public long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
     {
         final DirectMemory directMemory = maps.get(pageNumber);
         if (directMemory == null)

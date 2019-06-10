@@ -42,7 +42,7 @@ public class FileDbHeader
     private final int headerSizeInPages;
 
     private @Version long version;
-    private long lastRootOffset;
+    private @PageNumber long lastRootOffset;
 
     final ByteOrder byteOrder;
     final int pageSize; // Must be a power of two
@@ -53,7 +53,7 @@ public class FileDbHeader
             final @Version long version,
             final int pageSize,
             final long memoryMappedChunkSizeBytes,
-            final long lastRootOffset)
+            final @PageNumber long lastRootOffset)
     {
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
         assert memoryMappedChunkSizeBytes % pageSize == 0 : "memoryMappedChunkSizeBytes must be multiple of pageSize";
@@ -82,10 +82,10 @@ public class FileDbHeader
         }
 
         final ByteOrder byteOrder = getByteOrder(buffer.get(BYTE_ORDER_OFFSET));
-        final @Version long version = VersionUnit.version(getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET)));
+        final @Version long version = StorageUnits.version(getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET)));
         final int pageSize = getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET));
         final long memoryMappedChunkSizeBytes = getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET));
-        final long lastRootOffset = getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET));
+        final @PageNumber long lastRootOffset = StorageUnits.pageNumber(getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET)));
 
         return new FileDbHeader(byteOrder, version, pageSize, memoryMappedChunkSizeBytes, lastRootOffset);
     }
@@ -113,12 +113,12 @@ public class FileDbHeader
         channel.position(headerSizeInPages * pageSize);
     }
 
-    public long getLastRootOffset()
+    public @PageNumber long getLastRootOffset()
     {
         return lastRootOffset;
     }
 
-    void updateMeta(final long newRootPageNumber, final @Version long version)
+    void updateMeta(final @PageNumber long newRootPageNumber, final @Version long version)
     {
         this.lastRootOffset = newRootPageNumber;
         this.version = version;

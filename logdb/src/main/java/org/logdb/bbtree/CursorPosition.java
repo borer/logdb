@@ -1,9 +1,11 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.PageNumber;
+
 public final class CursorPosition
 {
     private final BTreeNode node;
-    private final long pageNumber;
+    private @PageNumber final long pageNumber;
 
     final int index;
     final CursorPosition parent;
@@ -15,7 +17,7 @@ public final class CursorPosition
      * @param index the index inside that node
      * @param parent the parent of the current node
      */
-    public CursorPosition(final BTreeNode node, final long pageNumber, final int index, final CursorPosition parent)
+    public CursorPosition(final BTreeNode node, final @PageNumber long pageNumber, final int index, final CursorPosition parent)
     {
         this.node = node;
         this.pageNumber = pageNumber;

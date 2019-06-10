@@ -1,8 +1,9 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
-import org.logdb.storage.VersionUnit;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
@@ -15,7 +16,7 @@ abstract class BTreeAbstract implements BTree
      * This designates the "last stored" version for a store which was
      * just open for the first time.
      */
-    private static final @Version long INITIAL_VERSION = VersionUnit.version(0);
+    private static final @Version long INITIAL_VERSION = StorageUnits.version(0);
 
     /**
      * Reference to the current uncommitted root page.
@@ -38,7 +39,7 @@ abstract class BTreeAbstract implements BTree
         this.nodesManager = Objects.requireNonNull(
                 nodesManager, "nodesManager must not be null");
         this.timeSource = timeSource;
-        final long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
+        final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
         final boolean isNewBtree = lastRootPageNumber < 0;
@@ -73,7 +74,7 @@ abstract class BTreeAbstract implements BTree
         final RootReference uncommittedRootReference = uncommittedRoot.get();
         if (uncommittedRootReference != null)
         {
-            final long pageNumber = uncommittedRootReference.getPageNumber();
+            final @PageNumber long pageNumber = uncommittedRootReference.getPageNumber();
             final @Version long version = uncommittedRootReference.version;
             nodesManager.commitLastRootPage(pageNumber, version);
 
@@ -102,9 +103,9 @@ abstract class BTreeAbstract implements BTree
     }
 
     @Override
-    public long getCommittedRoot()
+    public @PageNumber long getCommittedRoot()
     {
-        final long committedRootPageNumber = committedRoot.get();
+        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
         assert committedRootPageNumber > 0 : "Committed root page number must be positive. Current " + committedRootPageNumber;
         return committedRootPageNumber;
     }
@@ -119,7 +120,7 @@ abstract class BTreeAbstract implements BTree
         }
         else
         {
-            cursorPosition = traverseDown(committedRoot.get(), key);
+            cursorPosition = traverseDown(StorageUnits.pageNumber(committedRoot.get()), key);
         }
         return cursorPosition;
     }
@@ -148,7 +149,7 @@ abstract class BTreeAbstract implements BTree
         return cursor;
     }
 
-    protected CursorPosition traverseDown(final long rootPageNumber, final long key)
+    protected CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -184,7 +185,7 @@ abstract class BTreeAbstract implements BTree
         }
         else
         {
-            return new CursorPosition(node, -1, index, parentCursor);
+            return new CursorPosition(node, StorageUnits.INVALID_PAGE_NUMBER, index, parentCursor);
         }
     }
 

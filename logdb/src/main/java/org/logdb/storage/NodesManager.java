@@ -64,7 +64,7 @@ public class NodesManager
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
                     storage.getPageSize(),
-                    0);
+                    StorageUnits.pageNumber(0));
         }
     }
 
@@ -142,16 +142,16 @@ public class NodesManager
             return;
         }
 
-        final long lastRootPageNumber = storage.getLastRootPageNumber();
+        final @PageNumber long lastRootPageNumber = storage.getLastRootPageNumber();
 
         //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
 
         for (final RootReference dirtyRootNode : dirtyRootNodes)
         {
-            final long previousRootPageNumber = dirtyRootNode.previous == null
+            final @PageNumber long previousRootPageNumber = dirtyRootNode.previous == null
                     ? lastRootPageNumber
                     : dirtyRootNode.previous.getPageNumber();
-            final long pageNumber = dirtyRootNode.root.commit(
+            final @PageNumber long pageNumber = dirtyRootNode.root.commit(
                     this,
                     true,
                     previousRootPageNumber,
@@ -170,9 +170,9 @@ public class NodesManager
      * @param node the node to commit
      * @return the page number where this node is stored
      */
-    public long commitNode(final BTreeNodeNonLeaf node)
+    public @PageNumber long commitNode(final BTreeNodeNonLeaf node)
     {
-        final long pageNumber = commitNodeToStorage(node);
+        final @PageNumber long pageNumber = commitNodeToStorage(node);
         node.reset();
         nonLeafNodesCache.add(node);
         return pageNumber;
@@ -183,15 +183,15 @@ public class NodesManager
      * @param node the node to commit
      * @return the page number where this node is stored
      */
-    public long commitNode(final BTreeNodeLeaf node)
+    public @PageNumber long commitNode(final BTreeNodeLeaf node)
     {
-        final long pageNumber = commitNodeToStorage(node);
+        final @PageNumber long pageNumber = commitNodeToStorage(node);
         node.reset();
         leafNodesCache.add(node);
         return pageNumber;
     }
 
-    private long commitNodeToStorage(final BTreeNodeHeap node)
+    private @PageNumber long commitNodeToStorage(final BTreeNodeHeap node)
     {
         final ReadMemory buffer = node.getBuffer();
         return storage.writePageAligned(buffer.getSupportByteBufferIfAny());
@@ -201,7 +201,7 @@ public class NodesManager
     {
         assert parentNode.getNodeType() == BtreeNodeType.NonLeaf : "node must be non leaf";
 
-        final long childPageNumber = parentNode.getValue(index);
+        final @PageNumber long childPageNumber = StorageUnits.pageNumber(parentNode.getValue(index));
         if (childPageNumber != BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
         {
             mappedNode.initNode(childPageNumber);
@@ -213,12 +213,12 @@ public class NodesManager
         }
     }
 
-    public void commitLastRootPage(final long offsetLastRoot, final @Version long version)
+    public void commitLastRootPage(final @PageNumber long offsetLastRoot, final @Version long version)
     {
         storage.commitMetadata(offsetLastRoot, version);
     }
 
-    public long loadLastRootPageNumber()
+    public @PageNumber long loadLastRootPageNumber()
     {
         return storage.getLastRootPageNumber();
     }

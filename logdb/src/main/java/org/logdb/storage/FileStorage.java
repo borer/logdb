@@ -25,7 +25,6 @@ public final class FileStorage implements Storage, Closeable
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-    private static final int NO_CURRENT_ROOT_PAGE_NUMBER = Integer.MIN_VALUE;
     private static final int MAX_MAPPED_SIZE = Integer.MAX_VALUE;
 
     private final List<MappedByteBuffer> mappedBuffers;
@@ -80,7 +79,7 @@ public final class FileStorage implements Storage, Closeable
                     LOG_DB_VERSION,
                     pageSizeBytes,
                     memoryMappedChunkSizeBytes,
-                    NO_CURRENT_ROOT_PAGE_NUMBER
+                    StorageUnits.INVALID_PAGE_NUMBER
             );
 
             fileDbHeader.writeTo(channel);
@@ -243,18 +242,18 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long writePageAligned(final ByteBuffer buffer)
+    public @PageNumber long writePageAligned(final ByteBuffer buffer)
     {
         assert buffer.capacity() == fileDbHeader.pageSize
                 : "buffer must be of page size " + fileDbHeader.pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
         final long positionOffset = write(buffer);
-        return positionOffset / fileDbHeader.pageSize;
+        return StorageUnits.pageNumber(positionOffset / fileDbHeader.pageSize);
     }
 
     @Override
-    public void commitMetadata(final long lastRootPageNumber, final @Version long version)
+    public void commitMetadata(final @PageNumber long lastRootPageNumber, final @Version long version)
     {
         try
         {
@@ -268,7 +267,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long getLastRootPageNumber()
+    public @PageNumber long getLastRootPageNumber()
     {
         return fileDbHeader.getLastRootOffset();
     }
@@ -279,7 +278,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public DirectMemory loadPage(final long pageNumber)
+    public DirectMemory loadPage(final @PageNumber long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         long offsetMappedBuffer = 0;
@@ -303,7 +302,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long getBaseOffsetForPageNumber(final long pageNumber)
+    public long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
@@ -330,13 +329,13 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long getPageNumber(final long offset)
+    public @PageNumber long getPageNumber(final long offset)
     {
-        return offset / fileDbHeader.pageSize;
+        return StorageUnits.pageNumber(offset / fileDbHeader.pageSize);
     }
 
     @Override
-    public long getOffset(final long pageNumber)
+    public long getOffset(final @PageNumber long pageNumber)
     {
         return pageNumber * fileDbHeader.pageSize;
     }

@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
 
 public class BTreePrinter
 {
@@ -17,7 +18,7 @@ public class BTreePrinter
         }
         else
         {
-            final long currentCommittedRootPageNumber = bTree.getCommittedRoot();
+            final @PageNumber long currentCommittedRootPageNumber = bTree.getCommittedRoot();
             try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
             {
                 mappedNode.initNode(currentCommittedRootPageNumber);

@@ -1,11 +1,13 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
 public final class RootReference
 {
-    private long pageNumber;
+    private @PageNumber long pageNumber;
 
     /**
      * The root page.
@@ -30,19 +32,19 @@ public final class RootReference
                   final @Version long version,
                   final RootReference previous)
     {
-        this.pageNumber = -1;
+        this.pageNumber = StorageUnits.INVALID_PAGE_NUMBER;
         this.root = root;
         this.timestamp = timestamp;
         this.version = version;
         this.previous = previous;
     }
 
-    public void setPageNumber(final long pageNumber)
+    public void setPageNumber(final @PageNumber long pageNumber)
     {
         this.pageNumber = pageNumber;
     }
 
-    public long getPageNumber()
+    public @PageNumber long getPageNumber()
     {
         return pageNumber;
     }

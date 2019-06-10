@@ -2,9 +2,11 @@ package org.logdb.bbtree;
 
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
-import org.logdb.storage.VersionUnit;
 import org.logdb.time.Milliseconds;
+import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -14,7 +16,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 {
     private long freeSizeLeftBytes;
 
-    long pageNumber;
+    @PageNumber long pageNumber;
     int numberOfKeys;
     int numberOfValues;
     int numberOfLogKeyValues;
@@ -27,7 +29,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
      *
      * @param memory the memory to load from
      */
-    BTreeNodeAbstract(final long pageNumber, final Memory memory)
+    BTreeNodeAbstract(final @PageNumber long pageNumber, final Memory memory)
     {
         this(pageNumber,
                 memory,
@@ -44,7 +46,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * @param numberOfKeys   number of keys in this node
      * @param numberOfValues number of values in this node
      */
-    BTreeNodeAbstract(final long pageNumber,
+    BTreeNodeAbstract(final @PageNumber long pageNumber,
                       final Memory buffer,
                       final int numberOfLogKeyValues,
                       final int numberOfKeys,
@@ -61,7 +63,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void preCommit(
             final boolean isRoot,
-            final long previousRootPageNumber,
+            final @PageNumber long previousRootPageNumber,
             final @Milliseconds long timestamp,
             final @Version long version)
     {
@@ -83,7 +85,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     private void preCommitRoot(
-            final long previousRootPageNumber,
+            final @PageNumber long previousRootPageNumber,
             final @Milliseconds long timestamp,
             final @Version long version)
     {
@@ -99,7 +101,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public void reset()
     {
         freeSizeLeftBytes = 0;
-        pageNumber = Integer.MIN_VALUE;
+        pageNumber = StorageUnits.INVALID_PAGE_NUMBER;
         numberOfKeys = 0;
         numberOfValues = 0;
         numberOfLogKeyValues = 0;
@@ -132,9 +134,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
         buffer.putLong(BTreeNodePage.PAGE_TIMESTAMP_OFFSET, timestamp);
     }
 
-    public long getTimestamp()
+    public @Milliseconds long getTimestamp()
     {
-        return buffer.getLong(BTreeNodePage.PAGE_TIMESTAMP_OFFSET);
+        return TimeUnits.millis(buffer.getLong(BTreeNodePage.PAGE_TIMESTAMP_OFFSET));
     }
 
     @Override
@@ -146,7 +148,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public @Version long getVersion()
     {
-        return VersionUnit.version(buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET));
+        return StorageUnits.version(buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET));
     }
 
     @Override
@@ -158,18 +160,18 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
     }
 
-    void setPreviousRoot(final long previousRootPageNumber)
+    void setPreviousRoot(final @PageNumber long previousRootPageNumber)
     {
         buffer.putLong(BTreeNodePage.PAGE_PREV_OFFSET, previousRootPageNumber);
     }
 
-    public long getPreviousRoot()
+    public @PageNumber long getPreviousRoot()
     {
-        return buffer.getLong(BTreeNodePage.PAGE_PREV_OFFSET);
+        return StorageUnits.pageNumber(buffer.getLong(BTreeNodePage.PAGE_PREV_OFFSET));
     }
 
     @Override
-    public long getPageNumber()
+    public @PageNumber long getPageNumber()
     {
         return pageNumber;
     }
@@ -406,7 +408,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void splitLog(final long key, final BTreeNodeAbstract bNode)
     {
-        final int keyIndex = logBinarySearch(key);
+        final int keyIndex = binarySearchInLog(key);
         final int aLogKeyValues = keyIndex + 1;
         final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
         final long sourceOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
@@ -548,7 +550,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return -(low + 1);
     }
 
-    int logBinarySearch(final long key)
+    int binarySearchInLog(final long key)
     {
         int low = 0;
         int high = numberOfLogKeyValues - 1;

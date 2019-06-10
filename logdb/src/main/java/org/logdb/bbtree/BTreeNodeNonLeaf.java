@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
@@ -15,7 +16,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     /**
      * Load constructor.
      */
-    public BTreeNodeNonLeaf(final long pageNumber, final HeapMemory memory)
+    public BTreeNodeNonLeaf(final @PageNumber long pageNumber, final HeapMemory memory)
     {
         super(pageNumber, memory);
         this.children =  new BTreeNodeHeap[0];
@@ -25,7 +26,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
      * Copy/Split constructor.
      */
     public BTreeNodeNonLeaf(
-            final long pageNumber,
+            final @PageNumber long pageNumber,
             final HeapMemory memory,
             final int numberOfLogKeyValues,
             final int numberOfKeys,
@@ -45,7 +46,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 
     public void insertLog(final long key, final long value)
     {
-        final int index = logBinarySearch(key);
+        final int index = binarySearchInLog(key);
 
         if (index < 0)
         {
@@ -67,7 +68,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
      */
     public boolean removeLog(final long key)
     {
-        final int index = logBinarySearch(key);
+        final int index = binarySearchInLog(key);
         if (index >= 0)
         {
             removeLogKeyValue(index);
@@ -215,9 +216,9 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long commit(final NodesManager nodesManager,
+    public @PageNumber long commit(final NodesManager nodesManager,
                        final boolean isRoot,
-                       final long previousRootPageNumber,
+                       final @PageNumber long previousRootPageNumber,
                        final @Milliseconds long timestamp,
                        final @Version long version)
     {
