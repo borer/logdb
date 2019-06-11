@@ -1,5 +1,6 @@
 package org.logdb.logfile;
 
+import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -36,7 +37,7 @@ public class LogFile
         return recordStartOffset;
     }
 
-    public byte[] read(final long offset)
+    public byte[] read(final @ByteOffset long offset)
     {
         return logRecordStorage.readRecordValue(offset);
     }

@@ -29,9 +29,9 @@ public interface Storage extends Closeable
 
     long getPageSize();
 
-    @PageNumber long getPageNumber(long offset);
+    @PageNumber long getPageNumber(@ByteOffset long offset);
 
-    long getOffset(@PageNumber long pageNumber);
+    @ByteOffset long getOffset(@PageNumber long pageNumber);
 
     /**
      * Write any arbitrary buffer.
@@ -55,5 +55,5 @@ public interface Storage extends Closeable
 
     DirectMemory loadPage(@PageNumber long pageNumber);
 
-    long getBaseOffsetForPageNumber(@PageNumber long pageNumber);
+    @ByteOffset long getBaseOffsetForPageNumber(@PageNumber long pageNumber);
 }

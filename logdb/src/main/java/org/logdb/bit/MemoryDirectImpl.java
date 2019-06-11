@@ -1,26 +1,34 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.StorageUnits;
+
 import java.nio.ByteBuffer;
+
+import static org.logdb.storage.StorageUnits.BYTE_OFFSET;
+import static org.logdb.storage.StorageUnits.INT_BYTES_OFFSET;
+import static org.logdb.storage.StorageUnits.LONG_BYTES_OFFSET;
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryDirectImpl implements DirectMemory
 {
-    private static final long UNINITIALIZED_ADDRESS = Long.MIN_VALUE;
+    private static final @ByteOffset long UNINITIALIZED_ADDRESS = StorageUnits.offset(Long.MIN_VALUE);
 
     private final long capacity;
 
-    private long baseAddress;
-    private long position;
+    private @ByteOffset long baseAddress;
+    private @ByteOffset long position;
 
     MemoryDirectImpl(final long capacity)
     {
         this(UNINITIALIZED_ADDRESS, capacity);
     }
 
-    MemoryDirectImpl(final long baseAddress, final long capacity)
+    MemoryDirectImpl(final @ByteOffset long baseAddress, final long capacity)
     {
         this.baseAddress = baseAddress;
         this.capacity = capacity;
-        this.position = 0;
+        this.position = ZERO_OFFSET;
     }
 
     @Override
@@ -30,13 +38,13 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public long getBaseAddress()
+    public @ByteOffset long getBaseAddress()
     {
         return baseAddress;
     }
 
     @Override
-    public void setBaseAddress(final long baseAddress)
+    public void setBaseAddress(final @ByteOffset long baseAddress)
     {
         this.baseAddress = baseAddress;
     }
@@ -44,7 +52,7 @@ public class MemoryDirectImpl implements DirectMemory
     @Override
     public void resetPosition()
     {
-        position = 0;
+        position = StorageUnits.ZERO_OFFSET;
     }
 
     @Override
@@ -59,11 +67,11 @@ public class MemoryDirectImpl implements DirectMemory
         assertBounds(position, Long.BYTES);
 
         putLong(position, value);
-        position += Long.BYTES;
+        position += LONG_BYTES_OFFSET;
     }
 
     @Override
-    public void putLong(final long offset, final long value)
+    public void putLong(final @ByteOffset long offset, final long value)
     {
         assertBounds(offset, Long.BYTES);
 
@@ -77,7 +85,7 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public long getLong(final long offset)
+    public long getLong(final @ByteOffset long offset)
     {
         assertBounds(offset, Long.BYTES);
 
@@ -90,11 +98,11 @@ public class MemoryDirectImpl implements DirectMemory
         assertBounds(position, Integer.BYTES);
 
         putInt(position, value);
-        position += Integer.BYTES;
+        position += INT_BYTES_OFFSET;
     }
 
     @Override
-    public void putInt(final long offset, final int value)
+    public void putInt(final @ByteOffset long offset, final int value)
     {
         assertBounds(offset, Integer.BYTES);
 
@@ -108,7 +116,7 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public int getInt(final long offset)
+    public int getInt(final @ByteOffset long offset)
     {
         assertBounds(offset, Integer.BYTES);
 
@@ -122,27 +130,27 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public void getBytes(final long length, final byte[] destinationArray)
+    public void getBytes(final @ByteOffset long length, final byte[] destinationArray)
     {
         getBytes(position, length, destinationArray);
     }
 
     @Override
-    public void getBytes(final long offset, final long length, final byte[] destinationArray)
+    public void getBytes(final @ByteOffset long offset, final long length, final byte[] destinationArray)
     {
-        assertBounds(offset, destinationArray.length);
+        assertBounds(offset, StorageUnits.offset(destinationArray.length));
 
-        NativeMemoryAccess.getBytes(baseAddress + offset, destinationArray, 0, length);
+        NativeMemoryAccess.getBytes(baseAddress + offset, destinationArray, ZERO_OFFSET, length);
     }
 
     @Override
     public void getBytes(
-            final long offset,
+            final @ByteOffset long offset,
             final long length,
             final byte[] destinationArray,
-            final long destinationArrayOffset)
+            final @ByteOffset long destinationArrayOffset)
     {
-        assertBounds(offset, destinationArray.length);
+        assertBounds(offset, StorageUnits.offset(destinationArray.length));
 
         NativeMemoryAccess.getBytes(
                 baseAddress + offset,
@@ -157,11 +165,11 @@ public class MemoryDirectImpl implements DirectMemory
         assertBounds(position, sourceArray.length);
 
         putBytes(position, sourceArray);
-        position += sourceArray.length;
+        position += StorageUnits.offset(sourceArray.length);
     }
 
     @Override
-    public void putBytes(final long destinationOffset, final byte[] sourceArray)
+    public void putBytes(final @ByteOffset long destinationOffset, final byte[] sourceArray)
     {
         assertBounds(destinationOffset, sourceArray.length);
 
@@ -172,11 +180,11 @@ public class MemoryDirectImpl implements DirectMemory
     public void putByte(final byte b)
     {
         putByte(position, b);
-        position += Byte.BYTES;
+        position += BYTE_OFFSET;
     }
 
     @Override
-    public void putByte(final long offset, final byte b)
+    public void putByte(final @ByteOffset long offset, final byte b)
     {
         assertBounds(offset, Byte.BYTES);
 
@@ -190,7 +198,7 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public byte getByte(final long offset)
+    public byte getByte(final @ByteOffset long offset)
     {
         assertBounds(baseAddress + offset, Byte.BYTES);
 
@@ -198,7 +206,7 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public void assertBounds(final long requestOffset, final int requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final int requestLength)
     {
         assert baseAddress != UNINITIALIZED_ADDRESS : "Base address is uninitialized";
 
@@ -211,7 +219,7 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
-    public void assertBounds(final long requestOffset, final long requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final long requestLength)
     {
         assert baseAddress != UNINITIALIZED_ADDRESS : "Base address is uninitialized";
 

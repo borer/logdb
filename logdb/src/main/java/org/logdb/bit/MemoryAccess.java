@@ -1,5 +1,7 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.StorageUnits;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -44,7 +46,7 @@ abstract class MemoryAccess
         }
     }
 
-    static long getBaseAddressForDirectBuffer(final Buffer buffer)
+    static @ByteOffset long getBaseAddressForDirectBuffer(final Buffer buffer)
     {
         if (!buffer.isDirect())
         {
@@ -60,7 +62,7 @@ abstract class MemoryAccess
                 return (Long)addressField.get(buffer);
             };
 
-            return AccessController.doPrivileged(action);
+            return StorageUnits.offset(AccessController.doPrivileged(action));
         }
         catch (Exception e)
         {

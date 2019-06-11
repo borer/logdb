@@ -1,9 +1,13 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.StorageUnits;
 import sun.misc.Unsafe;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryByteBufferImpl implements HeapMemory
 {
@@ -22,9 +26,9 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public long getBaseAddress()
+    public @ByteOffset long getBaseAddress()
     {
-        return Unsafe.ARRAY_BYTE_BASE_OFFSET;
+        return StorageUnits.offset(Unsafe.ARRAY_BYTE_BASE_OFFSET);
     }
 
     @Override
@@ -46,7 +50,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void putLong(final long offset, final long value)
+    public void putLong(final @ByteOffset long offset, final long value)
     {
         buffer.putLong((int)offset, value);
     }
@@ -58,7 +62,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public long getLong(final long offset)
+    public long getLong(final @ByteOffset long offset)
     {
         return buffer.getLong((int)offset);
     }
@@ -70,7 +74,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void putInt(final long offset, final int value)
+    public void putInt(final @ByteOffset long offset, final int value)
     {
         buffer.putInt((int)offset, value);
     }
@@ -82,7 +86,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public int getInt(final long offset)
+    public int getInt(final @ByteOffset long offset)
     {
         return buffer.getInt((int)offset);
     }
@@ -94,13 +98,13 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void getBytes(final long length, final byte[] destinationArray)
+    public void getBytes(final @ByteOffset long length, final byte[] destinationArray)
     {
-        buffer.get(destinationArray, 0, (int)length);
+        buffer.get(destinationArray, ZERO_OFFSET, (int)length);
     }
 
     @Override
-    public void getBytes(final long offset, final long length, byte[] destinationArray)
+    public void getBytes(final @ByteOffset long offset, final long length, byte[] destinationArray)
     {
         for (int i = 0; i < length; i++)
         {
@@ -110,10 +114,10 @@ public class MemoryByteBufferImpl implements HeapMemory
 
     @Override
     public void getBytes(
-            final long offset,
+            final @ByteOffset long offset,
             final long length,
             final byte[] destinationArray,
-            final long destinationArrayOffset)
+            final @ByteOffset long destinationArrayOffset)
     {
         for (int i = 0; i < length; i++)
         {
@@ -129,7 +133,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void putBytes(long destinationOffset, byte[] sourceArray)
+    public void putBytes(@ByteOffset long destinationOffset, byte[] sourceArray)
     {
         for (int i = 0; i < sourceArray.length; i++)
         {
@@ -144,7 +148,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void putByte(final long offset, final byte b)
+    public void putByte(final @ByteOffset long offset, final byte b)
     {
         buffer.put((int)offset, b);
     }
@@ -156,13 +160,13 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public byte getByte(final long offset)
+    public byte getByte(final @ByteOffset long offset)
     {
         return buffer.get((int) offset);
     }
 
     @Override
-    public void assertBounds(long requestOffset, int requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final int requestLength)
     {
         assert ((requestOffset | requestLength | (requestOffset + requestLength) |
                 (buffer.capacity() - (requestOffset + requestLength))) >= 0)
@@ -172,7 +176,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void assertBounds(long requestOffset, long requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final long requestLength)
     {
         assert ((requestOffset | requestLength | (requestOffset + requestLength) |
                 (buffer.capacity() - (requestOffset + requestLength))) >= 0)

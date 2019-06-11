@@ -2,9 +2,11 @@ package org.logdb.bbtree;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.ByteOffset;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
@@ -14,7 +16,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     private final Storage storage;
     private final DirectMemory memory;
 
-    private long baseOffset;
+    private @ByteOffset long baseOffset;
 
     //TODO: not rely on having an empty initial map.
     public BTreeMappedNode(
@@ -29,7 +31,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
         this.storage = storage;
         this.memory = memory;
 
-        this.baseOffset = pageNumber * pageSize;
+        this.baseOffset = StorageUnits.offset(pageNumber * pageSize);
     }
 
     /**

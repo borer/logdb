@@ -1,34 +1,30 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+
 import java.nio.ByteBuffer;
 
 public interface ReadMemory
 {
     ByteBuffer getSupportByteBufferIfAny();
 
-    long getBaseAddress();
-
-    void resetPosition();
-
-    long getCapacity();
-
     long getLong();
 
-    long getLong(long offset);
+    long getLong(@ByteOffset long offset);
 
     int getInt();
 
-    int getInt(long offset);
+    int getInt(@ByteOffset long offset);
 
     void getBytes(byte[] destinationArray);
 
-    void getBytes(long length, byte[] destinationArray);
+    void getBytes(@ByteOffset long length, byte[] destinationArray);
 
-    void getBytes(long offset, long length, byte[] destinationArray);
+    void getBytes(@ByteOffset long offset, long length, byte[] destinationArray);
 
-    void getBytes(long offset, long length, byte[] destinationArray, long destinationArrayOffset);
+    void getBytes(@ByteOffset long offset, long length, byte[] destinationArray, @ByteOffset long destinationArrayOffset);
 
     byte getByte();
 
-    byte getByte(long offset);
+    byte getByte(@ByteOffset long offset);
 }

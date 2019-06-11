@@ -1,5 +1,8 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.StorageUnits;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -9,7 +12,7 @@ public class MemoryFactory
 {
     public static DirectMemory mapDirect(
             final MappedByteBuffer mappedBuffer,
-            final long offset,
+            final @ByteOffset long offset,
             final int capacity,
             final ByteOrder byteOrder)
     {
@@ -18,11 +21,11 @@ public class MemoryFactory
         return getDirectMemory(getPageOffset(mappedBuffer, offset), capacity, byteOrder);
     }
 
-    public static long getPageOffset(final MappedByteBuffer mappedBuffer, long offset)
+    public static @ByteOffset long getPageOffset(final MappedByteBuffer mappedBuffer, final @ByteOffset long offset)
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
 
-        return NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset;
+        return StorageUnits.offset(NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset);
     }
 
     public static DirectMemory getUninitiatedDirectMemory(final int pageSize, final ByteOrder byteOrder)
@@ -39,7 +42,7 @@ public class MemoryFactory
         }
     }
 
-    private static DirectMemory getDirectMemory(final long baseAddress, final int capacity, final ByteOrder byteOrder)
+    private static DirectMemory getDirectMemory(final @ByteOffset long baseAddress, final int capacity, final ByteOrder byteOrder)
     {
         final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
 
@@ -56,7 +59,7 @@ public class MemoryFactory
     public static DirectMemory allocateDirect(final int capacity, final ByteOrder byteOrder)
     {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
-        final long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
+        final @ByteOffset long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
 
         return getDirectMemory(baseAddress, capacity, byteOrder);
     }

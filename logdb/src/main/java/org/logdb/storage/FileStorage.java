@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.logdb.Config.LOG_DB_VERSION;
+import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 
 public final class FileStorage implements Storage, Closeable
 {
@@ -281,11 +282,11 @@ public final class FileStorage implements Storage, Closeable
     public DirectMemory loadPage(final @PageNumber long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
-        long offsetMappedBuffer = 0;
+        @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final long pageOffset = pageNumber * fileDbHeader.pageSize;
+            final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
             if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.mapDirect(
@@ -295,31 +296,31 @@ public final class FileStorage implements Storage, Closeable
                         fileDbHeader.byteOrder);
             }
 
-            offsetMappedBuffer += mappedBuffer.limit();
+            offsetMappedBuffer += StorageUnits.offset(mappedBuffer.limit());
         }
 
         return null;
     }
 
     @Override
-    public long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
+    public @ByteOffset long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
     {
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
-        long offsetMappedBuffer = 0;
+        @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final long pageOffset = pageNumber * fileDbHeader.pageSize;
+            final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
             if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
             }
 
-            offsetMappedBuffer += mappedBuffer.limit();
+            offsetMappedBuffer += StorageUnits.offset(mappedBuffer.limit());
         }
 
-        return -1;
+        return INVALID_OFFSET;
     }
 
     @Override
@@ -329,15 +330,15 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public @PageNumber long getPageNumber(final long offset)
+    public @PageNumber long getPageNumber(final @ByteOffset long offset)
     {
         return StorageUnits.pageNumber(offset / fileDbHeader.pageSize);
     }
 
     @Override
-    public long getOffset(final @PageNumber long pageNumber)
+    public @ByteOffset long getOffset(final @PageNumber long pageNumber)
     {
-        return pageNumber * fileDbHeader.pageSize;
+        return StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
     }
 
     @Override

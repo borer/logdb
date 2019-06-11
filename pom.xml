@@ -162,7 +162,7 @@
                                         </annotationProcessors>
                                         <compilerArgs>
                                             <arg>-proc:only</arg>
-                                            <arg>-Aunits=org.logdb.time.Milliseconds,org.logdb.storage.Version,org.logdb.storage.PageNumber</arg>
+                                            <arg>-Aunits=org.logdb.time.Milliseconds,org.logdb.storage.Version,org.logdb.storage.PageNumber,org.logdb.storage.ByteOffset</arg>
                                             <arg>-AskipUses=org\.logdb\.time\.TimeUnits|org\.logdb\.storage\.StorageUnits</arg>
                                         </compilerArgs>
                                     </configuration>

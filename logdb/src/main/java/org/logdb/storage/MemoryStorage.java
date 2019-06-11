@@ -14,7 +14,7 @@ public class MemoryStorage implements Storage
     private final int pageSizeBytes;
     private final HashMap<Long, DirectMemory> maps;
 
-    private long allocatedMemoryOffset;
+    private @ByteOffset long allocatedMemoryOffset;
     private @PageNumber long lastPageRootNumber;
 
     public MemoryStorage(final ByteOrder byteOrder,
@@ -23,7 +23,7 @@ public class MemoryStorage implements Storage
         this.byteOrder = byteOrder;
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
-        this.allocatedMemoryOffset = 0L;
+        this.allocatedMemoryOffset = StorageUnits.offset(0L);
         this.lastPageRootNumber = StorageUnits.pageNumber(-1L);
     }
 
@@ -46,22 +46,22 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public @PageNumber long getPageNumber(final long offset)
+    public @PageNumber long getPageNumber(final @ByteOffset long offset)
     {
         return StorageUnits.pageNumber(offset);
     }
 
     @Override
-    public long getOffset(final @PageNumber long pageNumber)
+    public @ByteOffset long getOffset(final @PageNumber long pageNumber)
     {
-        return pageNumber;
+        return StorageUnits.offset(pageNumber);
     }
 
     @Override
     public long write(final ByteBuffer buffer)
     {
-        final long currentOffset = this.allocatedMemoryOffset;
-        allocatedMemoryOffset += buffer.capacity();
+        final @ByteOffset long currentOffset = this.allocatedMemoryOffset;
+        allocatedMemoryOffset += StorageUnits.offset(buffer.capacity());
 
         final DirectMemory directMemory = MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
         directMemory.putBytes(buffer.array());
@@ -108,12 +108,12 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
+    public @ByteOffset long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
     {
         final DirectMemory directMemory = maps.get(pageNumber);
         if (directMemory == null)
         {
-            return pageNumber;
+            return StorageUnits.offset(pageNumber);
         }
 
         return directMemory.getBaseAddress();

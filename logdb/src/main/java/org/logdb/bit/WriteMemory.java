@@ -1,30 +1,22 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+
 public interface WriteMemory
 {
-    long getBaseAddress();
-
-    void resetPosition();
-
-    long getCapacity();
-
     void putLong(long value);
 
-    void putLong(long offset, long value);
+    void putLong(@ByteOffset long offset, long value);
 
     void putInt(int value);
 
-    void putInt(long offset, int value);
+    void putInt(@ByteOffset long offset, int value);
 
     void putBytes(byte[] sourceArray);
 
-    void putBytes(long destinationOffset, byte[] sourceArray);
+    void putBytes(@ByteOffset long destinationOffset, byte[] sourceArray);
 
     void putByte(byte b);
 
-    void putByte(long offset, byte b);
-
-    void assertBounds(long requestOffset, int requestLength);
-
-    void assertBounds(long requestOffset, long requestLength);
+    void putByte(@ByteOffset long offset, byte b);
 }
