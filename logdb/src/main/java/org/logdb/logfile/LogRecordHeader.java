@@ -1,33 +1,40 @@
 package org.logdb.logfile;
 
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
 
+import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+
+
 class LogRecordHeader
 {
-    private static final int CRC_SIZE = Integer.BYTES;
+    private static final @ByteSize int CRC_SIZE = INT_BYTES_SIZE;
     private static final int CRC_OFFSET = 0;
 
-    private static final int KEY_SIZE = Integer.BYTES;
+    private static final @ByteSize int KEY_SIZE = INT_BYTES_SIZE;
     private static final int KEY_OFFSET = CRC_OFFSET + CRC_SIZE;
 
-    private static final int VALUE_SIZE = Integer.BYTES;
+    private static final @ByteSize int VALUE_SIZE = INT_BYTES_SIZE;
     private static final int VALUE_OFFSET = KEY_OFFSET + KEY_SIZE;
 
-    private static final int VERSION_SIZE = Long.BYTES;
+    private static final @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
     private static final int VERSION_OFFSET = VALUE_OFFSET + VALUE_SIZE;
 
-    private static final int TIMESTAMP_SIZE = Long.BYTES;
+    private static final @ByteSize int TIMESTAMP_SIZE = LONG_BYTES_SIZE;
     private static final int TIMESTAMP_OFFSET = VERSION_OFFSET + VERSION_SIZE;
 
-    static final int RECORD_HEADER_SIZE = CRC_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
+    static final @ByteSize int RECORD_HEADER_SIZE = CRC_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
 
     private int checksum;
-    private int keyLength;
-    private int valueLength;
-    private long version;
+    private @ByteSize int keyLength;
+    private @ByteSize int valueLength;
+    private @Version long version;
     private @Milliseconds long timestamp;
 
     public int getChecksum()
@@ -35,31 +42,31 @@ class LogRecordHeader
         return checksum;
     }
 
-    public int getKeyLength()
+    public @ByteSize int getKeyLength()
     {
         return keyLength;
     }
 
-    public int getValueLength()
+    public @ByteSize int getValueLength()
     {
         return valueLength;
     }
 
-    public long getVersion()
+    public @Version long getVersion()
     {
         return version;
     }
 
-    public long getTimestamp()
+    public @Milliseconds long getTimestamp()
     {
         return timestamp;
     }
 
     public void init(
             final int checksum,
-            final int keyLength,
-            final int valueLength,
-            final long version,
+            final @ByteSize int keyLength,
+            final @ByteSize int valueLength,
+            final @Version long version,
             final @Milliseconds long timestamp)
     {
         this.checksum = checksum;
@@ -73,9 +80,9 @@ class LogRecordHeader
     {
         buffer.rewind();
         this.checksum = buffer.getInt();
-        this.keyLength = buffer.getInt();
-        this.valueLength = buffer.getInt();
-        this.version = buffer.getLong();
+        this.keyLength = StorageUnits.size(buffer.getInt());
+        this.valueLength = StorageUnits.size(buffer.getInt());
+        this.version = StorageUnits.version(buffer.getLong());
         this.timestamp = TimeUnits.millis(buffer.getLong());
         buffer.rewind();
     }

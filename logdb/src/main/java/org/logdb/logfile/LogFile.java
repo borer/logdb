@@ -25,12 +25,12 @@ public class LogFile
         this.logRecordStorage = new LogRecordStorage(storage);
     }
 
-    public long put(final byte[] key, final byte[] value)
+    public @ByteOffset long put(final byte[] key, final byte[] value)
     {
         version++;
 
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
+        final @ByteOffset long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
 
         storage.flush();
 

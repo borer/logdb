@@ -1,6 +1,7 @@
 package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 
 public interface Memory extends ReadMemory, WriteMemory
 {
@@ -8,9 +9,9 @@ public interface Memory extends ReadMemory, WriteMemory
 
     void resetPosition();
 
-    long getCapacity();
+    @ByteSize long getCapacity();
 
-    void assertBounds(@ByteOffset long requestOffset, int requestLength);
+    void assertBounds(@ByteOffset long requestOffset, @ByteSize int requestLength);
 
-    void assertBounds(@ByteOffset long requestOffset, long requestLength);
+    void assertBounds(@ByteOffset long requestOffset, @ByteSize long requestLength);
 }

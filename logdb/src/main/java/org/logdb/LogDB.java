@@ -29,7 +29,7 @@ public class LogDB
 
     public void put(final long key, final byte[] value)
     {
-        final long offset = logFile.put(longToBytes(key), value);
+        final @ByteOffset long offset = logFile.put(longToBytes(key), value);
         index.put(key, offset);
     }
 

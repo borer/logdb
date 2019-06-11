@@ -1,5 +1,7 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import sun.misc.Unsafe;
 
 final class NativeMemoryAccess extends MemoryAccess
@@ -46,8 +48,8 @@ final class NativeMemoryAccess extends MemoryAccess
     public static void getBytes(
             final long sourceAddress,
             final byte[] destinationArray,
-            final long offset,
-            final long lengthBytes)
+            final @ByteOffset long offset,
+            final @ByteSize long lengthBytes)
     {
         //unsafe.copyMemory(src, srcOffset, dst, dstOffset, size);
         //unsafe.copyMemory(src, dst, size);
@@ -68,10 +70,10 @@ final class NativeMemoryAccess extends MemoryAccess
 
     static void copyBytes(
             final byte[] sourceArray,
-            final long sourceAddress,
+            final @ByteOffset long sourceAddress,
             final byte[] destinationArray,
-            final long destinationAddress,
-            final long sizeBytes)
+            final @ByteOffset long destinationAddress,
+            final @ByteSize long sizeBytes)
     {
         //unsafe.copyMemory(src, srcOffset, dst, dstOffset, size);
         //unsafe.copyMemory(src, dst, size);

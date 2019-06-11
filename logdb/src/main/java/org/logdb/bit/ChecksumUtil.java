@@ -1,6 +1,11 @@
 package org.logdb.bit;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+
 import java.util.zip.CRC32;
+
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class ChecksumUtil
 {
@@ -28,7 +33,7 @@ public class ChecksumUtil
         return Integer.compareUnsigned(originalChecksum, calculated) == 0;
     }
 
-    public void updateChecksum(final byte[] buffer, final int offset, final int length)
+    public void updateChecksum(final byte[] buffer, final @ByteOffset int offset, final @ByteSize int length)
     {
         checksumer.update(buffer, offset, length);
     }
@@ -36,7 +41,7 @@ public class ChecksumUtil
     public void updateChecksum(final long value)
     {
         final byte[] bytes = longToBytes(value);
-        checksumer.update(bytes, 0, bytes.length);
+        checksumer.update(bytes, ZERO_OFFSET, bytes.length);
     }
 
     public int getAndResetChecksum()

@@ -8,23 +8,25 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
+import static org.logdb.storage.StorageUnits.INVALID_PAGE_NUMBER;
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
+
 public class MemoryStorage implements Storage
 {
     private final ByteOrder byteOrder;
-    private final int pageSizeBytes;
+    private final @ByteSize int pageSizeBytes;
     private final HashMap<Long, DirectMemory> maps;
 
     private @ByteOffset long allocatedMemoryOffset;
     private @PageNumber long lastPageRootNumber;
 
-    public MemoryStorage(final ByteOrder byteOrder,
-                         final int pageSizeBytes)
+    public MemoryStorage(final ByteOrder byteOrder, final @ByteSize int pageSizeBytes)
     {
         this.byteOrder = byteOrder;
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
-        this.allocatedMemoryOffset = StorageUnits.offset(0L);
-        this.lastPageRootNumber = StorageUnits.pageNumber(-1L);
+        this.allocatedMemoryOffset = ZERO_OFFSET;
+        this.lastPageRootNumber = INVALID_PAGE_NUMBER;
     }
 
     @Override
@@ -40,7 +42,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long getPageSize()
+    public @ByteSize long getPageSize()
     {
         return pageSizeBytes;
     }
@@ -58,7 +60,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public long write(final ByteBuffer buffer)
+    public @ByteOffset long write(final ByteBuffer buffer)
     {
         final @ByteOffset long currentOffset = this.allocatedMemoryOffset;
         allocatedMemoryOffset += StorageUnits.offset(buffer.capacity());

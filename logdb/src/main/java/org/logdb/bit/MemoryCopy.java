@@ -1,6 +1,7 @@
 package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -18,7 +19,7 @@ public class MemoryCopy
                             final @ByteOffset long sourceOffset,
                             final Memory destinationMemory,
                             final @ByteOffset long destinationOffset,
-                            final long lengthBytes)
+                            final @ByteSize long lengthBytes)
     {
         Objects.requireNonNull(sourceMemory, "source memory cannot be null");
         Objects.requireNonNull(destinationMemory, "destination memory cannot be null");

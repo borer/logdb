@@ -1,6 +1,7 @@
 package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
 import java.nio.ByteBuffer;
@@ -13,7 +14,7 @@ public class MemoryFactory
     public static DirectMemory mapDirect(
             final MappedByteBuffer mappedBuffer,
             final @ByteOffset long offset,
-            final int capacity,
+            final @ByteSize int capacity,
             final ByteOrder byteOrder)
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
@@ -28,7 +29,7 @@ public class MemoryFactory
         return StorageUnits.offset(NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset);
     }
 
-    public static DirectMemory getUninitiatedDirectMemory(final int pageSize, final ByteOrder byteOrder)
+    public static DirectMemory getUninitiatedDirectMemory(final @ByteSize int pageSize, final ByteOrder byteOrder)
     {
         final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
 
@@ -42,7 +43,7 @@ public class MemoryFactory
         }
     }
 
-    private static DirectMemory getDirectMemory(final @ByteOffset long baseAddress, final int capacity, final ByteOrder byteOrder)
+    private static DirectMemory getDirectMemory(final @ByteOffset long baseAddress, final @ByteSize int capacity, final ByteOrder byteOrder)
     {
         final boolean nativeOrder = MemoryOrder.isNativeOrder(byteOrder);
 
@@ -56,7 +57,7 @@ public class MemoryFactory
         }
     }
 
-    public static DirectMemory allocateDirect(final int capacity, final ByteOrder byteOrder)
+    public static DirectMemory allocateDirect(final @ByteSize int capacity, final ByteOrder byteOrder)
     {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
         final @ByteOffset long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
@@ -64,7 +65,7 @@ public class MemoryFactory
         return getDirectMemory(baseAddress, capacity, byteOrder);
     }
 
-    public static HeapMemory allocateHeap(final int capacity, final ByteOrder byteOrder)
+    public static HeapMemory allocateHeap(final @ByteSize int capacity, final ByteOrder byteOrder)
     {
         final ByteBuffer buffer = ByteBuffer.allocate(capacity);
         buffer.order(byteOrder);

@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -394,7 +395,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         //copy keys
         final int extraValues = numberOfValues - numberOfKeys;
-        final int lengthOfSplit = (bNumberOfKeys + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final @ByteSize int lengthOfSplit =
+                StorageUnits.size((bNumberOfKeys + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         MemoryCopy.copy(buffer, getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bNode.buffer, getKeyIndexOffset(0), lengthOfSplit);
 
         numberOfValues = aNumberOfKeys + extraValues;
@@ -414,7 +416,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
         final @ByteOffset long sourceOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
         final @ByteOffset long destinationOffset = getLogKeyIndexOffset(bNode.buffer.getCapacity(), bLogKeyValues);
-        final int length = (bLogKeyValues + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final @ByteSize int length =
+                StorageUnits.size((bLogKeyValues + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
 
         MemoryCopy.copy(buffer,
                 sourceOffset,
@@ -458,7 +461,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final @ByteOffset long oldIndexOffset = getKeyIndexOffset(gapIndex);
         final @ByteOffset long newIndexOffset = getKeyIndexOffset(gapIndex + 1);
 
-        final int size = (pairsToMove + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final @ByteSize int size =
+                StorageUnits.size((pairsToMove + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         MemoryCopy.copy(buffer, oldIndexOffset, buffer, newIndexOffset, size);
     }
 
@@ -475,7 +479,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final @ByteOffset long oldIndexOffset = getKeyIndexOffset(removeIndex);
         final @ByteOffset long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
 
-        final int size = (numberOfKeysToMove * BTreeNodePage.KEY_SIZE) + (numberOfValuesToMove * BTreeNodePage.VALUE_SIZE);
+        final @ByteSize int size =
+                StorageUnits.size((numberOfKeysToMove * BTreeNodePage.KEY_SIZE) + (numberOfValuesToMove * BTreeNodePage.VALUE_SIZE));
         MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 
@@ -491,7 +496,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             final int elementsToMove = numberOfLogKeyValues - gapIndex;
             final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
             final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-            final int size = elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+            final @ByteSize int size =
+                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
             MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
         }
     }
@@ -503,7 +509,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             final int elementsToMove = numberOfLogKeyValues - removeIndex;
             final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
             final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
-            final int size = elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+            final @ByteSize int size =
+                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
             MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
         }
     }

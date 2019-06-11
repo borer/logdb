@@ -1,6 +1,7 @@
 package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import sun.misc.Unsafe;
 
@@ -34,13 +35,13 @@ public class MemoryByteBufferImpl implements HeapMemory
     @Override
     public void resetPosition()
     {
-        buffer.position(0);
+        buffer.position(ZERO_OFFSET);
     }
 
     @Override
-    public long getCapacity()
+    public @ByteSize long getCapacity()
     {
-        return buffer.capacity();
+        return StorageUnits.size(buffer.capacity());
     }
 
     @Override
@@ -98,13 +99,13 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void getBytes(final @ByteOffset long length, final byte[] destinationArray)
+    public void getBytes(final @ByteSize long length, final byte[] destinationArray)
     {
         buffer.get(destinationArray, ZERO_OFFSET, (int)length);
     }
 
     @Override
-    public void getBytes(final @ByteOffset long offset, final long length, byte[] destinationArray)
+    public void getBytes(final @ByteOffset long offset, final @ByteSize long length, byte[] destinationArray)
     {
         for (int i = 0; i < length; i++)
         {
@@ -115,7 +116,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     @Override
     public void getBytes(
             final @ByteOffset long offset,
-            final long length,
+            final @ByteSize long length,
             final byte[] destinationArray,
             final @ByteOffset long destinationArrayOffset)
     {
@@ -166,7 +167,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void assertBounds(final @ByteOffset long requestOffset, final int requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final @ByteSize int requestLength)
     {
         assert ((requestOffset | requestLength | (requestOffset + requestLength) |
                 (buffer.capacity() - (requestOffset + requestLength))) >= 0)
@@ -176,7 +177,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void assertBounds(final @ByteOffset long requestOffset, final long requestLength)
+    public void assertBounds(final @ByteOffset long requestOffset, final @ByteSize long requestLength)
     {
         assert ((requestOffset | requestLength | (requestOffset + requestLength) |
                 (buffer.capacity() - (requestOffset + requestLength))) >= 0)

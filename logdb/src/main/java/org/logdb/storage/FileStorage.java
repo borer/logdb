@@ -49,9 +49,9 @@ public final class FileStorage implements Storage, Closeable
 
     public static FileStorage createNewFileDb(
             final File file,
-            final long memoryMappedChunkSizeBytes,
+            final @ByteSize long memoryMappedChunkSizeBytes,
             final ByteOrder byteOrder,
-            final int pageSizeBytes)
+            final @ByteSize int pageSizeBytes)
     {
         Objects.requireNonNull(file, "Db file cannot be null");
 
@@ -223,7 +223,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long write(final ByteBuffer buffer)
+    public @ByteOffset long write(final ByteBuffer buffer)
     {
         assert buffer != null : "buffer to persist must be non null";
 
@@ -239,7 +239,7 @@ public final class FileStorage implements Storage, Closeable
             LOGGER.error("Unable to persist node to database file. Position offset " + positionOffset, e);
         }
 
-        return positionOffset;
+        return StorageUnits.offset(positionOffset);
     }
 
     @Override
@@ -249,7 +249,7 @@ public final class FileStorage implements Storage, Closeable
                 : "buffer must be of page size " + fileDbHeader.pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
-        final long positionOffset = write(buffer);
+        final @ByteOffset long positionOffset = write(buffer);
         return StorageUnits.pageNumber(positionOffset / fileDbHeader.pageSize);
     }
 
@@ -324,7 +324,7 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public long getPageSize()
+    public @ByteSize long getPageSize()
     {
         return fileDbHeader.pageSize;
     }

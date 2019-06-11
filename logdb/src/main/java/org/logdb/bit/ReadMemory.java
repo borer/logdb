@@ -1,6 +1,7 @@
 package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 
 import java.nio.ByteBuffer;
 
@@ -18,11 +19,11 @@ public interface ReadMemory
 
     void getBytes(byte[] destinationArray);
 
-    void getBytes(@ByteOffset long length, byte[] destinationArray);
+    void getBytes(@ByteSize long length, byte[] destinationArray);
 
-    void getBytes(@ByteOffset long offset, long length, byte[] destinationArray);
+    void getBytes(@ByteOffset long offset, @ByteSize long length, byte[] destinationArray);
 
-    void getBytes(@ByteOffset long offset, long length, byte[] destinationArray, @ByteOffset long destinationArrayOffset);
+    void getBytes(@ByteOffset long offset, @ByteSize long length, byte[] destinationArray, @ByteOffset long destinationArrayOffset);
 
     byte getByte();
 

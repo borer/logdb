@@ -3,6 +3,7 @@ package org.logdb.logfile;
 import org.logdb.bit.ChecksumUtil;
 import org.logdb.bit.DirectMemory;
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
@@ -42,13 +43,13 @@ class LogRecordStorage
         this.logRecordHeader = new LogRecordHeader();
     }
 
-    long write(final byte[] key, final byte[] value, final @Version long version, final @Milliseconds long timestamp)
+    @ByteOffset long write(final byte[] key, final byte[] value, final @Version long version, final @Milliseconds long timestamp)
     {
         final int checksum = calculateChecksum(key, value, version, timestamp);
-        logRecordHeader.init(checksum, key.length, value.length, version, timestamp);
+        logRecordHeader.init(checksum, StorageUnits.size(key.length), StorageUnits.size(value.length), version, timestamp);
         logRecordHeader.write(headerBuffer);
 
-        final long positionOffset = storage.write(headerBuffer);
+        final @ByteOffset long positionOffset = storage.write(headerBuffer);
         storage.write(ByteBuffer.wrap(key));
         storage.write(ByteBuffer.wrap(value));
 
@@ -61,8 +62,8 @@ class LogRecordStorage
             final @Version long version,
             final @Milliseconds long timestamp)
     {
-        checksumer.updateChecksum(key, 0, key.length);
-        checksumer.updateChecksum(value, 0, value.length);
+        checksumer.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
+        checksumer.updateChecksum(value, ZERO_OFFSET, StorageUnits.size(value.length));
         checksumer.updateChecksum(version);
         checksumer.updateChecksum(timestamp);
         return checksumer.getAndResetChecksum();
@@ -84,8 +85,8 @@ class LogRecordStorage
         directMemory.setBaseAddress(baseOffsetForPageNumber);
 
         //try to read a complete header
-        long pageLeftSpace = storage.getPageSize() - offsetInsidePage;
-        final long recordHeaderBytesRead = Math.min(pageLeftSpace, LogRecordHeader.RECORD_HEADER_SIZE);
+        @ByteSize long pageLeftSpace = StorageUnits.size(storage.getPageSize() - offsetInsidePage);
+        final @ByteSize long recordHeaderBytesRead = StorageUnits.size(Math.min(pageLeftSpace, LogRecordHeader.RECORD_HEADER_SIZE));
         directMemory.getBytes(offsetInsidePage, recordHeaderBytesRead, headerBuffer.array());
 
         if (LogRecordHeader.RECORD_HEADER_SIZE == recordHeaderBytesRead)
@@ -99,8 +100,12 @@ class LogRecordStorage
             final @ByteOffset long baseOffsetForNextPage = storage.getBaseOffsetForPageNumber(pageNumber);
             directMemory.setBaseAddress(baseOffsetForNextPage);
 
-            final @ByteOffset long remainingHeaderBytes = StorageUnits.offset(LogRecordHeader.RECORD_HEADER_SIZE - recordHeaderBytesRead);
-            directMemory.getBytes(ZERO_OFFSET, remainingHeaderBytes, headerBuffer.array(), StorageUnits.offset(recordHeaderBytesRead));
+            final @ByteSize long remainingHeaderBytes = StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE - recordHeaderBytesRead);
+            directMemory.getBytes(
+                    ZERO_OFFSET,
+                    remainingHeaderBytes,
+                    headerBuffer.array(),
+                    StorageUnits.offset(recordHeaderBytesRead));
 
             offsetInsidePage = StorageUnits.offset(remainingHeaderBytes);
         }
@@ -136,12 +141,12 @@ class LogRecordStorage
             pageNumber += keyLengthInPages;
 
             @ByteOffset long totalBytesRead = ZERO_OFFSET;
-            long leftSize = logRecordHeader.getValueLength();
+            @ByteSize long leftSize = logRecordHeader.getValueLength();
             while (leftSize > 0)
             {
                 final @ByteOffset long baseOffsetForPageNumber = storage.getBaseOffsetForPageNumber(pageNumber);
                 directMemory.setBaseAddress(baseOffsetForPageNumber);
-                final long bytesToRead = Math.min(leftSize, storage.getPageSize());
+                final @ByteSize long bytesToRead = StorageUnits.size(Math.min(leftSize, storage.getPageSize()));
                 directMemory.getBytes(offsetPage, bytesToRead, valueBuffer.array(), totalBytesRead);
                 leftSize -= bytesToRead;
                 totalBytesRead += StorageUnits.offset(bytesToRead);

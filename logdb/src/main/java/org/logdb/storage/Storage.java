@@ -27,7 +27,7 @@ public interface Storage extends Closeable
 
     DirectMemory getUninitiatedDirectMemoryPage();
 
-    long getPageSize();
+    @ByteSize long getPageSize();
 
     @PageNumber long getPageNumber(@ByteOffset long offset);
 
@@ -38,7 +38,7 @@ public interface Storage extends Closeable
      * @param buffer the buffer to store. Can be any size
      * @return the byte offset where the buffer start is located.
      */
-    long write(ByteBuffer buffer);
+    @ByteOffset long write(ByteBuffer buffer);
 
     /**
      * Writes a page aligned bytebuffer.

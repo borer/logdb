@@ -2,8 +2,10 @@ package org.logdb.benchmark;
 
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.NodesManager;
+import org.logdb.storage.StorageUnits;
 import org.logdb.time.SystemTimeSource;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -22,7 +24,7 @@ import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestSequentialKeysWritingBenchmark
 {
-    private static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
+    private static final @ByteSize long MAPPED_CHUNK_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
 
     @State(Scope.Thread)
     public static class BenchmarkState

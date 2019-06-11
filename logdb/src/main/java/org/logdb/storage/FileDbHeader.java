@@ -12,27 +12,31 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static org.logdb.storage.StorageUnits.BYTE_SIZE;
+import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+
 public class FileDbHeader
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     private static byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDB
-    private static int BYTE_ORDER_OFFSET = LOG_DB_MAGIC_STRING.length; // size 7
-    private static int BYTE_ORDER_SIZE = Byte.BYTES; // size 1
+    private static @ByteOffset int BYTE_ORDER_OFFSET = StorageUnits.offset(LOG_DB_MAGIC_STRING.length); // size 7
+    private static @ByteSize int BYTE_ORDER_SIZE = BYTE_SIZE; // size 1
 
-    private static int PAGE_SIZE_OFFSET = BYTE_ORDER_OFFSET + BYTE_ORDER_SIZE; // size 7 + 1 = 8
-    private static int PAGE_SIZE_BYTES = Integer.BYTES;
+    private static @ByteOffset int PAGE_SIZE_OFFSET = StorageUnits.offset(BYTE_ORDER_OFFSET + BYTE_ORDER_SIZE); // size 7 + 1 = 8
+    private static @ByteSize int PAGE_SIZE_BYTES = INT_BYTES_SIZE;
 
-    private static int MEMORY_MAPPED_CHUNK_SIZE_OFFSET = PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES;
-    private static int MEMORY_MAPPED_CHUNK_SIZE_BYTES = Long.BYTES;
+    private static @ByteOffset int MEMORY_MAPPED_CHUNK_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
+    private static @ByteSize int MEMORY_MAPPED_CHUNK_SIZE_BYTES = LONG_BYTES_SIZE;
 
-    private static int VERSION_OFFSET = MEMORY_MAPPED_CHUNK_SIZE_OFFSET + MEMORY_MAPPED_CHUNK_SIZE_BYTES;
-    private static int VERSION_SIZE = Long.BYTES;
+    private static @ByteOffset int VERSION_OFFSET = StorageUnits.offset(MEMORY_MAPPED_CHUNK_SIZE_OFFSET + MEMORY_MAPPED_CHUNK_SIZE_BYTES);
+    private static @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
 
-    private static int LAST_ROOT_OFFSET = VERSION_OFFSET + VERSION_SIZE;
-    private static int LAST_ROOT_SIZE = Long.BYTES;
+    private static @ByteOffset int LAST_ROOT_OFFSET = StorageUnits.offset(VERSION_OFFSET + VERSION_SIZE);
+    private static @ByteSize int LAST_ROOT_SIZE = LONG_BYTES_SIZE;
 
-    static int HEADER_SIZE = LOG_DB_MAGIC_STRING.length +
+    static @ByteSize int HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
             BYTE_ORDER_SIZE +
             PAGE_SIZE_BYTES +
             MEMORY_MAPPED_CHUNK_SIZE_BYTES +
@@ -45,14 +49,14 @@ public class FileDbHeader
     private @PageNumber long lastRootOffset;
 
     final ByteOrder byteOrder;
-    final int pageSize; // Must be a power of two
-    final long memoryMappedChunkSizeBytes; //must be multiple of pageSize
+    final @ByteSize int pageSize; // Must be a power of two
+    final @ByteSize long memoryMappedChunkSizeBytes; //must be multiple of pageSize
 
     FileDbHeader(
             final ByteOrder byteOrder,
             final @Version long version,
-            final int pageSize,
-            final long memoryMappedChunkSizeBytes,
+            final @ByteSize int pageSize,
+            final @ByteSize long memoryMappedChunkSizeBytes,
             final @PageNumber long lastRootOffset)
     {
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
@@ -83,8 +87,10 @@ public class FileDbHeader
 
         final ByteOrder byteOrder = getByteOrder(buffer.get(BYTE_ORDER_OFFSET));
         final @Version long version = StorageUnits.version(getLongInCorrectByteOrder(buffer.getLong(VERSION_OFFSET)));
-        final int pageSize = getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET));
-        final long memoryMappedChunkSizeBytes = getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET));
+        final @ByteSize int pageSize =
+                StorageUnits.size(getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET)));
+        final @ByteSize long memoryMappedChunkSizeBytes =
+                StorageUnits.size(getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET)));
         final @PageNumber long lastRootOffset = StorageUnits.pageNumber(getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET)));
 
         return new FileDbHeader(byteOrder, version, pageSize, memoryMappedChunkSizeBytes, lastRootOffset);
