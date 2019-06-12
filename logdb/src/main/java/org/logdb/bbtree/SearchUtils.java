@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import java.nio.ByteBuffer;
 
+//TODO: extract binary search from node or delete this one
 final class SearchUtils
 {
     private SearchUtils()

@@ -7,11 +7,12 @@ import org.junit.jupiter.api.io.TempDir;
 import org.logdb.LogDB;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.logfile.LogFile;
-import org.logdb.support.Assertions;
 
 import java.io.File;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.logdb.integration.TestIntegrationUtils.createNewLogFile;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedLogBtree;
 
@@ -55,7 +56,7 @@ public class LogDBIntegrationTest
         {
             final String expectedValue = buildExpectedValue(i);
             final byte[] readBytes = logDB.get(i);
-            Assertions.assertByteArrayEquals(expectedValue.getBytes(), readBytes);
+            assertArrayEquals(expectedValue.getBytes(), readBytes);
         }
     }
 
@@ -77,7 +78,31 @@ public class LogDBIntegrationTest
         {
             final byte[] readBytes = logDB.get(key, i);
             final String expectedValue = buildExpectedValue(i);
-            Assertions.assertByteArrayEquals(expectedValue.getBytes(), readBytes);
+            assertArrayEquals(expectedValue.getBytes(), readBytes);
+        }
+    }
+
+    @Test
+    void shouldPersistsAndDeleteFromDB()
+    {
+        final int numOfPairs = 10;
+        for (int i = 0; i < numOfPairs; i++)
+        {
+            final long key = (long)i;
+            final String value = buildExpectedValue(i);
+            final byte[] valueBytes = value.getBytes();
+            logDB.put(key, valueBytes);
+            logDB.commitIndex();
+        }
+
+        for (int i = 0; i < numOfPairs; i++)
+        {
+            logDB.delete(i);
+        }
+
+        for (int i = 0; i < numOfPairs; i++)
+        {
+            assertNull(logDB.get(i));
         }
     }
 

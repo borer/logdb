@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+
 public class LogDB
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(NodesManager.class);
@@ -33,16 +35,38 @@ public class LogDB
         index.put(key, offset);
     }
 
+    /**
+     * Tries to retrieve the value for a given key.
+     * @param key the key
+     * @return the value for the given key or null if not found.
+     */
     public byte[] get(final long key)
     {
         final @ByteOffset long offset = StorageUnits.offset(index.get(key));
+        if (offset == KEY_NOT_FOUND_VALUE)
+        {
+            return null;
+        }
+
         return logFile.read(offset);
     }
 
+    /**
+     * Tries to retrieve the value for a given key at a specific version.
+     * @param key the key
+     * @param version the version to search in
+     * @return the value for the given key or null if not found
+     */
     public byte[] get(final long key, final @Version long version)
     {
         final @ByteOffset long offset = StorageUnits.offset(index.get(key, version));
         return logFile.read(offset);
+    }
+
+    public void delete(final long key)
+    {
+        logFile.remove(longToBytes(key));
+        index.remove(key);
     }
 
     public void commitIndex()

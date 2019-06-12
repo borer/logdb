@@ -1,5 +1,6 @@
 package org.logdb.logfile;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -14,19 +15,44 @@ class LogRecordHeaderTest
     private static final long VERSION = 4L;
     private static final long TIMESTAMP = 5L;
 
-    @Test
-    void shouldBeAbleToWriteAndRead()
-    {
-        final LogRecordHeader logRecordHeader = new LogRecordHeader();
-        logRecordHeader.init(CHECKSUM, KEY_LENGTH, VALUE_LENGTH, VERSION, TIMESTAMP);
+    private LogRecordHeader logRecordHeader;
+    private ByteBuffer buffer;
 
-        final ByteBuffer buffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
+    @BeforeEach
+    void setUp()
+    {
+        logRecordHeader = new LogRecordHeader();
+        buffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
+    }
+
+    @Test
+    void shouldBeAbleToWriteAndReadPutHeader()
+    {
+        logRecordHeader.initPut(CHECKSUM, KEY_LENGTH, VALUE_LENGTH, VERSION, TIMESTAMP);
         logRecordHeader.write(buffer);
 
         final LogRecordHeader readLogRecordHeader = new LogRecordHeader();
         readLogRecordHeader.read(buffer);
 
+        assertLogRecordHeader(readLogRecordHeader);
+    }
+
+    @Test
+    void shouldBeAbleToWriteAndReadDeleteHeader()
+    {
+        logRecordHeader.initDelete(CHECKSUM, KEY_LENGTH, VERSION, TIMESTAMP);
+        logRecordHeader.write(buffer);
+
+        final LogRecordHeader readLogRecordHeader = new LogRecordHeader();
+        readLogRecordHeader.read(buffer);
+
+        assertLogRecordHeader(readLogRecordHeader);
+    }
+
+    private void assertLogRecordHeader(LogRecordHeader readLogRecordHeader)
+    {
         assertEquals(logRecordHeader.getChecksum(), readLogRecordHeader.getChecksum());
+        assertEquals(logRecordHeader.getRecordType(), readLogRecordHeader.getRecordType());
         assertEquals(logRecordHeader.getKeyLength(), readLogRecordHeader.getKeyLength());
         assertEquals(logRecordHeader.getValueLength(), readLogRecordHeader.getValueLength());
         assertEquals(logRecordHeader.getTimestamp(), readLogRecordHeader.getTimestamp());

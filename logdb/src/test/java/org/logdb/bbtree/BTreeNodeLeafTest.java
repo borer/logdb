@@ -191,7 +191,7 @@ class BTreeNodeLeafTest
     {
         final long valueFound = bTreeLeaf.get(10L);
 
-        assertEquals(-1, valueFound);
+        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, valueFound);
     }
 
     /////////////////////////////////Split

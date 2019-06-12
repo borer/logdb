@@ -15,6 +15,7 @@ public class StorageUnits
     public static final @ByteSize int LONG_BYTES_SIZE = size(Long.BYTES);
     public static final @ByteSize int INT_BYTES_SIZE = size(Integer.BYTES);
     public static final @ByteSize int BYTE_SIZE = size(Byte.BYTES);
+    public static final @ByteSize int CHAR_SIZE = size(Character.BYTES);
 
     public static @Version long version(final long version)
     {

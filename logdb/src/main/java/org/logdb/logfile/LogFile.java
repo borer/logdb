@@ -28,12 +28,9 @@ public class LogFile
     public @ByteOffset long put(final byte[] key, final byte[] value)
     {
         version++;
-
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final @ByteOffset long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
-
         storage.flush();
-
         return recordStartOffset;
     }
 
@@ -45,5 +42,15 @@ public class LogFile
     public void close() throws IOException
     {
         storage.close();
+    }
+
+    public @ByteOffset long remove(final byte[] key)
+    {
+        version++;
+        final @Milliseconds long timestamp = timeSource.getCurrentMillis();
+        final @ByteOffset long offset = logRecordStorage.writeDelete(key, version, timestamp);
+        storage.flush();
+
+        return offset;
     }
 }

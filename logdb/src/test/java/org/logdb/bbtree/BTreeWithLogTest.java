@@ -30,7 +30,7 @@ class BTreeWithLogTest
     {
         for (long i = 0; i < 10; i++)
         {
-            assertEquals(-1, bTree.get(i));
+            assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(i));
         }
     }
 
@@ -329,8 +329,8 @@ class BTreeWithLogTest
 
         assertEquals(39, bTree.getNodesCount());
 
-        assertEquals(-1, bTree.get(200));
-        assertEquals(-1, bTree.get(-20));
+        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(200));
+        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(-20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {

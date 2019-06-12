@@ -1,15 +1,20 @@
 package org.logdb.support;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class Assertions
 {
-    public static void assertByteArrayEquals(final byte[] expected, final byte[] actual)
+    public static void assertExceptionWithMessage(final String expectedMessage, final Runnable runnable)
     {
-        assertEquals(expected.length, actual.length);
-        for (int i = 0; i < expected.length; i++)
+        try
         {
-            assertEquals(expected[i], actual[i]);
+            runnable.run();
+            fail("should not execute");
+        }
+        catch (final Exception e)
+        {
+            assertEquals(expectedMessage, e.getMessage());
         }
     }
 }

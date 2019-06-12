@@ -5,13 +5,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.logfile.LogFile;
+import org.logdb.storage.ByteOffset;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.logdb.integration.TestIntegrationUtils.createNewLogFile;
-import static org.logdb.support.Assertions.assertByteArrayEquals;
+import static org.logdb.support.Assertions.assertExceptionWithMessage;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class LogFileIntegrationTest
@@ -55,13 +57,13 @@ class LogFileIntegrationTest
         final long offset3 = logFile.put(keyBytes3, valueBytes3);
 
         final byte[] readValue = logFile.read(offset);
-        assertByteArrayEquals(valueBytes, readValue);
+        assertArrayEquals(valueBytes, readValue);
 
         final byte[] readValue2 = logFile.read(offset2);
-        assertByteArrayEquals(valueBytes2, readValue2);
+        assertArrayEquals(valueBytes2, readValue2);
 
         final byte[] readValue3 = logFile.read(offset3);
-        assertByteArrayEquals(valueBytes3, readValue3);
+        assertArrayEquals(valueBytes3, readValue3);
     }
 
     @Test
@@ -75,7 +77,24 @@ class LogFileIntegrationTest
 
         final byte[] readValue = logFile.read(offset);
 
-        assertByteArrayEquals(valueBytes, readValue);
+        assertArrayEquals(valueBytes, readValue);
+    }
+
+    @Test
+    void shouldBeAbleToDeleteKeyValue()
+    {
+        final byte[] keyBytes = "key".getBytes();
+        final byte[] valueBytes = "value".getBytes();
+        final long offset = logFile.put(keyBytes, valueBytes);
+
+        final @ByteOffset long removeOffset = logFile.remove(keyBytes);
+
+        final byte[] readValue = logFile.read(offset);
+        assertArrayEquals(valueBytes, readValue);
+
+        assertExceptionWithMessage(
+                "offset 550 refers to a delete record",
+                () -> logFile.read(removeOffset));
     }
 
     private byte[] generateByteArray(final int length)

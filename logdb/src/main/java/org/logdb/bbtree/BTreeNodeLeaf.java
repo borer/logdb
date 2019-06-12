@@ -7,6 +7,9 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_INDEX_NOT_FOUND;
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+
 public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
     /**
@@ -35,10 +38,9 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public long get(final long key)
     {
         final int index = binarySearch(key);
-
         if (index < 0)
         {
-            return -1;
+            return KEY_NOT_FOUND_VALUE;
         }
 
         return getValue(index);
@@ -50,7 +52,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         final int index = binarySearch(key);
         if (index < 0)
         {
-            return -1;
+            return KEY_INDEX_NOT_FOUND;
         }
 
         return index;

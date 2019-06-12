@@ -45,8 +45,13 @@ class LogRecordStorage
 
     @ByteOffset long write(final byte[] key, final byte[] value, final @Version long version, final @Milliseconds long timestamp)
     {
-        final int checksum = calculateChecksum(key, value, version, timestamp);
-        logRecordHeader.init(checksum, StorageUnits.size(key.length), StorageUnits.size(value.length), version, timestamp);
+        final int checksum = calculatePutChecksum(key, value, version, timestamp);
+        logRecordHeader.initPut(
+                checksum,
+                StorageUnits.size(key.length),
+                StorageUnits.size(value.length),
+                version,
+                timestamp);
         logRecordHeader.write(headerBuffer);
 
         final @ByteOffset long positionOffset = storage.write(headerBuffer);
@@ -56,7 +61,48 @@ class LogRecordStorage
         return positionOffset;
     }
 
-    private int calculateChecksum(
+    byte[] readRecordValue(final @ByteOffset long offset)
+    {
+        final PagePosition pagePosition = readHeader(offset);
+
+        if (LogRecordType.UPDATE.equals(logRecordHeader.getRecordType()))
+        {
+            return readValue(pagePosition);
+        }
+        else // if (LogRecordType.DELETE.equals(logRecordHeader.getRecordType()))
+        {
+            throw new IllegalArgumentException("offset " + offset + " refers to a delete record");
+        }
+    }
+
+    @ByteOffset long writeDelete(final byte[] key, final @Version long version, final @Milliseconds long timestamp)
+    {
+        final int checksum = calculateDeleteChecksum(key, version, timestamp);
+        logRecordHeader.initDelete(
+                checksum,
+                StorageUnits.size(key.length),
+                version,
+                timestamp);
+        logRecordHeader.write(headerBuffer);
+
+        final @ByteOffset long offset = storage.write(headerBuffer);
+        storage.write(ByteBuffer.wrap(key));
+
+        return offset;
+    }
+
+    private int calculateDeleteChecksum(
+            final byte[] key,
+            final @Version long version,
+            final @Milliseconds long timestamp)
+    {
+        checksumer.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
+        checksumer.updateChecksum(version);
+        checksumer.updateChecksum(timestamp);
+        return checksumer.getAndResetChecksum();
+    }
+
+    private int calculatePutChecksum(
             final byte[] key,
             final byte[] value,
             final @Version long version,
@@ -67,12 +113,6 @@ class LogRecordStorage
         checksumer.updateChecksum(version);
         checksumer.updateChecksum(timestamp);
         return checksumer.getAndResetChecksum();
-    }
-
-    byte[] readRecordValue(final @ByteOffset long offset)
-    {
-        final PagePosition pagePosition = readHeader(offset);
-        return readValue(pagePosition);
     }
 
     private PagePosition readHeader(final @ByteOffset long offset)
