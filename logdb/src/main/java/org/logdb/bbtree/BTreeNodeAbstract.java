@@ -27,21 +27,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     final Memory buffer;
 
     /**
-     * Load constructor.
-     *
-     * @param memory the memory to load from
-     */
-    BTreeNodeAbstract(final @PageNumber long pageNumber, final Memory memory)
-    {
-        this(pageNumber,
-                memory,
-                memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
-                memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
-                memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET));
-    }
-
-    /**
-     * Copy/Split constructor.
+     * Constructor.
      *
      * @param pageNumber     the page number of this node or an id generated for not yet persisted nodes
      * @param buffer         the buffer used as a content for this node

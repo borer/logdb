@@ -115,7 +115,7 @@ class FileStorageTest
         final Memory persistedMemory = storage.loadPage(pageNumber);
         final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
-        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemory);
+        final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemory);
 
         assertTrue(loadedLeaf.isRoot());
         assertEquals(previousRootPageNumber, loadedLeaf.getPreviousRoot());
@@ -145,7 +145,7 @@ class FileStorageTest
         final Memory persistedMemory = storage.loadPage(pageNumber);
         final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
-        final BTreeNodeNonLeaf loadedNonLeaf = new BTreeNodeNonLeaf(pageNumber, heapMemory);
+        final BTreeNodeNonLeaf loadedNonLeaf = BTreeNodeNonLeaf.load(pageNumber, heapMemory);
 
         assertTrue(loadedNonLeaf.isRoot());
         assertEquals(previousRootPageNumber, loadedNonLeaf.getPreviousRoot());
@@ -156,7 +156,7 @@ class FileStorageTest
         final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
         final HeapMemory heapMemoryLeaf = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemoryLeaf, heapMemoryLeaf);
-        final BTreeNodeLeaf loadedLeaf = new BTreeNodeLeaf(pageNumber, heapMemoryLeaf);
+        final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemoryLeaf);
 
         assertFalse(loadedLeaf.isRoot());
 

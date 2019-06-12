@@ -13,18 +13,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 
     private BTreeNodeHeap[] children;
 
-    /**
-     * Load constructor.
-     */
-    public BTreeNodeNonLeaf(final @PageNumber long pageNumber, final HeapMemory memory)
-    {
-        super(pageNumber, memory);
-        this.children =  new BTreeNodeHeap[0];
-    }
-
-    /**
-     * Copy/Split constructor.
-     */
     public BTreeNodeNonLeaf(
             final @PageNumber long pageNumber,
             final HeapMemory memory,
@@ -35,6 +23,17 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     {
         super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
         this.children = children;
+    }
+
+    public static BTreeNodeNonLeaf load(final @PageNumber long pageNumber, final HeapMemory memory)
+    {
+        return new BTreeNodeNonLeaf(
+                pageNumber,
+                memory,
+                memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
+                memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
+                memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET),
+                new BTreeNodeHeap[0]);
     }
 
     @Override

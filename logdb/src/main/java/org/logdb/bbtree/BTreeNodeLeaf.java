@@ -12,18 +12,6 @@ import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
-    /**
-     * Load constructor.
-     */
-    public BTreeNodeLeaf(final @PageNumber long pageNumber, final HeapMemory memory)
-    {
-        super(pageNumber, memory);
-    }
-
-
-    /**
-     * Copy/Split constructor.
-     */
     public BTreeNodeLeaf(
             final @PageNumber long pageNumber,
             final HeapMemory memory,
@@ -32,6 +20,16 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
             final int numberOfValues)
     {
         super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
+    }
+
+    public static BTreeNodeLeaf load(final @PageNumber long pageNumber, final HeapMemory memory)
+    {
+        return new BTreeNodeLeaf(
+                pageNumber,
+                memory,
+                memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
+                memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
+                memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET));
     }
 
     @Override
