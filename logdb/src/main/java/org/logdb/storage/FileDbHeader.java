@@ -33,20 +33,20 @@ public class FileDbHeader
     private static @ByteOffset int VERSION_OFFSET = StorageUnits.offset(MEMORY_MAPPED_CHUNK_SIZE_OFFSET + MEMORY_MAPPED_CHUNK_SIZE_BYTES);
     private static @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
 
-    private static @ByteOffset int LAST_ROOT_OFFSET = StorageUnits.offset(VERSION_OFFSET + VERSION_SIZE);
-    private static @ByteSize int LAST_ROOT_SIZE = LONG_BYTES_SIZE;
+    private static @ByteOffset int LAST_PERSISTED_OFFSET = StorageUnits.offset(VERSION_OFFSET + VERSION_SIZE);
+    private static @ByteSize int LAST_PERSISTED_SIZE = LONG_BYTES_SIZE;
 
     static @ByteSize int HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
             BYTE_ORDER_SIZE +
             PAGE_SIZE_BYTES +
             MEMORY_MAPPED_CHUNK_SIZE_BYTES +
             VERSION_SIZE +
-            LAST_ROOT_SIZE;
+            LAST_PERSISTED_SIZE;
 
     private final int headerSizeInPages;
 
     private @Version long version;
-    private @PageNumber long lastRootOffset;
+    private @ByteOffset long lastPersistedOffset;
 
     final ByteOrder byteOrder;
     final @ByteSize int pageSize; // Must be a power of two
@@ -57,7 +57,7 @@ public class FileDbHeader
             final @Version long version,
             final @ByteSize int pageSize,
             final @ByteSize long memoryMappedChunkSizeBytes,
-            final @PageNumber long lastRootOffset)
+            final @ByteOffset long lastPersistedOffset)
     {
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
         assert memoryMappedChunkSizeBytes % pageSize == 0 : "memoryMappedChunkSizeBytes must be multiple of pageSize";
@@ -67,7 +67,7 @@ public class FileDbHeader
         this.pageSize = pageSize;
         this.headerSizeInPages = (HEADER_SIZE / pageSize) + 1;
         this.memoryMappedChunkSizeBytes = memoryMappedChunkSizeBytes;
-        this.lastRootOffset = lastRootOffset;
+        this.lastPersistedOffset = lastPersistedOffset;
     }
 
     static FileDbHeader readFrom(final ReadableByteChannel channel) throws IOException
@@ -91,7 +91,7 @@ public class FileDbHeader
                 StorageUnits.size(getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET)));
         final @ByteSize long memoryMappedChunkSizeBytes =
                 StorageUnits.size(getLongInCorrectByteOrder(buffer.getLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET)));
-        final @PageNumber long lastRootOffset = StorageUnits.pageNumber(getLongInCorrectByteOrder(buffer.getLong(LAST_ROOT_OFFSET)));
+        final @ByteOffset long lastRootOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_PERSISTED_OFFSET)));
 
         return new FileDbHeader(byteOrder, version, pageSize, memoryMappedChunkSizeBytes, lastRootOffset);
     }
@@ -107,7 +107,7 @@ public class FileDbHeader
         buffer.putLong(VERSION_OFFSET, getLongInCorrectByteOrder(version));
         buffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
         buffer.putLong(MEMORY_MAPPED_CHUNK_SIZE_OFFSET, getLongInCorrectByteOrder(memoryMappedChunkSizeBytes));
-        buffer.putLong(LAST_ROOT_OFFSET, getLongInCorrectByteOrder(lastRootOffset));
+        buffer.putLong(LAST_PERSISTED_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
 
         buffer.rewind();
 
@@ -119,14 +119,14 @@ public class FileDbHeader
         channel.position(headerSizeInPages * pageSize);
     }
 
-    public @PageNumber long getLastRootOffset()
+    @ByteOffset long getLastPersistedOffset()
     {
-        return lastRootOffset;
+        return lastPersistedOffset;
     }
 
-    void updateMeta(final @PageNumber long newRootPageNumber, final @Version long version)
+    void updateMeta(final @ByteOffset long lastPersistedOffset, final @Version long version)
     {
-        this.lastRootOffset = newRootPageNumber;
+        this.lastPersistedOffset = lastPersistedOffset;
         this.version = version;
     }
 
@@ -136,7 +136,7 @@ public class FileDbHeader
         file.seek(FileDbHeader.VERSION_OFFSET);
         //RandomAccessFile.writeLong always writes the long in big endian. that is why we need to invert it.
         file.writeLong(Long.reverseBytes(version));
-        file.writeLong(Long.reverseBytes(lastRootOffset));
+        file.writeLong(Long.reverseBytes(lastPersistedOffset));
         file.seek(currentFilePosition);
     }
 
@@ -165,7 +165,7 @@ public class FileDbHeader
     {
         return "FileDbHeader{" +
                 "version=" + version +
-                ", lastRootOffset=" + lastRootOffset +
+                ", lastPersistedOffset=" + lastPersistedOffset +
                 ", byteOrder=" + byteOrder +
                 ", pageSize=" + pageSize +
                 ", headerSizeInPages=" + headerSizeInPages +
@@ -186,7 +186,7 @@ public class FileDbHeader
         }
         FileDbHeader that = (FileDbHeader) o;
         return version == that.version &&
-                lastRootOffset == that.lastRootOffset &&
+                lastPersistedOffset == that.lastPersistedOffset &&
                 pageSize == that.pageSize &&
                 headerSizeInPages == that.headerSizeInPages &&
                 memoryMappedChunkSizeBytes == that.memoryMappedChunkSizeBytes &&
@@ -196,6 +196,6 @@ public class FileDbHeader
     @Override
     public int hashCode()
     {
-        return Objects.hash(version, lastRootOffset, byteOrder, pageSize, headerSizeInPages, memoryMappedChunkSizeBytes);
+        return Objects.hash(version, lastPersistedOffset, byteOrder, pageSize, headerSizeInPages, memoryMappedChunkSizeBytes);
     }
 }

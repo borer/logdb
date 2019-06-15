@@ -80,7 +80,7 @@ public final class FileStorage implements Storage, Closeable
                     LOG_DB_VERSION,
                     pageSizeBytes,
                     memoryMappedChunkSizeBytes,
-                    StorageUnits.INVALID_PAGE_NUMBER
+                    StorageUnits.INVALID_OFFSET
             );
 
             fileDbHeader.writeTo(channel);
@@ -254,11 +254,11 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public void commitMetadata(final @PageNumber long lastRootPageNumber, final @Version long version)
+    public void commitMetadata(final @ByteOffset long lastPersistedOffset, final @Version long version)
     {
         try
         {
-            fileDbHeader.updateMeta(lastRootPageNumber, version);
+            fileDbHeader.updateMeta(lastPersistedOffset, version);
             fileDbHeader.writeMeta(dbFile);
         }
         catch (final IOException e)
@@ -268,9 +268,9 @@ public final class FileStorage implements Storage, Closeable
     }
 
     @Override
-    public @PageNumber long getLastRootPageNumber()
+    public @ByteOffset long getLastPersistedOffset()
     {
-        return fileDbHeader.getLastRootOffset();
+        return fileDbHeader.getLastPersistedOffset();
     }
 
     private long getRequiredNumberOfMaps() throws IOException

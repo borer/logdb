@@ -142,7 +142,7 @@ public class NodesManager
             return;
         }
 
-        final @PageNumber long lastRootPageNumber = storage.getLastRootPageNumber();
+        final @PageNumber long lastRootPageNumber = storage.getPageNumber(storage.getLastPersistedOffset());
 
         //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
 
@@ -213,14 +213,15 @@ public class NodesManager
         }
     }
 
-    public void commitLastRootPage(final @PageNumber long offsetLastRoot, final @Version long version)
+    public void commitLastRootPage(final @PageNumber long pageNumber, final @Version long version)
     {
-        storage.commitMetadata(offsetLastRoot, version);
+        final @ByteOffset long offset = storage.getOffset(pageNumber);
+        storage.commitMetadata(offset, version);
     }
 
     public @PageNumber long loadLastRootPageNumber()
     {
-        return storage.getLastRootPageNumber();
+        return storage.getPageNumber(storage.getLastPersistedOffset());
     }
 
     public void close()

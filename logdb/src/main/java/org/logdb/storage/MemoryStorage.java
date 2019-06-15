@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
-import static org.logdb.storage.StorageUnits.INVALID_PAGE_NUMBER;
+import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryStorage implements Storage
@@ -18,7 +18,7 @@ public class MemoryStorage implements Storage
     private final HashMap<Long, DirectMemory> maps;
 
     private @ByteOffset long allocatedMemoryOffset;
-    private @PageNumber long lastPageRootNumber;
+    private @ByteOffset long lastPersistedOffset;
 
     public MemoryStorage(final ByteOrder byteOrder, final @ByteSize int pageSizeBytes)
     {
@@ -26,7 +26,7 @@ public class MemoryStorage implements Storage
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = ZERO_OFFSET;
-        this.lastPageRootNumber = INVALID_PAGE_NUMBER;
+        this.lastPersistedOffset = INVALID_OFFSET;
     }
 
     @Override
@@ -92,15 +92,15 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public @PageNumber long getLastRootPageNumber()
+    public @ByteOffset long getLastPersistedOffset()
     {
-        return lastPageRootNumber;
+        return lastPersistedOffset;
     }
 
     @Override
-    public void commitMetadata(final @PageNumber long lastRootPageNumber, @Version long version)
+    public void commitMetadata(final @ByteOffset long lastPersistedOffset, @Version long version)
     {
-        this.lastPageRootNumber = lastRootPageNumber;
+        this.lastPersistedOffset = lastPersistedOffset;
     }
 
     @Override

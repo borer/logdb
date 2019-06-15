@@ -49,9 +49,9 @@ public interface Storage extends Closeable
 
     void flush();
 
-    void commitMetadata(@PageNumber long lastRootPageNumber, @Version long version);
+    void commitMetadata(@ByteOffset long lastRootPageNumber, @Version long version);
 
-    @PageNumber long getLastRootPageNumber();
+    @ByteOffset long getLastPersistedOffset();
 
     DirectMemory loadPage(@PageNumber long pageNumber);
 
