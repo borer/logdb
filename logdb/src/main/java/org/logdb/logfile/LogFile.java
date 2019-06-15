@@ -7,8 +7,6 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
-import java.io.IOException;
-
 public class LogFile
 {
     private final LogRecordStorage logRecordStorage;
@@ -41,7 +39,7 @@ public class LogFile
         return logRecordStorage.readRecordValue(offset);
     }
 
-    public void close() throws IOException
+    public void close() throws Exception
     {
         storage.close();
     }

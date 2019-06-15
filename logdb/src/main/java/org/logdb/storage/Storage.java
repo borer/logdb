@@ -3,7 +3,6 @@ package org.logdb.storage;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 
-import java.io.Closeable;
 import java.nio.ByteBuffer;
 
 /**
@@ -21,7 +20,7 @@ import java.nio.ByteBuffer;
  *      </li>
  *  </ul>
  */
-public interface Storage extends Closeable
+public interface Storage extends AutoCloseable
 {
     HeapMemory allocateHeapPage();
 

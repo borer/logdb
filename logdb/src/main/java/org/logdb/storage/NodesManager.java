@@ -12,7 +12,6 @@ import org.logdb.bit.ReadMemory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -231,7 +230,7 @@ public class NodesManager
             mappedNodes.clear();
             storage.close();
         }
-        catch (final IOException e)
+        catch (final Exception e)
         {
             LOGGER.error("Unable to close storage", e);
         }

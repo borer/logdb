@@ -6,7 +6,6 @@ import org.logdb.bit.MemoryFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -22,7 +21,7 @@ import java.util.Objects;
 import static org.logdb.Config.LOG_DB_VERSION;
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 
-public final class FileStorage implements Storage, Closeable
+public final class FileStorage implements Storage
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 

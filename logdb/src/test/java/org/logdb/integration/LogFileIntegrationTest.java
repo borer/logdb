@@ -8,7 +8,6 @@ import org.logdb.logfile.LogFile;
 import org.logdb.storage.ByteOffset;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -35,7 +34,7 @@ class LogFileIntegrationTest
         {
             logFile.close();
         }
-        catch (IOException e)
+        catch (final Exception e)
         {
             e.printStackTrace();
         }
