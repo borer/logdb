@@ -32,7 +32,7 @@ abstract class BTreeAbstract implements BTree
 
     long nodesCount;
 
-    @Version long writeVersion;
+    @Version long nextWriteVersion;
 
     BTreeAbstract(final NodesManager nodesManager, final TimeSource timeSource)
     {
@@ -51,7 +51,7 @@ abstract class BTreeAbstract implements BTree
                     INITIAL_VERSION,
                     null);
             this.uncommittedRoot = new AtomicReference<>(rootReference);
-            this.writeVersion = INITIAL_VERSION;
+            this.nextWriteVersion = INITIAL_VERSION;
 
             nodesManager.addDirtyRoot(rootReference);
         }
@@ -60,7 +60,7 @@ abstract class BTreeAbstract implements BTree
             this.uncommittedRoot = new AtomicReference<>(null);
             final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
             mappedNode.initNode(lastRootPageNumber);
-            this.writeVersion = mappedNode.getVersion();
+            this.nextWriteVersion = StorageUnits.version(mappedNode.getVersion() + 1);
         }
 
         this.nodesCount = 1;

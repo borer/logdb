@@ -9,7 +9,6 @@ import org.logdb.storage.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
@@ -88,7 +87,7 @@ public class LogDB
             logFile.close();
             index.close();
         }
-        catch (final IOException e)
+        catch (final Exception e)
         {
             LOGGER.error("Unable to close DB", e);
         }

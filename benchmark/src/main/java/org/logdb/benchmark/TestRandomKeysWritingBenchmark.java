@@ -52,7 +52,7 @@ public class TestRandomKeysWritingBenchmark
         }
 
         @TearDown(Level.Trial)
-        public void doTearDown()
+        public void doTearDown() throws Exception
         {
             btree.close();
             dbFile.delete();

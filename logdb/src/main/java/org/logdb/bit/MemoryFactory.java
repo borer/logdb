@@ -26,7 +26,7 @@ public class MemoryFactory
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
 
-        return StorageUnits.offset(NativeMemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset);
+        return StorageUnits.offset(MemoryAccess.getBaseAddressForDirectBuffer(mappedBuffer) + offset);
     }
 
     public static DirectMemory getUninitiatedDirectMemory(final @ByteSize int pageSize, final ByteOrder byteOrder)

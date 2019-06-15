@@ -24,7 +24,7 @@ public class BTreeImpl extends BTreeAbstract
     public void remove(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final @Version long newVersion = writeVersion++;
+        final @Version long newVersion = nextWriteVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -72,7 +72,7 @@ public class BTreeImpl extends BTreeAbstract
     public void put(final long key, final long value)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final @Version long newVersion = writeVersion++;
+        final @Version long newVersion = nextWriteVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {

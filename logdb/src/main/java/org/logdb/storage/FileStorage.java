@@ -26,13 +26,15 @@ public final class FileStorage implements Storage, Closeable
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-    private static final int MAX_MAPPED_SIZE = Integer.MAX_VALUE;
+    private static final @ByteSize int MAX_MAPPED_SIZE = StorageUnits.size(Integer.MAX_VALUE);
 
     private final List<MappedByteBuffer> mappedBuffers;
 
     private final RandomAccessFile dbFile;
     private final FileChannel channel;
     private final FileDbHeader fileDbHeader;
+
+    private @ByteSize long currentMapSize;
 
     private FileStorage(
             final File file,
@@ -45,6 +47,7 @@ public final class FileStorage implements Storage, Closeable
         this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
         this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
         this.mappedBuffers = new ArrayList<>();
+        this.currentMapSize = StorageUnits.ZERO_SIZE;
     }
 
     public static FileStorage createNewFileDb(
@@ -143,20 +146,30 @@ public final class FileStorage implements Storage, Closeable
 
     private void initFromFile() throws IOException
     {
-        final long fileSize = channel.size();
-        final long maxMappedChunks = fileSize / MAX_MAPPED_SIZE;
-        final long lastChunkSize = fileSize - (maxMappedChunks * MAX_MAPPED_SIZE);
+        final @ByteSize long fileSize = StorageUnits.size(channel.size());
+        final @ByteSize long maxMappedChunks = StorageUnits.size(fileSize / MAX_MAPPED_SIZE);
+        final @ByteSize long lastChunkSize = StorageUnits.size(fileSize - (maxMappedChunks * MAX_MAPPED_SIZE));
 
         for (int i = 0; i < maxMappedChunks; i++)
         {
-            mapMemory(i * MAX_MAPPED_SIZE, MAX_MAPPED_SIZE);
+            mapMemory(StorageUnits.offset(i * MAX_MAPPED_SIZE), MAX_MAPPED_SIZE);
         }
 
         if (lastChunkSize > 0)
         {
 
-            final long mapLength = Math.max(lastChunkSize, fileDbHeader.memoryMappedChunkSizeBytes);
-            mapMemory(maxMappedChunks * MAX_MAPPED_SIZE, mapLength);
+            final @ByteSize long mapLength = StorageUnits.size(Math.max(lastChunkSize, fileDbHeader.memoryMappedChunkSizeBytes));
+            mapMemory(StorageUnits.offset(maxMappedChunks * MAX_MAPPED_SIZE), mapLength);
+            currentMapSize = mapLength;
+        }
+
+        extendMapsIfRequired();
+
+        if (fileDbHeader.getLastPersistedOffset() > 0)
+        {
+            final @PageNumber long lastPersistedPageNumber = getPageNumber(fileDbHeader.getLastPersistedOffset());
+            final @ByteOffset long offset = getOffset(StorageUnits.pageNumber(lastPersistedPageNumber + 1));
+            channel.position(offset);
         }
     }
 
@@ -164,17 +177,23 @@ public final class FileStorage implements Storage, Closeable
     {
         try
         {
-            final long requiredNumberOfMaps = getRequiredNumberOfMaps();
-            long originalChannelPosition = channel.position();
-
-            final int existingRegions = mappedBuffers.size();
-            final long regionsToMap = requiredNumberOfMaps - existingRegions;
-            for (long i = 0; i < regionsToMap; i++)
+            final @ByteOffset long originalChannelPosition = StorageUnits.offset(channel.position());
+            final @ByteSize long differenceBetweenMappedAndCurrentFileSize = StorageUnits.size(originalChannelPosition - currentMapSize);
+            if (differenceBetweenMappedAndCurrentFileSize <= 0)
             {
-                mapMemory((existingRegions + i) * fileDbHeader.memoryMappedChunkSizeBytes, fileDbHeader.memoryMappedChunkSizeBytes);
+                return;
             }
 
+            final @ByteSize long extendSize = StorageUnits.size(
+                    Math.max(
+                            fileDbHeader.memoryMappedChunkSizeBytes,
+                            differenceBetweenMappedAndCurrentFileSize));
+
+            mapMemory(StorageUnits.offset(currentMapSize), extendSize);
+
             channel.position(originalChannelPosition);
+
+            currentMapSize += extendSize;
         }
         catch (final IOException e)
         {
@@ -182,7 +201,7 @@ public final class FileStorage implements Storage, Closeable
         }
     }
 
-    private void mapMemory(final long offset, final long mapLength)
+    private void mapMemory(final @ByteOffset long offset, final @ByteSize long mapLength)
     {
         try
         {
@@ -271,11 +290,6 @@ public final class FileStorage implements Storage, Closeable
     public @ByteOffset long getLastPersistedOffset()
     {
         return fileDbHeader.getLastPersistedOffset();
-    }
-
-    private long getRequiredNumberOfMaps() throws IOException
-    {
-        return (channel.position() / fileDbHeader.memoryMappedChunkSizeBytes) + 1;
     }
 
     @Override

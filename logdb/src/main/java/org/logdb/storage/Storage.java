@@ -49,7 +49,7 @@ public interface Storage extends Closeable
 
     void flush();
 
-    void commitMetadata(@ByteOffset long lastRootPageNumber, @Version long version);
+    void commitMetadata(@ByteOffset long lastPersistedOffset, @Version long version);
 
     @ByteOffset long getLastPersistedOffset();
 

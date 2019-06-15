@@ -30,6 +30,8 @@ public class LogFile
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final @ByteOffset long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
+
+        storage.commitMetadata(recordStartOffset, version);
         storage.flush();
         return recordStartOffset;
     }
@@ -49,6 +51,8 @@ public class LogFile
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final @ByteOffset long offset = logRecordStorage.writeDelete(key, version, timestamp);
+
+        storage.commitMetadata(offset, version);
         storage.flush();
 
         return offset;

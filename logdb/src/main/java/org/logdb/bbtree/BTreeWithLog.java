@@ -26,7 +26,7 @@ public class BTreeWithLog extends BTreeAbstract
         try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
             BTreeNode currentNode;
-            final @Version long newVersion = writeVersion++;
+            final @Version long newVersion = nextWriteVersion++;
 
             final RootReference rootReference = uncommittedRoot.get();
             if (rootReference != null && rootReference.root != null)
@@ -152,7 +152,7 @@ public class BTreeWithLog extends BTreeAbstract
     public void removeWithoutFalsePositives(final long key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
-        final @Version long newVersion = StorageUnits.version(writeVersion + 1);
+        final @Version long newVersion = StorageUnits.version(nextWriteVersion++);
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -252,7 +252,7 @@ public class BTreeWithLog extends BTreeAbstract
 
             if (wasFound)
             {
-                writeVersion = newVersion;
+                nextWriteVersion = newVersion;
                 setNewRoot((BTreeNodeHeap) newRoot);
             }
         }
@@ -262,7 +262,7 @@ public class BTreeWithLog extends BTreeAbstract
     public void put(final long key, final long value)
     {
         BTreeNodeHeap newRoot;
-        final @Version long newVersion = writeVersion++;
+        final @Version long newVersion = nextWriteVersion++;
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {

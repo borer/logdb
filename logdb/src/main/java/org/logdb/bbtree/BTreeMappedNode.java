@@ -12,6 +12,7 @@ import org.logdb.time.Milliseconds;
 
 public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
 {
+    //TODO: remove dependency to nodesManager into a close handler
     private final NodesManager nodesManager;
     private final Storage storage;
     private final DirectMemory memory;
