@@ -35,7 +35,7 @@ public class LogDbIntegrationTest
     }
 
     @AfterEach
-    void tearDown()
+    void tearDown() throws Exception
     {
         logDB.close();
     }

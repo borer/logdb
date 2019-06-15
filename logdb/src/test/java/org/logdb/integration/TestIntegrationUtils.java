@@ -29,6 +29,12 @@ class TestIntegrationUtils
         return new LogFile(storageLogFile, new StubTimeSource());
     }
 
+    static LogFile readLogFile(final File file)
+    {
+        FileStorage storageLogFile = FileStorage.openDbFile(file);
+        return new LogFile(storageLogFile, new StubTimeSource());
+    }
+
     static BTreeWithLog createNewPersistedLogBtree(final File file)
     {
         LOGGER.info("Creating temporal path " + file.getAbsolutePath());

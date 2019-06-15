@@ -7,7 +7,7 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
-public class LogFile
+public class LogFile implements AutoCloseable
 {
     private final LogRecordStorage logRecordStorage;
     private final Storage storage;
@@ -39,11 +39,6 @@ public class LogFile
         return logRecordStorage.readRecordValue(offset);
     }
 
-    public void close() throws Exception
-    {
-        storage.close();
-    }
-
     public @ByteOffset long remove(final byte[] key)
     {
         version++;
@@ -54,5 +49,11 @@ public class LogFile
         storage.flush();
 
         return offset;
+    }
+
+    @Override
+    public void close() throws Exception
+    {
+        storage.close();
     }
 }

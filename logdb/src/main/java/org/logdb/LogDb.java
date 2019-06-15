@@ -3,26 +3,21 @@ package org.logdb;
 import org.logdb.bbtree.BTree;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.ByteOffset;
-import org.logdb.storage.NodesManager;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
-public class LogDb
+public class LogDb implements AutoCloseable
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NodesManager.class);
-
     private final LogFile logFile;
     private final BTree index;
 
     private ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
 
-    public LogDb(final LogFile logFile, final BTree index)
+    LogDb(final LogFile logFile, final BTree index)
     {
         this.logFile = logFile;
         this.index = index;
@@ -80,16 +75,10 @@ public class LogDb
         return keyBuffer.array();
     }
 
-    public void close()
+    @Override
+    public void close() throws Exception
     {
-        try
-        {
-            logFile.close();
-            index.close();
-        }
-        catch (final Exception e)
-        {
-            LOGGER.error("Unable to close DB", e);
-        }
+        logFile.close();
+        index.close();
     }
 }

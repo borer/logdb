@@ -26,7 +26,7 @@ public enum LogRecordType
             case 'D':
                 return DELETE;
             default:
-                throw new IllegalArgumentException("Unable to parse char " + c);
+                throw new IllegalArgumentException("Unable to parse log record type " + c);
         }
     }
 }
