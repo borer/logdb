@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
-public class LogDB
+public class LogDb
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(NodesManager.class);
 
@@ -22,7 +22,7 @@ public class LogDB
 
     private ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
 
-    public LogDB(final LogFile logFile, final BTree index)
+    public LogDb(final LogFile logFile, final BTree index)
     {
         this.logFile = logFile;
         this.index = index;

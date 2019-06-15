@@ -4,33 +4,34 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.logdb.LogDB;
-import org.logdb.bbtree.BTreeWithLog;
-import org.logdb.logfile.LogFile;
+import org.logdb.LogDb;
+import org.logdb.LogDbBuilder;
+import org.logdb.support.StubTimeSource;
+import org.logdb.support.TestUtils;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.logdb.integration.TestIntegrationUtils.createNewLogFile;
-import static org.logdb.integration.TestIntegrationUtils.createNewPersistedLogBtree;
 
-public class LogDBIntegrationTest
+public class LogDbIntegrationTest
 {
     @TempDir Path tempDirectory;
-    private LogDB logDB;
+    private LogDb logDB;
 
     @BeforeEach
-    void setUp()
+    void setUp() throws IOException
     {
-        final File fileDB = tempDirectory.resolve("test.logdb").toFile();
-        final LogFile logFile = createNewLogFile(fileDB);
-
-        final File fileIndex = tempDirectory.resolve("test.logindex").toFile();
-        BTreeWithLog index = createNewPersistedLogBtree(fileIndex);
-
-        logDB = new LogDB(logFile, index);
+        final LogDbBuilder logDbBuilder = new LogDbBuilder();
+        logDB = logDbBuilder
+                .setDbName("test")
+                .setRootDirectory(tempDirectory.toFile().getAbsolutePath())
+                .setTimeSource(new StubTimeSource())
+                .setByteOrder(TestUtils.BYTE_ORDER)
+                .setMemoryMappedChunkSizeBytes(TestUtils.MAPPED_CHUNK_SIZE)
+                .setPageSizeBytes(TestUtils.PAGE_SIZE_BYTES)
+                .build();
     }
 
     @AfterEach
