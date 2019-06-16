@@ -30,6 +30,8 @@ public class NodesManager
     private final Queue<BTreeNodeLeaf> leafNodesCache;
     private final Queue<BTreeMappedNode> mappedNodes;
 
+    private @PageNumber long lastPersistedPageNumber;
+
     public NodesManager(final Storage storage)
     {
         this.storage = Objects.requireNonNull(storage, "storage cannot be null");
@@ -38,6 +40,7 @@ public class NodesManager
         this.nonLeafNodesCache = new ArrayDeque<>();
         this.leafNodesCache = new ArrayDeque<>();
         this.mappedNodes = new ArrayDeque<>();
+        this.lastPersistedPageNumber = StorageUnits.INVALID_PAGE_NUMBER;
     }
 
     public BTreeNodeLeaf createEmptyLeafNode()
@@ -141,7 +144,7 @@ public class NodesManager
             return;
         }
 
-        final @PageNumber long lastRootPageNumber = storage.getPageNumber(storage.getLastPersistedOffset());
+        final @PageNumber long lastRootPageNumber = loadLastRootPageNumber();
 
         //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
 
@@ -158,6 +161,8 @@ public class NodesManager
                     dirtyRootNode.version);
 
             dirtyRootNode.setPageNumber(pageNumber);
+
+            lastPersistedPageNumber = pageNumber;
         }
 
         storage.flush();
@@ -220,7 +225,12 @@ public class NodesManager
 
     public @PageNumber long loadLastRootPageNumber()
     {
-        return storage.getPageNumber(storage.getLastPersistedOffset());
+        if (lastPersistedPageNumber == StorageUnits.INVALID_PAGE_NUMBER)
+        {
+            lastPersistedPageNumber = storage.getPageNumber(storage.getLastPersistedOffset());
+        }
+
+        return lastPersistedPageNumber;
     }
 
     public void close()

@@ -130,6 +130,7 @@ public class FileDbHeader
         this.version = version;
     }
 
+    //TODO: batch this long writes into a single buffer write
     void writeMeta(final RandomAccessFile file) throws IOException
     {
         final long currentFilePosition = file.getFilePointer();
