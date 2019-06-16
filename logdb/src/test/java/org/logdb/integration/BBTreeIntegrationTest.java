@@ -214,6 +214,7 @@ public class BBTreeIntegrationTest
         final File file = tempDirectory.resolve(filename).toFile();
         final long key = 123L;
         final int maxVersions = 100;
+        final long nonExistingKey = 964L;
 
         try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(file))
         {
@@ -222,6 +223,8 @@ public class BBTreeIntegrationTest
                 originalBTree.put(key, i);
                 originalBTree.commit();
             }
+
+            assertEquals(KEY_NOT_FOUND_VALUE, originalBTree.get(nonExistingKey));
         }
 
         try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(file))
@@ -230,6 +233,8 @@ public class BBTreeIntegrationTest
             {
                 assertEquals(i, loadedBTree.get(key, i));
             }
+
+            assertEquals(KEY_NOT_FOUND_VALUE, loadedBTree.get(nonExistingKey));
         }
     }
 
