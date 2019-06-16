@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedBtree;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedLogBtree;
 import static org.logdb.integration.TestIntegrationUtils.loadPersistedBtree;
@@ -32,12 +33,16 @@ public class BBTreeIntegrationTest
     {
         final String filename = "testBtree1.logdb";
         final File file = tempDirectory.resolve(filename).toFile();
+        final long nonExistingKeyValuePair = 1919191919L;
 
         try (final BTree bTree = createNewPersistedBtree(file))
         {
             bTree.put(1, 1);
             bTree.put(10, 10);
             bTree.put(5, 5);
+
+            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+
             bTree.commit();
         }
 
@@ -46,6 +51,8 @@ public class BBTreeIntegrationTest
             assertEquals(1, readBTree.get(1));
             assertEquals(10, readBTree.get(10));
             assertEquals(5, readBTree.get(5));
+
+            assertEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
