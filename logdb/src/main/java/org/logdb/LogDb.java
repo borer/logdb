@@ -59,7 +59,7 @@ public class LogDb implements AutoCloseable
 
     public void delete(final long key)
     {
-        logFile.remove(longToBytes(key));
+        logFile.delete(longToBytes(key));
         index.remove(key);
     }
 

@@ -10,6 +10,8 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+
 public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
 {
     //TODO: remove dependency to nodesManager into a close handler
@@ -71,7 +73,14 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
         int index = getKeyIndex(key);
         if (getNodeType() == BtreeNodeType.Leaf)
         {
-            index--;
+            if (index < 0)
+            {
+                return KEY_NOT_FOUND_VALUE;
+            }
+            else
+            {
+                index--;
+            }
         }
         return getValue(index);
     }
@@ -80,7 +89,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     public int getKeyIndex(final long key)
     {
         int index = binarySearch(key) + 1;
-        if (index < 0)
+        if (index < 0 && getNodeType().equals(BtreeNodeType.NonLeaf))
         {
             index = -index;
         }

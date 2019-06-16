@@ -164,11 +164,10 @@ public final class FileStorage implements Storage
 
         extendMapsIfRequired();
 
-        if (fileDbHeader.getLastPersistedOffset() > 0)
+        final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
+        if (lastPersistedOffset > 0)
         {
-            final @PageNumber long lastPersistedPageNumber = getPageNumber(fileDbHeader.getLastPersistedOffset());
-            final @ByteOffset long offset = getOffset(StorageUnits.pageNumber(lastPersistedPageNumber + 1));
-            channel.position(offset);
+            channel.position(lastPersistedOffset);
         }
     }
 

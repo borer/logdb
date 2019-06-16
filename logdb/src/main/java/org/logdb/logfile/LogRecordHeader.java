@@ -16,7 +16,7 @@ import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_SIZE;
 
 
-class LogRecordHeader
+public class LogRecordHeader
 {
     private static final @ByteSize int CRC_SIZE = INT_BYTES_SIZE;
     private static final @ByteOffset int CRC_OFFSET = ZERO_OFFSET;
@@ -36,7 +36,7 @@ class LogRecordHeader
     private static final @ByteSize int TIMESTAMP_SIZE = LONG_BYTES_SIZE;
     private static final @ByteOffset int TIMESTAMP_OFFSET = VERSION_OFFSET + StorageUnits.offset(VERSION_SIZE);
 
-    static final @ByteSize int RECORD_HEADER_SIZE = CRC_SIZE + TYPE_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
+    public static final @ByteSize int RECORD_HEADER_SIZE = CRC_SIZE + TYPE_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
 
     private int checksum;
     private LogRecordType recordType;

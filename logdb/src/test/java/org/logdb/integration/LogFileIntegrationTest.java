@@ -3,11 +3,13 @@ package org.logdb.integration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.logfile.LogFile;
+import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.integration.TestIntegrationUtils.createNewLogFile;
 import static org.logdb.integration.TestIntegrationUtils.readLogFile;
 import static org.logdb.support.Assertions.assertExceptionWithMessage;
@@ -73,7 +75,7 @@ class LogFileIntegrationTest
         {
             final long offset = logFile.put(keyBytes, valueBytes);
 
-            final @ByteOffset long removeOffset = logFile.remove(keyBytes);
+            final @ByteOffset long removeOffset = logFile.delete(keyBytes);
 
             final byte[] readValue = logFile.read(offset);
             assertArrayEquals(valueBytes, readValue);
@@ -110,6 +112,69 @@ class LogFileIntegrationTest
                 final String expectedValue = "value" + i;
                 final byte[] readValue = logFile.read(offsets[i]);
                 assertArrayEquals(expectedValue.getBytes(), readValue);
+            }
+        }
+    }
+
+    @Test
+    void shouldAlwaysPersistRecordsSequentially() throws Exception
+    {
+        final int numberOfPairs = 100;
+        final String dbFilename = "test5.logdb";
+
+        long previousOffset = 0;
+        long previousKeyLength = 0;
+        long previousValueLength = 0;
+
+        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        {
+            for (int i = 0; i < numberOfPairs; i++)
+            {
+                final String key = "key" + i;
+                final String value = "value" + i;
+                final byte[] keyBytes = key.getBytes();
+                final byte[] valueBytes = value.getBytes();
+                final long actualOffset = logFile.put(keyBytes, valueBytes);
+
+                //assert that the log records are sequentially stored
+                if (i != 0)
+                {
+                    final long expectedOffset = previousOffset +
+                            LogRecordHeader.RECORD_HEADER_SIZE +
+                            previousKeyLength +
+                            previousValueLength;
+
+                    assertEquals(expectedOffset, actualOffset);
+                }
+
+                previousOffset = actualOffset;
+                previousKeyLength = keyBytes.length;
+                previousValueLength = valueBytes.length;
+            }
+        }
+
+        try (final LogFile logFile = readLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        {
+            //should be able to continue persist
+            for (int i = numberOfPairs; i < numberOfPairs * 2; i++)
+            {
+                final String key = "key" + i;
+                final String value = "value" + i;
+                final byte[] keyBytes = key.getBytes();
+                final byte[] valueBytes = value.getBytes();
+                final long actualOffset = logFile.put(keyBytes, valueBytes);
+
+                //assert that the log records are sequentially stored
+                final long expectedOffset = previousOffset +
+                        LogRecordHeader.RECORD_HEADER_SIZE +
+                        previousKeyLength +
+                        previousValueLength;
+
+                assertEquals(expectedOffset, actualOffset);
+
+                previousOffset = actualOffset;
+                previousKeyLength = keyBytes.length;
+                previousValueLength = valueBytes.length;
             }
         }
     }

@@ -1,6 +1,7 @@
 package org.logdb.logfile;
 
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -27,11 +28,15 @@ public class LogFile implements AutoCloseable
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long recordStartOffset = logRecordStorage.write(key, value, version, timestamp);
+        final @ByteOffset long putRecordStartOffset = logRecordStorage.write(key, value, version, timestamp);
 
-        storage.commitMetadata(recordStartOffset, version);
+        final @ByteSize long putRecordSize = logRecordStorage.getPutRecordSize(key, value);
+        final @ByteOffset long putRecordEndOffset = StorageUnits.offset(putRecordStartOffset + putRecordSize);
+
+        storage.commitMetadata(putRecordEndOffset, version);
         storage.flush();
-        return recordStartOffset;
+
+        return putRecordStartOffset;
     }
 
     public byte[] read(final @ByteOffset long offset)
@@ -39,16 +44,19 @@ public class LogFile implements AutoCloseable
         return logRecordStorage.readRecordValue(offset);
     }
 
-    public @ByteOffset long remove(final byte[] key)
+    public @ByteOffset long delete(final byte[] key)
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long offset = logRecordStorage.writeDelete(key, version, timestamp);
+        final @ByteOffset long deleteRecordStartOffset = logRecordStorage.writeDelete(key, version, timestamp);
 
-        storage.commitMetadata(offset, version);
+        final @ByteSize long deleteRecordSize = logRecordStorage.getDeleteRecordSize(key);
+        final @ByteOffset long deleteRecordEndOffset = StorageUnits.offset(deleteRecordStartOffset + deleteRecordSize);
+
+        storage.commitMetadata(deleteRecordEndOffset, version);
         storage.flush();
 
-        return offset;
+        return deleteRecordStartOffset;
     }
 
     @Override

@@ -69,9 +69,13 @@ class LogRecordStorage
         {
             return readValue(pagePosition);
         }
-        else // if (LogRecordType.DELETE.equals(logRecordHeader.getRecordType()))
+        else if (LogRecordType.DELETE.equals(logRecordHeader.getRecordType()))
         {
             throw new IllegalArgumentException("offset " + offset + " refers to a delete record");
+        }
+        else
+        {
+            throw new IllegalArgumentException("offset " + offset + " refers to a invalid record ");
         }
     }
 
@@ -89,6 +93,16 @@ class LogRecordStorage
         storage.write(ByteBuffer.wrap(key));
 
         return offset;
+    }
+
+    @ByteSize long getPutRecordSize(final byte[] key, final byte[] value)
+    {
+        return StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE + key.length + value.length);
+    }
+
+    @ByteSize long getDeleteRecordSize(final byte[] key)
+    {
+        return StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE + key.length);
     }
 
     private int calculateDeleteChecksum(
@@ -126,7 +140,8 @@ class LogRecordStorage
 
         //try to read a complete header
         @ByteSize long pageLeftSpace = StorageUnits.size(storage.getPageSize() - offsetInsidePage);
-        final @ByteSize long recordHeaderBytesRead = StorageUnits.size(Math.min(pageLeftSpace, LogRecordHeader.RECORD_HEADER_SIZE));
+        final @ByteSize long recordHeaderBytesRead = StorageUnits.size(
+                Math.min(pageLeftSpace, LogRecordHeader.RECORD_HEADER_SIZE));
         directMemory.getBytes(offsetInsidePage, recordHeaderBytesRead, headerBuffer.array());
 
         if (LogRecordHeader.RECORD_HEADER_SIZE == recordHeaderBytesRead)
@@ -140,7 +155,8 @@ class LogRecordStorage
             final @ByteOffset long baseOffsetForNextPage = storage.getBaseOffsetForPageNumber(pageNumber);
             directMemory.setBaseAddress(baseOffsetForNextPage);
 
-            final @ByteSize long remainingHeaderBytes = StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE - recordHeaderBytesRead);
+            final @ByteSize long remainingHeaderBytes = StorageUnits.size(
+                    LogRecordHeader.RECORD_HEADER_SIZE - recordHeaderBytesRead);
             directMemory.getBytes(
                     ZERO_OFFSET,
                     remainingHeaderBytes,
@@ -150,7 +166,14 @@ class LogRecordStorage
             offsetInsidePage = StorageUnits.offset(remainingHeaderBytes);
         }
 
-        logRecordHeader.read(headerBuffer);
+        try
+        {
+            logRecordHeader.read(headerBuffer);
+        }
+        catch (final RuntimeException e)
+        {
+            throw new IllegalStateException("Unable to read record header at offset " + offset, e);
+        }
 
         return new PagePosition(pageNumber, offsetInsidePage);
     }
