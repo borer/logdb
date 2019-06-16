@@ -131,4 +131,17 @@ public class LogRecordHeader
         destinationBuffer.putLong(TIMESTAMP_OFFSET, timestamp);
         destinationBuffer.rewind();
     }
+
+    @Override
+    public String toString()
+    {
+        return "LogRecordHeader{" +
+                "checksum=" + checksum +
+                ", recordType=" + recordType +
+                ", keyLength=" + keyLength +
+                ", valueLength=" + valueLength +
+                ", version=" + version +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 }

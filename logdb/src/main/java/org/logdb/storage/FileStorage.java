@@ -211,6 +211,7 @@ public final class FileStorage implements Storage
             }
 
             final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, offset, mapLength);
+            map.order(fileDbHeader.byteOrder);
             //try to get file size down after the mapping
             //final long fileSize = FileDbHeader.getSizeBytes()
             //        + (mappedBuffers.size() * fileDbHeader.memoryMappedChunkSizeBytes);
@@ -339,6 +340,12 @@ public final class FileStorage implements Storage
     public @ByteSize long getPageSize()
     {
         return fileDbHeader.pageSize;
+    }
+
+    @Override
+    public ByteOrder getOrder()
+    {
+        return fileDbHeader.byteOrder;
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.logdb.logfile.LogFile;
 import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -94,6 +95,38 @@ class LogFileIntegrationTest
         final String dbFilename = "test4.logdb";
 
         try (final LogFile logFile = createNewLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        {
+            for (int i = 0; i < numberOfPairs; i++)
+            {
+                final String key = "key" + i;
+                final String value = "value" + i;
+                final byte[] keyBytes = key.getBytes();
+                final byte[] valueBytes = value.getBytes();
+                offsets[i] = logFile.put(keyBytes, valueBytes);
+            }
+        }
+
+        try (final LogFile logFile = readLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        {
+            for (int i = 0; i < numberOfPairs; i++)
+            {
+                final String expectedValue = "value" + i;
+                final byte[] readValue = logFile.read(offsets[i]);
+                assertArrayEquals(expectedValue.getBytes(), readValue);
+            }
+        }
+    }
+
+    @Test
+    void shouldPersistAndLoadLogFileWithBigEndianByteOrder() throws Exception
+    {
+        final int numberOfPairs = 100;
+        final long[] offsets = new long[numberOfPairs];
+        final String dbFilename = "test4.logdb";
+
+        try (final LogFile logFile = createNewLogFile(
+                tempDirectory.resolve(dbFilename).toFile(),
+                ByteOrder.BIG_ENDIAN))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {

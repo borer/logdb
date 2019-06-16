@@ -28,7 +28,11 @@ public class LogFile implements AutoCloseable
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long putRecordStartOffset = logRecordStorage.write(key, value, version, timestamp);
+        final @ByteOffset long putRecordStartOffset = logRecordStorage.writePut(
+                key,
+                value,
+                version,
+                timestamp);
 
         final @ByteSize long putRecordSize = logRecordStorage.getPutRecordSize(key, value);
         final @ByteOffset long putRecordEndOffset = StorageUnits.offset(putRecordStartOffset + putRecordSize);
@@ -48,7 +52,10 @@ public class LogFile implements AutoCloseable
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long deleteRecordStartOffset = logRecordStorage.writeDelete(key, version, timestamp);
+        final @ByteOffset long deleteRecordStartOffset = logRecordStorage.writeDelete(
+                key,
+                version,
+                timestamp);
 
         final @ByteSize long deleteRecordSize = logRecordStorage.getDeleteRecordSize(key);
         final @ByteOffset long deleteRecordEndOffset = StorageUnits.offset(deleteRecordStartOffset + deleteRecordSize);

@@ -4,6 +4,7 @@ import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * Storage interface for the underlying persistence of the btree.
@@ -27,6 +28,8 @@ public interface Storage extends AutoCloseable
     DirectMemory getUninitiatedDirectMemoryPage();
 
     @ByteSize long getPageSize();
+
+    ByteOrder getOrder();
 
     @PageNumber long getPageNumber(@ByteOffset long offset);
 

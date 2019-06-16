@@ -21,10 +21,15 @@ class TestIntegrationUtils
 
     static LogFile createNewLogFile(final File file)
     {
+        return createNewLogFile(file, TestUtils.BYTE_ORDER);
+    }
+
+    static LogFile createNewLogFile(final File file, final ByteOrder byteOrder)
+    {
         FileStorage storageLogFile = FileStorage.createNewFileDb(
                 file,
                 TestUtils.MAPPED_CHUNK_SIZE,
-                TestUtils.BYTE_ORDER,
+                byteOrder,
                 PAGE_SIZE_BYTES);
 
         return new LogFile(storageLogFile, new StubTimeSource());

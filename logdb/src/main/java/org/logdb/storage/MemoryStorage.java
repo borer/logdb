@@ -48,6 +48,12 @@ public class MemoryStorage implements Storage
     }
 
     @Override
+    public ByteOrder getOrder()
+    {
+        return byteOrder;
+    }
+
+    @Override
     public @PageNumber long getPageNumber(final @ByteOffset long offset)
     {
         return StorageUnits.pageNumber(offset);

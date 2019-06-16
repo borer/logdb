@@ -14,7 +14,7 @@ import java.util.Scanner;
 public class CliMain
 {
     private static final @ByteSize int PAGE_SIZE_BYTES = StorageUnits.size(4096);
-    private static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+    private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN;
     private static final @ByteSize int MEMORY_MAPPED_CHUNK_SIZE_BYTES = StorageUnits.size(819200);
     private static final String EXIT_COMMAND = "exit";
     private static final String HELP_COMMAND = "help";

@@ -17,7 +17,7 @@ class LogRecordStorageTest
         final byte[] key = "key".getBytes();
         final byte[] value = "value".getBytes();
 
-        final long positionOffset = logRecordStorage.write(key, value, 1, 2);
+        final long positionOffset = logRecordStorage.writePut(key, value, 1, 2);
 
         assertEquals(0, positionOffset);
     }

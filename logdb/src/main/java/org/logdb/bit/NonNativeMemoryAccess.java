@@ -32,12 +32,11 @@ final class NonNativeMemoryAccess extends MemoryAccess
     {
         long srcAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;
         long dstAdd = destinationAddress;
-        final byte[] reverseSourceArray = reverse(sourceArray);
-        long lengthBytes = reverseSourceArray.length;
+        long lengthBytes = sourceArray.length;
         while (lengthBytes > 0)
         {
             final long chunk = Math.min(lengthBytes, UNSAFE_COPY_THRESHOLD_BYTES);
-            THE_UNSAFE.copyMemory(reverseSourceArray, srcAdd, null, dstAdd, chunk);
+            THE_UNSAFE.copyMemory(sourceArray, srcAdd, null, dstAdd, chunk);
             lengthBytes -= chunk;
             srcAdd += chunk;
             dstAdd += chunk;
@@ -61,31 +60,6 @@ final class NonNativeMemoryAccess extends MemoryAccess
             srcAdd += chunk;
             dstAdd += chunk;
         }
-
-        reverseInPlace(destinationArray);
-    }
-
-    private static void reverseInPlace(final byte[] array)
-    {
-        for (int i = 0, j = array.length - 1; i < j; i++, j--)
-        {
-            final byte tmp = array[i];
-            array[i] = array[j];
-            array[j] = tmp;
-        }
-    }
-
-    private static byte[] reverse(final byte[] array)
-    {
-        final byte[] reverseArray = new byte[array.length];
-        for (int i = 0, j = array.length - 1; i < j; i++, j--)
-        {
-            final byte tmp = array[i];
-            reverseArray[i] = array[j];
-            reverseArray[j] = tmp;
-        }
-
-        return reverseArray;
     }
 
     public static void putByte(final long address, final byte b)

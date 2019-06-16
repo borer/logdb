@@ -27,8 +27,8 @@ public class MemoryCopy
         sourceMemory.assertBounds(sourceOffset, lengthBytes);
         destinationMemory.assertBounds(destinationOffset, lengthBytes);
 
-        if ((sourceMemory instanceof MemoryDirectNonNativeImpl && !(destinationMemory instanceof MemoryDirectNonNativeImpl)) ||
-                (!(sourceMemory instanceof MemoryDirectNonNativeImpl) && destinationMemory instanceof MemoryDirectNonNativeImpl))
+        if ((sourceMemory instanceof MemoryDirectNonNativeImpl && destinationMemory instanceof MemoryDirectImpl) ||
+                (sourceMemory instanceof MemoryDirectImpl && destinationMemory instanceof MemoryDirectNonNativeImpl))
         {
             throw new RuntimeException("Copying between non-native and native memory order is not allowed.");
         }
