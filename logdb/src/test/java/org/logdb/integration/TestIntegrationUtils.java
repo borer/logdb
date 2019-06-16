@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.ByteOrder;
 
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
@@ -37,12 +38,17 @@ class TestIntegrationUtils
 
     static BTreeWithLog createNewPersistedLogBtree(final File file)
     {
+        return createNewPersistedLogBtree(file, TestUtils.BYTE_ORDER);
+    }
+
+    static BTreeWithLog createNewPersistedLogBtree(final File file, final ByteOrder byteOrder)
+    {
         LOGGER.info("Creating temporal path " + file.getAbsolutePath());
 
         final FileStorage storage = FileStorage.createNewFileDb(
                 file,
                 TestUtils.MAPPED_CHUNK_SIZE,
-                TestUtils.BYTE_ORDER,
+                byteOrder,
                 PAGE_SIZE_BYTES);
 
         final NodesManager nodesManage = new NodesManager(storage);
@@ -62,10 +68,15 @@ class TestIntegrationUtils
 
     static BTreeImpl createNewPersistedBtree(final File file)
     {
+        return createNewPersistedBtree(file, TestUtils.BYTE_ORDER);
+    }
+
+    static BTreeImpl createNewPersistedBtree(final File file, final ByteOrder byteOrder)
+    {
         final FileStorage storage = FileStorage.createNewFileDb(
                 file,
                 TestUtils.MAPPED_CHUNK_SIZE,
-                TestUtils.BYTE_ORDER,
+                byteOrder,
                 PAGE_SIZE_BYTES);
 
         final NodesManager nodesManage = new NodesManager(storage);
