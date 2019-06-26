@@ -25,11 +25,10 @@ public class LogDbIntegrationTest
     {
         final LogDbBuilder logDbBuilder = new LogDbBuilder();
         logDB = logDbBuilder
-                .setDbName("test")
-                .setRootDirectory(tempDirectory.toFile().getAbsolutePath())
+                .setRootDirectory(tempDirectory)
                 .setTimeSource(new StubTimeSource())
                 .setByteOrder(TestUtils.BYTE_ORDER)
-                .setMemoryMappedChunkSizeBytes(TestUtils.MAPPED_CHUNK_SIZE)
+                .setSegmentFileSize(TestUtils.SEGMENT_FILE_SIZE)
                 .setPageSizeBytes(TestUtils.PAGE_SIZE_BYTES)
                 .build();
     }

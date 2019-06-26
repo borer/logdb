@@ -59,9 +59,9 @@ class LogRecordStorage
                 timestamp);
         logRecordHeader.write(headerBuffer);
 
-        final @ByteOffset long positionOffset = storage.write(headerBuffer);
-        storage.write(ByteBuffer.wrap(key));
-        storage.write(ByteBuffer.wrap(value));
+        final @ByteOffset long positionOffset = storage.append(headerBuffer);
+        storage.append(ByteBuffer.wrap(key));
+        storage.append(ByteBuffer.wrap(value));
 
         return positionOffset;
     }
@@ -94,8 +94,8 @@ class LogRecordStorage
                 timestamp);
         logRecordHeader.write(headerBuffer);
 
-        final @ByteOffset long offset = storage.write(headerBuffer);
-        storage.write(ByteBuffer.wrap(key));
+        final @ByteOffset long offset = storage.append(headerBuffer);
+        storage.append(ByteBuffer.wrap(key));
 
         return offset;
     }

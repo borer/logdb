@@ -1,5 +1,6 @@
 package org.logdb.storage;
 
+import org.logdb.Config;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
@@ -7,191 +8,108 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.logdb.Config.LOG_DB_VERSION;
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 
 public final class FileStorage implements Storage
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-    private static final @ByteSize int MAX_MAPPED_SIZE = StorageUnits.size(Integer.MAX_VALUE);
-
     private final List<MappedByteBuffer> mappedBuffers;
-
-    private final RandomAccessFile dbFile;
-    private final FileChannel channel;
     private final FileDbHeader fileDbHeader;
+    private final FileAllocator fileAllocator;
+
+    private RandomAccessFile currentAppendingFile;
+    private FileChannel currentAppendingChannel;
 
     private @ByteSize long currentMapSize;
+    private @ByteOffset long globalFilePosition;
 
-    private FileStorage(
-            final File file,
+    FileStorage(
+            final Path rootDirectory,
+            final FileAllocator fileAllocator,
             final FileDbHeader fileDbHeader,
-            final RandomAccessFile dbFile,
-            final FileChannel channel)
+            final RandomAccessFile currentAppendingFile,
+            final FileChannel currentAppendingChannel)
     {
-        Objects.requireNonNull(file, "db file cannot be null");
+        Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
+        this.fileAllocator = Objects.requireNonNull(fileAllocator, "filename strategy cannot be null");
         this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
-        this.dbFile = Objects.requireNonNull(dbFile, "db file cannot be null");
-        this.channel = Objects.requireNonNull(channel, "db file cannel cannot be null");
+        this.currentAppendingFile = Objects.requireNonNull(currentAppendingFile, "db file cannot be null");
+        this.currentAppendingChannel = Objects.requireNonNull(currentAppendingChannel, "db file currentAppendingChannel cannot be null");
         this.mappedBuffers = new ArrayList<>();
         this.currentMapSize = StorageUnits.ZERO_SIZE;
+        this.globalFilePosition = StorageUnits.ZERO_OFFSET;
     }
 
-    public static FileStorage createNewFileDb(
-            final File file,
-            final @ByteSize long memoryMappedChunkSizeBytes,
-            final ByteOrder byteOrder,
-            final @ByteSize int pageSizeBytes)
+    //TODO: extract this method in the FileStorageFactory. Think about how to reuse the mapFile method
+    void initFromFile() throws IOException
     {
-        Objects.requireNonNull(file, "Db file cannot be null");
-
-        if (pageSizeBytes < 128 || pageSizeBytes % 2 != 0)
+        final List<Path> existingFiles = fileAllocator.getAllFiles();
+        for (final Path filePath : existingFiles)
         {
-            throw new IllegalArgumentException("Page Size must be bigger than 128 bytes and a power of 2. Provided was " + pageSizeBytes);
+            System.out.println("mapping file " + filePath);
+            final File file = filePath.toFile();
+            final RandomAccessFile accessFile = new RandomAccessFile(file, "r");
+            mapFile(accessFile);
         }
 
-        if (memoryMappedChunkSizeBytes % pageSizeBytes != 0)
-        {
-            throw new IllegalArgumentException(
-                    "Memory mapped chunk size must be multiple of page size. Provided page size was " + pageSizeBytes +
-                            " , provided memory maped chunk size was " + memoryMappedChunkSizeBytes);
-        }
-
-        LOGGER.info("Creating database file " + file.getAbsolutePath());
-
-        FileStorage fileStorage = null;
-        try
-        {
-            final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
-            final FileChannel channel = dbFile.getChannel();
-
-            final FileDbHeader fileDbHeader = new FileDbHeader(
-                    byteOrder,
-                    LOG_DB_VERSION,
-                    pageSizeBytes,
-                    memoryMappedChunkSizeBytes,
-                    StorageUnits.INVALID_OFFSET
-            );
-
-            fileDbHeader.writeTo(channel);
-            fileDbHeader.alignChannelToHeaderPage(channel);
-
-            fileStorage = new FileStorage(
-                    file,
-                    fileDbHeader,
-                    dbFile,
-                    channel);
-
-            fileStorage.initFromFile();
-        }
-        catch (final FileNotFoundException e)
-        {
-            LOGGER.error("Unable to find db file " + file.getAbsolutePath(), e);
-        }
-        catch (final IOException e)
-        {
-            LOGGER.error("Unable to read/write to db file " + file.getAbsolutePath(), e);
-        }
-
-        return fileStorage;
-    }
-
-    public static FileStorage openDbFile(final File file)
-    {
-        Objects.requireNonNull(file, "DB file cannot be null");
-
-        LOGGER.info("Loading database file " + file.getAbsolutePath());
-
-        FileStorage fileStorage = null;
-        try
-        {
-            final RandomAccessFile dbFile = new RandomAccessFile(file, "rw");
-            final FileChannel channel = dbFile.getChannel();
-
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(channel);
-            fileDbHeader.alignChannelToHeaderPage(channel);
-
-            fileStorage = new FileStorage(
-                    file,
-                    fileDbHeader,
-                    dbFile,
-                    channel);
-
-            fileStorage.initFromFile();
-        }
-        catch (final FileNotFoundException e)
-        {
-            LOGGER.error("Unable to find db file " + file.getAbsolutePath(), e);
-        }
-        catch (final IOException e)
-        {
-            LOGGER.error("Unable to read from db file " + file.getAbsolutePath(), e);
-        }
-
-        return fileStorage;
-    }
-
-    private void initFromFile() throws IOException
-    {
-        final @ByteSize long fileSize = StorageUnits.size(channel.size());
-        final @ByteSize long maxMappedChunks = StorageUnits.size(fileSize / MAX_MAPPED_SIZE);
-        final @ByteSize long lastChunkSize = StorageUnits.size(fileSize - (maxMappedChunks * MAX_MAPPED_SIZE));
-
-        for (int i = 0; i < maxMappedChunks; i++)
-        {
-            mapMemory(StorageUnits.offset(i * MAX_MAPPED_SIZE), MAX_MAPPED_SIZE);
-        }
-
-        if (lastChunkSize > 0)
-        {
-
-            final @ByteSize long mapLength = StorageUnits.size(Math.max(lastChunkSize, fileDbHeader.memoryMappedChunkSizeBytes));
-            mapMemory(StorageUnits.offset(maxMappedChunks * MAX_MAPPED_SIZE), mapLength);
-            currentMapSize = mapLength;
-        }
-
-        extendMapsIfRequired();
-
+        //TODO: we use globalFilePosition for 2 different things: 1 for start of last record, 2 for where we sound be appending
         final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
-        if (lastPersistedOffset > 0)
+        if (lastPersistedOffset != INVALID_OFFSET)
         {
-            channel.position(lastPersistedOffset);
+            globalFilePosition += lastPersistedOffset;
+            currentAppendingChannel.position(fileDbHeader.getAppendOffset());
+        }
+        else
+        {
+            globalFilePosition += StorageUnits.offset(fileDbHeader.getHeaderSizeAlignedToNearestPage());
         }
     }
 
-    private void extendMapsIfRequired()
+    private void tryRollCurrentFile(final @ByteSize int nextWriteSize)
     {
         try
         {
-            final @ByteOffset long originalChannelPosition = StorageUnits.offset(channel.position());
-            final @ByteSize long differenceBetweenMappedAndCurrentFileSize = StorageUnits.size(originalChannelPosition - currentMapSize);
-            if (differenceBetweenMappedAndCurrentFileSize <= 0)
+            final @ByteOffset long originalChannelPosition = StorageUnits.offset(currentAppendingChannel.position());
+            final @ByteSize long nextFileSize = StorageUnits.size(originalChannelPosition + nextWriteSize);
+            final boolean shouldRollFile = nextFileSize > fileDbHeader.segmentFileSize;
+            if (shouldRollFile)
             {
-                return;
+                final File file = fileAllocator.generateNextFile();
+                if (!file.createNewFile())
+                {
+                    throw new FileAlreadyExistsException("File " + file.getAbsolutePath() + " already exists");
+                }
+
+                final @ByteOffset long spaceLeftInCurrentSegmentFile = StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
+                globalFilePosition += spaceLeftInCurrentSegmentFile;
+
+                currentAppendingFile.close();
+
+                final RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
+                final FileChannel channel = accessFile.getChannel();
+                accessFile.setLength(fileDbHeader.segmentFileSize);
+
+                writeNewFileHeader(channel);
+                globalFilePosition += StorageUnits.offset(fileDbHeader.getHeaderSizeAlignedToNearestPage());
+
+                currentAppendingFile = accessFile;
+                currentAppendingChannel = channel;
+
+                mapFile(accessFile);
             }
-
-            final @ByteSize long extendSize = StorageUnits.size(
-                    Math.max(
-                            fileDbHeader.memoryMappedChunkSizeBytes,
-                            differenceBetweenMappedAndCurrentFileSize));
-
-            mapMemory(StorageUnits.offset(currentMapSize), extendSize);
-
-            channel.position(originalChannelPosition);
-
-            currentMapSize += extendSize;
         }
         catch (final IOException e)
         {
@@ -199,33 +117,29 @@ public final class FileStorage implements Storage
         }
     }
 
-    private void mapMemory(final @ByteOffset long offset, final @ByteSize long mapLength)
+    //Move the generation of new file into the file allocator
+    private void writeNewFileHeader(final FileChannel channel) throws IOException
     {
-        try
-        {
-            //Try to grow the file first as it may crash the VM if it doesn't the mapping doesn't grow it.
-            final long newLength = offset + mapLength;
-            if (dbFile.length() < newLength)
-            {
-                dbFile.setLength(newLength);
-            }
+        //TODO: the invalid offset here is dangerous, as when we try to load a file with this values it will fail
+        fileDbHeader.updateMeta(INVALID_OFFSET, INVALID_OFFSET, Config.LOG_DB_VERSION);
+        fileDbHeader.writeTo(channel);
+        fileDbHeader.alignChannelToHeaderPage(channel);
+    }
 
-            final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, offset, mapLength);
-            map.order(fileDbHeader.byteOrder);
-            //try to get file size down after the mapping
-            //final long fileSize = FileDbHeader.getSizeBytes()
-            //        + (mappedBuffers.size() * fileDbHeader.memoryMappedChunkSizeBytes);
-            //doesn't work on windows
-            //channel.truncate(fileSize);
+    private void mapFile(final RandomAccessFile accessFile) throws IOException
+    {
+        final FileChannel channel = accessFile.getChannel();
 
-            mappedBuffers.add(map);
-        }
-        catch (final IOException e)
-        {
-            LOGGER.error(
-                    "Couldn't mapped db file at offset " + offset +
-                            "for " + fileDbHeader.memoryMappedChunkSizeBytes + " bytes", e);
-        }
+        final MappedByteBuffer map = channel.map(
+                FileChannel.MapMode.READ_ONLY,
+                0,
+                accessFile.length());
+
+        map.order(fileDbHeader.byteOrder);
+
+        currentMapSize += fileDbHeader.segmentFileSize;
+
+        mappedBuffers.add(map);
     }
 
     @Override
@@ -241,33 +155,35 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public @ByteOffset long write(final ByteBuffer buffer)
+    public @ByteOffset long append(final ByteBuffer buffer)
     {
         assert buffer != null : "buffer to persist must be non null";
 
-        long positionOffset = -1;
+        @ByteOffset long positionOffset = INVALID_OFFSET;
         try
         {
-            positionOffset = channel.position();
-            FileUtils.writeFully(channel, buffer);
-            extendMapsIfRequired();
+            final @ByteSize int writeSize = StorageUnits.size(buffer.capacity());
+            tryRollCurrentFile(writeSize);
+            positionOffset = globalFilePosition;
+            FileUtils.writeFully(currentAppendingChannel, buffer);
+            globalFilePosition += StorageUnits.offset(writeSize);
         }
         catch (final IOException e)
         {
             LOGGER.error("Unable to persist node to database file. Position offset " + positionOffset, e);
         }
 
-        return StorageUnits.offset(positionOffset);
+        return positionOffset;
     }
 
     @Override
     public @PageNumber long writePageAligned(final ByteBuffer buffer)
     {
-        assert buffer.capacity() == fileDbHeader.pageSize
-                : "buffer must be of page size " + fileDbHeader.pageSize +
+        assert (buffer.capacity() % fileDbHeader.pageSize) == 0
+                : "buffer must be of multiple of page size " + fileDbHeader.pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
-        final @ByteOffset long positionOffset = write(buffer);
+        final @ByteOffset long positionOffset = append(buffer);
         return StorageUnits.pageNumber(positionOffset / fileDbHeader.pageSize);
     }
 
@@ -276,8 +192,11 @@ public final class FileStorage implements Storage
     {
         try
         {
-            fileDbHeader.updateMeta(lastPersistedOffset, version);
-            fileDbHeader.writeMeta(dbFile);
+            fileDbHeader.updateMeta(
+                    lastPersistedOffset,
+                    StorageUnits.offset(currentAppendingChannel.position()),
+                    version);
+            fileDbHeader.writeMeta(currentAppendingFile);
         }
         catch (final IOException e)
         {
@@ -288,18 +207,26 @@ public final class FileStorage implements Storage
     @Override
     public @ByteOffset long getLastPersistedOffset()
     {
-        return fileDbHeader.getLastPersistedOffset();
+        final @ByteOffset long globalFilePosition = this.globalFilePosition;
+
+        //TODO: ugh...nasty....sorry
+        if (globalFilePosition > fileDbHeader.pageSize)
+        {
+            this.globalFilePosition += StorageUnits.offset(fileDbHeader.pageSize);
+        }
+        return globalFilePosition;
     }
 
     @Override
     public DirectMemory loadPage(final @PageNumber long pageNumber)
     {
-        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
+        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
+
+        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
             if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
             {
                 return MemoryFactory.mapDirect(
@@ -318,14 +245,20 @@ public final class FileStorage implements Storage
     @Override
     public @ByteOffset long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
     {
-        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
+        assert pageNumber <= getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileDbHeader.segmentFileSize))
+                : "The page number " + pageNumber + " is outside the mapped range of " +
+                getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileDbHeader.segmentFileSize));
+
         @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
+        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
+
+        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
         {
             final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
-            if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
+            final @ByteOffset long mappedBufferEndOffset = StorageUnits.offset(offsetMappedBuffer + mappedBuffer.limit());
+            if (pageOffset >= offsetMappedBuffer && pageOffset < mappedBufferEndOffset)
             {
                 return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
             }
@@ -365,8 +298,7 @@ public final class FileStorage implements Storage
     {
         try
         {
-            channel.force(true);
-            extendMapsIfRequired();
+            currentAppendingChannel.force(false);
         }
         catch (final IOException e)
         {
@@ -378,8 +310,8 @@ public final class FileStorage implements Storage
     public void close() throws IOException
     {
         mappedBuffers.clear();
-        channel.close();
-        dbFile.close();
+        currentAppendingChannel.close();
+        currentAppendingFile.close();
 
         //force unmapping of the file, TODO: find another method to trigger the unmapping
         System.gc();

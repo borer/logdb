@@ -19,7 +19,8 @@ class FileDbHeaderTest
                 123L,
                 4096,
                 4096 << 5,
-                987654321L);
+                987654321L,
+                123123L);
 
         final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(FileDbHeader.HEADER_SIZE));
         expectedHeader.writeTo(channel);

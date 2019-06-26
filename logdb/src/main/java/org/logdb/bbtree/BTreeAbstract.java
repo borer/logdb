@@ -18,6 +18,8 @@ abstract class BTreeAbstract implements BTree
      */
     private static final @Version long INITIAL_VERSION = StorageUnits.version(0);
 
+    private static final @PageNumber long NEW_TREE_HEADER_PAGE = StorageUnits.pageNumber(1);
+
     /**
      * Reference to the current uncommitted root page.
      */
@@ -28,7 +30,7 @@ abstract class BTreeAbstract implements BTree
     final AtomicReference<Long> committedRoot;
 
     protected final NodesManager nodesManager;
-    final TimeSource timeSource;
+    private final TimeSource timeSource;
 
     long nodesCount;
 
@@ -42,7 +44,7 @@ abstract class BTreeAbstract implements BTree
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
-        final boolean isNewBtree = lastRootPageNumber < 0;
+        final boolean isNewBtree = isNewTree(lastRootPageNumber);
         if (isNewBtree)
         {
             final RootReference rootReference = new RootReference(
@@ -58,12 +60,19 @@ abstract class BTreeAbstract implements BTree
         else
         {
             this.uncommittedRoot = new AtomicReference<>(null);
-            final BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode();
-            mappedNode.initNode(lastRootPageNumber);
-            this.nextWriteVersion = StorageUnits.version(mappedNode.getVersion() + 1);
+            try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
+            {
+                mappedNode.initNode(lastRootPageNumber);
+                this.nextWriteVersion = StorageUnits.version(mappedNode.getVersion() + 1);
+            }
         }
 
         this.nodesCount = 1;
+    }
+
+    static boolean isNewTree(final @PageNumber long lastRootPageNumber)
+    {
+        return lastRootPageNumber == NEW_TREE_HEADER_PAGE;
     }
 
     @Override
@@ -125,7 +134,7 @@ abstract class BTreeAbstract implements BTree
         return cursorPosition;
     }
 
-    protected CursorPosition traverseDown(final BTreeNode root, final long key)
+    CursorPosition traverseDown(final BTreeNode root, final long key)
     {
         BTreeNode node = root;
         CursorPosition cursor = null;
@@ -149,7 +158,7 @@ abstract class BTreeAbstract implements BTree
         return cursor;
     }
 
-    protected CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
+    CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {

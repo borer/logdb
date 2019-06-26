@@ -51,9 +51,9 @@ class BTreeImplTest
             bTree.get(key, 3);
             fail();
         }
-        catch (final IllegalArgumentException e)
+        catch (final KeyNotFoundException e)
         {
-            assertEquals("Didn't have version 3", e.getMessage());
+            assertEquals("The key 5 was not found.", e.getMessage());
         }
 
         //get latest version by default

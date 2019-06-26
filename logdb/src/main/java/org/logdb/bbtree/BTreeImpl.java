@@ -76,7 +76,6 @@ public class BTreeImpl extends BTreeAbstract
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-
             BTreeNode targetNode = cursorPosition.getNode(mappedNode);
             CursorPosition parentCursor = cursorPosition.parent;
 
@@ -136,7 +135,7 @@ public class BTreeImpl extends BTreeAbstract
             final BTreeNode node = cursorPosition.getNode(mappedNode);
             if (node == null)
             {
-                throw new IllegalArgumentException("Didn't have version " + version);
+                throw new KeyNotFoundException(key);
             }
 
             return node.get(key);
@@ -156,33 +155,42 @@ public class BTreeImpl extends BTreeAbstract
 
     private CursorPosition getLastCursorPosition(final long key, final @Version long version)
     {
-        final CursorPosition cursorPosition;
+        CursorPosition cursorPosition = getCursorPositionFromUncommittedRoot(key, version);
+        if (cursorPosition == null)
+        {
+            cursorPosition = getCursorPositionFromCommittedRoot(key);
+        }
+
+        return cursorPosition;
+    }
+
+    private CursorPosition getCursorPositionFromUncommittedRoot(final long key, final @Version long version)
+    {
         final RootReference currentRootReference = uncommittedRoot.get();
         if (currentRootReference != null)
         {
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
-            if (rootNodeForVersion == null)
+            if (rootNodeForVersion != null)
             {
-                final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-                if (committedRootPageNumber >= 0)
-                {
-                    cursorPosition = traverseDown(committedRootPageNumber, key);
-                }
-                else
-                {
-                    throw new IllegalArgumentException("Didn't have version " + version);
-                }
+                return traverseDown(rootNodeForVersion.root, key);
             }
-            else
-            {
-                cursorPosition = traverseDown(rootNodeForVersion.root, key);
-            }
+        }
+
+        return null;
+    }
+
+    private CursorPosition getCursorPositionFromCommittedRoot(final long key)
+    {
+        CursorPosition cursorPosition;
+        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
+        if (!isNewTree(committedRootPageNumber))
+        {
+            cursorPosition = traverseDown(committedRootPageNumber, key);
         }
         else
         {
-            cursorPosition = traverseDown(StorageUnits.pageNumber(committedRoot.get()), key);
+            throw new KeyNotFoundException(key);
         }
-
         return cursorPosition;
     }
 

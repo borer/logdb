@@ -296,9 +296,9 @@ class BTreeWithLogTest
             bTree.get(key, 3);
             fail();
         }
-        catch (final IllegalArgumentException e)
+        catch (final VersionNotFoundException e)
         {
-            assertEquals("Didn't have version 3", e.getMessage());
+            assertEquals("The version 3 was not found.", e.getMessage());
         }
 
         //get latest version by default

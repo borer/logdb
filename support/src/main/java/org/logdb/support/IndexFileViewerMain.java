@@ -1,11 +1,24 @@
 package org.logdb.support;
 
 import org.logdb.bbtree.BTreeMappedNode;
-import org.logdb.storage.FileStorage;
+import org.logdb.bit.DirectMemory;
+import org.logdb.bit.HeapMemory;
+import org.logdb.bit.MemoryFactory;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.FileDbHeader;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 public class IndexFileViewerMain
 {
@@ -27,37 +40,159 @@ public class IndexFileViewerMain
             return;
         }
 
-        final FileStorage fileStorage = FileStorage.openDbFile(file);
-
-        if (file.length() % fileStorage.getPageSize() != 0)
+        try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
-            System.out.println("===============Warning===============");
-            System.out.println("The file size is " + file.length() + " which is not aligned to file storage page size " + fileStorage.getPageSize());
-            System.out.println("Last page content will not be displayed");
-            System.out.println("===============End Warning===============");
-        }
+            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
+            fileDbHeader.alignChannelToHeaderPage(fileChannel);
 
-        final long fileLengthInPages = file.length() / fileStorage.getPageSize();
+            final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
+            final @ByteSize int pageSize = fileDbHeader.pageSize;
+            final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
 
-        final BTreeMappedNode bTreeMappedNode = new BTreeMappedNode(
-                null,
-                fileStorage,
-                fileStorage.getUninitiatedDirectMemoryPage(),
-                fileStorage.getPageSize(),
-                StorageUnits.INVALID_PAGE_NUMBER);
-
-        final long headerPagesToSkip = 1;
-
-        for (long i = headerPagesToSkip; i < fileLengthInPages; i++)
-        {
-            bTreeMappedNode.initNode(StorageUnits.pageNumber(i));
             System.out.println(
-                    String.format("page/offset %d/%d : %s",
-                            i,
-                            i * fileStorage.getPageSize(),
-                            bTreeMappedNode.toString()));
+                    String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
+                            pageSize,
+                            lastPersistedOffset,
+                            fileByteOrder.toString()));
+
+            if (file.length() % pageSize != 0)
+            {
+                System.out.println("===============Warning===============");
+                System.out.println("The file size is " + file.length() +
+                        " which is not aligned to file storage page size " + pageSize);
+                System.out.println("Last page content will not be displayed");
+                System.out.println("===============End Warning===============");
+            }
+
+            final MyStorage storage = new MyStorage(fileChannel, pageSize, fileByteOrder);
+            storage.mapFile();
+
+            final BTreeMappedNode bTreeMappedNode = new BTreeMappedNode(
+                    null,
+                    storage,
+                    storage.getUninitiatedDirectMemoryPage(),
+                    pageSize,
+                    StorageUnits.INVALID_PAGE_NUMBER);
+
+            final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileDbHeader.getHeaderSizeAlignedToNearestPage() / pageSize);
+            final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileDbHeader.getAppendOffset() / pageSize);
+
+            for (long i = headerPagesToSkip; i < lastPersistedPageNumber; i++)
+            {
+                bTreeMappedNode.initNode(StorageUnits.pageNumber(i));
+                System.out.println(
+                        String.format("page/offset %d/%d : %s",
+                                i,
+                                i * pageSize,
+                                bTreeMappedNode.toString()));
+            }
+        }
+    }
+
+    private static final class MyStorage implements Storage
+    {
+
+        private final FileChannel fileChannel;
+        private final @ByteSize int pageSize;
+        private final ByteOrder fileByteOrder;
+        private MappedByteBuffer mappedByteBuffer;
+
+        MyStorage(final FileChannel fileChannel, final @ByteSize int pageSize, final ByteOrder fileByteOrder)
+        {
+            this.fileChannel = fileChannel;
+            this.pageSize = pageSize;
+            this.fileByteOrder = fileByteOrder;
         }
 
-        fileStorage.close();
+        void mapFile() throws IOException
+        {
+            mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
+        }
+
+        @Override
+        public void close() throws Exception
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public HeapMemory allocateHeapPage()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public DirectMemory getUninitiatedDirectMemoryPage()
+        {
+            return MemoryFactory.getUninitiatedDirectMemory(pageSize, fileByteOrder);
+        }
+
+        @Override
+        public @ByteSize long getPageSize()
+        {
+            return pageSize;
+        }
+
+        @Override
+        public ByteOrder getOrder()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public @PageNumber long getPageNumber(@ByteOffset long offset)
+        {
+            return StorageUnits.pageNumber(offset / pageSize);
+        }
+
+        @Override
+        public @ByteOffset long getOffset(@PageNumber long pageNumber)
+        {
+            return StorageUnits.offset(pageNumber * pageSize);
+        }
+
+        @Override
+        public @ByteOffset long append(ByteBuffer buffer)
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public @PageNumber long writePageAligned(ByteBuffer buffer)
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public void flush()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public void commitMetadata(@ByteOffset long lastPersistedOffset, @Version long version)
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public @ByteOffset long getLastPersistedOffset()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public DirectMemory loadPage(@PageNumber long pageNumber)
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public @ByteOffset long getBaseOffsetForPageNumber(@PageNumber long pageNumber)
+        {
+            assert pageNumber > 0 : "page number must be > 0, provided " + pageNumber;
+
+            return MemoryFactory.getPageOffset(mappedByteBuffer, getOffset(pageNumber));
+        }
     }
 }

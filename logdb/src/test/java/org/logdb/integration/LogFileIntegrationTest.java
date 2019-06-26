@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.logdb.logfile.LogFile;
 import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
+import org.logdb.support.TestUtils;
 
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -20,11 +21,10 @@ class LogFileIntegrationTest
 {
     @TempDir Path tempDirectory;
 
-
     @Test
     void shouldPersistAndReadMultipleSimpleKeyValue() throws Exception
     {
-        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve("test1.logdb").toFile()))
+        try (final LogFile logFile = createNewLogFile(tempDirectory))
         {
             final byte[] keyBytes = "key".getBytes();
             final byte[] valueBytes = "value".getBytes();
@@ -56,7 +56,7 @@ class LogFileIntegrationTest
         final byte[] keyBytes = generateByteArray(length);
         final byte[] valueBytes = generateByteArray(length);
 
-        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve("test2.logdb").toFile()))
+        try (final LogFile logFile = createNewLogFile(tempDirectory))
         {
             final long offset = logFile.put(keyBytes, valueBytes);
 
@@ -72,7 +72,7 @@ class LogFileIntegrationTest
         final byte[] keyBytes = "key".getBytes();
         final byte[] valueBytes = "value".getBytes();
 
-        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve("test3.logdb").toFile()))
+        try (final LogFile logFile = createNewLogFile(tempDirectory))
         {
             final long offset = logFile.put(keyBytes, valueBytes);
 
@@ -92,9 +92,8 @@ class LogFileIntegrationTest
     {
         final int numberOfPairs = 100;
         final long[] offsets = new long[numberOfPairs];
-        final String dbFilename = "test4.logdb";
 
-        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        try (final LogFile logFile = createNewLogFile(tempDirectory))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {
@@ -106,7 +105,7 @@ class LogFileIntegrationTest
             }
         }
 
-        try (final LogFile logFile = readLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        try (final LogFile logFile = readLogFile(tempDirectory))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {
@@ -122,11 +121,8 @@ class LogFileIntegrationTest
     {
         final int numberOfPairs = 100;
         final long[] offsets = new long[numberOfPairs];
-        final String dbFilename = "test4.logdb";
 
-        try (final LogFile logFile = createNewLogFile(
-                tempDirectory.resolve(dbFilename).toFile(),
-                ByteOrder.BIG_ENDIAN))
+        try (LogFile logFile = createNewLogFile(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {
@@ -138,7 +134,7 @@ class LogFileIntegrationTest
             }
         }
 
-        try (final LogFile logFile = readLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        try (final LogFile logFile = readLogFile(tempDirectory))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {
@@ -153,13 +149,13 @@ class LogFileIntegrationTest
     void shouldAlwaysPersistRecordsSequentially() throws Exception
     {
         final int numberOfPairs = 100;
-        final String dbFilename = "test5.logdb";
 
         long previousOffset = 0;
         long previousKeyLength = 0;
         long previousValueLength = 0;
+        long lastSegmentSize = 0;
 
-        try (final LogFile logFile = createNewLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        try (final LogFile logFile = createNewLogFile(tempDirectory))
         {
             for (int i = 0; i < numberOfPairs; i++)
             {
@@ -169,7 +165,7 @@ class LogFileIntegrationTest
                 final byte[] valueBytes = value.getBytes();
                 final long actualOffset = logFile.put(keyBytes, valueBytes);
 
-                //assert that the log records are sequentially stored
+                //assert that the log records are sequentially stored, skip first because of the file header
                 if (i != 0)
                 {
                     final long expectedOffset = previousOffset +
@@ -183,10 +179,16 @@ class LogFileIntegrationTest
                 previousOffset = actualOffset;
                 previousKeyLength = keyBytes.length;
                 previousValueLength = valueBytes.length;
+
+                if (TestUtils.SEGMENT_FILE_SIZE < (actualOffset - lastSegmentSize))
+                {
+                    lastSegmentSize = actualOffset;
+                    previousOffset += PAGE_SIZE_BYTES;//header new file
+                }
             }
         }
 
-        try (final LogFile logFile = readLogFile(tempDirectory.resolve(dbFilename).toFile()))
+        try (final LogFile logFile = readLogFile(tempDirectory))
         {
             //should be able to continue persist
             for (int i = numberOfPairs; i < numberOfPairs * 2; i++)

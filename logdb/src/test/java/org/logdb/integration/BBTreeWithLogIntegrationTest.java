@@ -7,7 +7,7 @@ import org.logdb.bbtree.BTreeWithLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 
@@ -27,11 +27,9 @@ public class BBTreeWithLogIntegrationTest
     @Test
     void shouldBeABleToCreateNewDBWithLogFileAndReadLeafNodeWithBigEndianEncoding() throws Exception
     {
-        final String filename = "testBtree6-b.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final long nonExistingKeyValuePair = 1919191919L;
 
-        try (final BTree bTree = createNewPersistedLogBtree(file, ByteOrder.BIG_ENDIAN))
+        try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
             bTree.put(1, 1);
             bTree.put(10, 10);
@@ -42,7 +40,7 @@ public class BBTreeWithLogIntegrationTest
             bTree.commit();
         }
 
-        try (final BTree readBTree = loadPersistedBtree(file))
+        try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
             assertEquals(1, readBTree.get(1));
             assertEquals(10, readBTree.get(10));
@@ -53,15 +51,13 @@ public class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldGetHistoricValuesFromOpenDBWithLog()
+    void shouldGetHistoricValuesFromOpenDBWithLog() throws IOException
     {
-        final String filename = "testBtree6.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final long key = 123L;
         final int maxVersions = 100;
         final long nonExistingKey = 964L;
 
-        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(file))
+        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory))
         {
             for (long i = 0; i < maxVersions; i++)
             {
@@ -72,7 +68,7 @@ public class BBTreeWithLogIntegrationTest
             assertEquals(KEY_NOT_FOUND_VALUE, originalBTree.get(nonExistingKey));
         }
 
-        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(file))
+        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
         {
             for (int i = 0; i < maxVersions; i++)
             {
@@ -84,14 +80,12 @@ public class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleToCommitMultipleTimesWithLog()
+    void shouldBeABleToCommitMultipleTimesWithLog() throws IOException
     {
-        final String filename = "testBtree7.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final int numberOfPairs = 600;
 
         final String original;
-        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(file))
+        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory))
         {
 
             for (long i = 0; i < numberOfPairs; i++)
@@ -104,7 +98,7 @@ public class BBTreeWithLogIntegrationTest
             originalBTree.commit();
         }
 
-        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(file))
+        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
         {
             final String loaded = loadedBTree.print();
 
@@ -118,14 +112,12 @@ public class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleToLoadAndContinuePersistingBtreeWithLog()
+    void shouldBeABleToLoadAndContinuePersistingBtreeWithLog() throws IOException
     {
-        final String filename = "testBtree8.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final int numberOfPairs = 300;
 
         //create new tree and insert elements
-        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(file))
+        try (BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory))
         {
             for (long i = 0; i < numberOfPairs; i++)
             {
@@ -136,7 +128,7 @@ public class BBTreeWithLogIntegrationTest
         }
 
         //open the persisted tree and continue inserting elements
-        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(file))
+        try (BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
         {
             for (long i = numberOfPairs; i < numberOfPairs * 2; i++)
             {
@@ -146,7 +138,7 @@ public class BBTreeWithLogIntegrationTest
         }
 
         //open the persisted tree and read all the elements
-        try (final BTreeWithLog loadedBTree2 = loadPersistedLogBtree(file))
+        try (BTreeWithLog loadedBTree2 = loadPersistedLogBtree(tempDirectory))
         {
             for (int i = 0; i < numberOfPairs * 2; i++)
             {

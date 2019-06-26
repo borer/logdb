@@ -237,6 +237,8 @@ public class NodesManager
     {
         try
         {
+            leafNodesCache.clear();
+            nonLeafNodesCache.clear();
             mappedNodes.clear();
             storage.close();
         }

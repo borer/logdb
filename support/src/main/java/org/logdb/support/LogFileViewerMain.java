@@ -3,7 +3,7 @@ package org.logdb.support;
 import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
-import org.logdb.storage.FileStorage;
+import org.logdb.storage.FileDbHeader;
 import org.logdb.storage.StorageUnits;
 
 import java.io.File;
@@ -17,8 +17,6 @@ import static java.lang.System.exit;
 
 public class LogFileViewerMain
 {
-
-
     public static void main(String[] args) throws IOException
     {
         if (args.length != 1)
@@ -37,34 +35,32 @@ public class LogFileViewerMain
             return;
         }
 
-        final @ByteSize long pageSize;
-        final @ByteOffset long lastPersistedOffset;
-        final ByteOrder fileOrder;
-        try (FileStorage fileStorage = FileStorage.openDbFile(file))
-        {
-            pageSize = fileStorage.getPageSize();
-            lastPersistedOffset = fileStorage.getLastPersistedOffset();
-            fileOrder = fileStorage.getOrder();
-        }
-
-        System.out.println(
-                String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
-                        pageSize,
-                        lastPersistedOffset,
-                        fileOrder.toString()));
-
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
+            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
+            fileDbHeader.alignChannelToHeaderPage(fileChannel);
+
+            final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
+            final @ByteSize int pageSize = fileDbHeader.pageSize;
+            final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
+
+            System.out.println(
+                    String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
+                            pageSize,
+                            lastPersistedOffset,
+                            fileByteOrder.toString()));
+
             final LogRecordHeader logRecordHeader = new LogRecordHeader();
             final ByteBuffer headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
-            headerBuffer.order(fileOrder);
+
+            headerBuffer.order(fileByteOrder);
 
             final @ByteOffset long fileHeaderOffsetToSkip = StorageUnits.offset(pageSize);
             fileChannel.position(fileHeaderOffsetToSkip);
 
             long lastRecordSize = 0;
             final ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
-            keyBuffer.order(fileOrder);
+            keyBuffer.order(fileByteOrder);
             for (long i = fileHeaderOffsetToSkip; i < lastPersistedOffset; i += lastRecordSize)
             {
                 fileChannel.read(headerBuffer);
@@ -92,7 +88,7 @@ public class LogFileViewerMain
 
                 //read value
                 final ByteBuffer valueBuffer = ByteBuffer.allocate(logRecordHeader.getValueLength());
-                valueBuffer.order(fileOrder);
+                valueBuffer.order(fileByteOrder);
                 fileChannel.read(valueBuffer);
                 final String valueString = new String(valueBuffer.array());
 

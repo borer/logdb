@@ -40,7 +40,7 @@ public interface Storage extends AutoCloseable
      * @param buffer the buffer to store. Can be any size
      * @return the byte offset where the buffer start is located.
      */
-    @ByteOffset long write(ByteBuffer buffer);
+    @ByteOffset long append(ByteBuffer buffer);
 
     /**
      * Writes a page aligned bytebuffer.
@@ -57,5 +57,6 @@ public interface Storage extends AutoCloseable
 
     DirectMemory loadPage(@PageNumber long pageNumber);
 
+    //TODO: get rid of this interface and use the previous but also pass the DirectMemory that is going to get mapped into
     @ByteOffset long getBaseOffsetForPageNumber(@PageNumber long pageNumber);
 }

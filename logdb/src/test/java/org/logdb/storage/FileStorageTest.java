@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
@@ -15,39 +14,33 @@ import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.parallel.ResourceAccessMode.READ_WRITE;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class FileStorageTest
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorageTest.class);
 
-    private static final String DB_FILE_CONDITION = "file";
-
-    @TempDir
-    Path tempDirectory;
-
-    private static final String DB_FILENAME = "test.logdb";
+    @TempDir Path tempDirectory;
 
     private FileStorage storage;
     private NodesManager nodesManager;
 
     @BeforeEach
-    void setUp()
+    void setUp() throws IOException
     {
-        final Path tempDbPath = tempDirectory.resolve(DB_FILENAME);
+        LOGGER.info("Using temp directory " + tempDirectory.toString());
 
-        LOGGER.info("Using temp directory " + tempDbPath.toString());
-
-        storage = FileStorage.createNewFileDb(
-                tempDbPath.toFile(),
-                TestUtils.MAPPED_CHUNK_SIZE,
+        storage = FileStorageFactory.createNew(
+                tempDirectory,
+                FileType.INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
                 TestUtils.BYTE_ORDER,
                 PAGE_SIZE_BYTES);
 
@@ -68,15 +61,15 @@ class FileStorageTest
     }
 
     @Test
-    void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize()
+    void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize() throws IOException
     {
-        try
+        try (FileStorage newStorage = FileStorageFactory.createNew(
+                tempDirectory,
+                FileType.INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
+                TestUtils.BYTE_ORDER,
+                100))
         {
-            FileStorage.createNewFileDb(
-                    tempDirectory.resolve(DB_FILENAME).toFile(),
-                    TestUtils.MAPPED_CHUNK_SIZE,
-                    TestUtils.BYTE_ORDER,
-                    100);
             fail("should have failed creating file storage with invalid page size");
         }
         catch (final IllegalArgumentException e)
@@ -84,13 +77,13 @@ class FileStorageTest
             assertEquals(e.getMessage(), "Page Size must be bigger than 128 bytes and a power of 2. Provided was " + 100);
         }
 
-        try
-        {
-            FileStorage.createNewFileDb(
-                    tempDirectory.resolve(DB_FILENAME).toFile(),
-                    TestUtils.MAPPED_CHUNK_SIZE,
+        try(FileStorage newStorage = FileStorageFactory.createNew(
+                    tempDirectory,
+                    FileType.INDEX,
+                    TestUtils.SEGMENT_FILE_SIZE,
                     TestUtils.BYTE_ORDER,
-                    4097);
+                    4097))
+        {
             fail("should have failed creating file storage with invalid page size");
         }
         catch (final IllegalArgumentException e)
@@ -100,7 +93,6 @@ class FileStorageTest
     }
 
     @Test
-    @ResourceLock(value = DB_FILE_CONDITION, mode = READ_WRITE)
     void shouldPersistAndLoadLeafNode()
     {
         final int numKeys = 10;
@@ -129,7 +121,6 @@ class FileStorageTest
     }
 
     @Test
-    @ResourceLock(value = DB_FILE_CONDITION, mode = READ_WRITE)
     void shouldPersistAndLoadLeafNonNode()
     {
         final int numKeys = 10;

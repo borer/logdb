@@ -9,13 +9,16 @@ import org.logdb.time.SystemTimeSource;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class CliMain
 {
     private static final @ByteSize int PAGE_SIZE_BYTES = StorageUnits.size(4096);
     private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN;
-    private static final @ByteSize int MEMORY_MAPPED_CHUNK_SIZE_BYTES = StorageUnits.size(819200);
+    private static final @ByteSize int FILE_SEGMENT_SIZE = StorageUnits.size(819200);
     private static final String EXIT_COMMAND = "exit";
     private static final String HELP_COMMAND = "help";
     private static final String GET_COMMAND = "get";
@@ -24,36 +27,27 @@ public class CliMain
 
     public static void main(String[] args)
     {
-        if (args.length < 2)
+        if (args.length < 1)
         {
-            System.out.println("Usage : <root directory> <log db name>");
+            System.out.println("Usage : <root directory>");
             return;
         }
 
         final String rootDirectoryArg = args[0];
-        final File rootDirectory = new File(rootDirectoryArg);
-        if (!rootDirectory.exists() || !rootDirectory.isDirectory())
+        final Path rootDirectory = Paths.get(rootDirectoryArg);
+        if (!Files.exists(rootDirectory) || !Files.isDirectory(rootDirectory))
         {
             System.out.println("Root directory " + rootDirectoryArg + " doesn't exists or is not a directory");
             return;
         }
 
-        final String dbNameArg = args[1];
-        final File dbfile = new File(rootDirectory, dbNameArg);
-        if (!isFilenameValid(dbfile))
-        {
-            System.out.println("Db file name " + dbNameArg + " is not a valid file name");
-            return;
-        }
-
         final LogDbBuilder logDbBuilder = new LogDbBuilder();
         try (LogDb logDb = logDbBuilder
-                                    .setRootDirectory(rootDirectory.getAbsolutePath())
-                                    .setDbName(dbfile.getName())
+                                    .setRootDirectory(rootDirectory)
                                     .setTimeSource(new SystemTimeSource())
                                     .setPageSizeBytes(PAGE_SIZE_BYTES)
                                     .setByteOrder(BYTE_ORDER)
-                                    .setMemoryMappedChunkSizeBytes(MEMORY_MAPPED_CHUNK_SIZE_BYTES)
+                                    .setSegmentFileSize(FILE_SEGMENT_SIZE)
                                     .build())
         {
             final Scanner scanner = new Scanner(System.in);

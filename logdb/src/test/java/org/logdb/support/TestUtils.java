@@ -15,7 +15,7 @@ public class TestUtils
 
     public static final int PAGE_SIZE_BYTES = 512;
 
-    public static final long MAPPED_CHUNK_SIZE = PAGE_SIZE_BYTES * 200;
+    public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
 
     public static ByteBuffer createValue(final String value)
     {

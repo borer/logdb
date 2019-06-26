@@ -7,7 +7,6 @@ import org.logdb.bbtree.BTreeImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,11 +28,9 @@ public class BBTreeIntegrationTest
     @Test
     void shouldBeABleToCreateNewDbFileAndReadLeafNode() throws Exception
     {
-        final String filename = "testBtree1.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final long nonExistingKeyValuePair = 1919191919L;
 
-        try (final BTree bTree = createNewPersistedBtree(file))
+        try (final BTree bTree = createNewPersistedBtree(tempDirectory))
         {
             bTree.put(1, 1);
             bTree.put(10, 10);
@@ -44,7 +41,7 @@ public class BBTreeIntegrationTest
             bTree.commit();
         }
 
-        try (final BTree readBTree = loadPersistedBtree(file))
+        try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
             assertEquals(1, readBTree.get(1));
             assertEquals(10, readBTree.get(10));
@@ -57,11 +54,9 @@ public class BBTreeIntegrationTest
     @Test
     void shouldBeABleToCreateNewDbFileAndReadLeafNodeWithBigEndianEncoding() throws Exception
     {
-        final String filename = "testBtree1-b.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final long nonExistingKeyValuePair = 1919191919L;
 
-        try (final BTree bTree = createNewPersistedBtree(file, ByteOrder.BIG_ENDIAN))
+        try (final BTree bTree = createNewPersistedBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
             bTree.put(1, 1);
             bTree.put(10, 10);
@@ -72,7 +67,7 @@ public class BBTreeIntegrationTest
             bTree.commit();
         }
 
-        try (final BTree readBTree = loadPersistedBtree(file))
+        try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
             assertEquals(1, readBTree.get(1));
             assertEquals(10, readBTree.get(10));
@@ -85,11 +80,9 @@ public class BBTreeIntegrationTest
     @Test
     void shouldBeABleToPersistAndReadABBtree() throws Exception
     {
-        final String filename = "testBtree2.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final int numKeys = 100;
 
-        try (final BTree originalBTree = createNewPersistedBtree(file))
+        try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (int i = 0; i < numKeys; i++)
             {
@@ -99,7 +92,7 @@ public class BBTreeIntegrationTest
             originalBTree.commit();
         }
 
-        try (final BTree loadedBTree = loadPersistedBtree(file))
+        try (final BTree loadedBTree = loadPersistedBtree(tempDirectory))
         {
             final String loadedStructure = loadedBTree.print();
             final String expectedStructure = "digraph g {\n" +
@@ -133,12 +126,10 @@ public class BBTreeIntegrationTest
     @Test
     void shouldBeABleToCommitMultipleTimes() throws Exception
     {
-        final String filename = "testBtree3.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final int numberOfPairs = 100;
         final List<Long> expectedOrder = new ArrayList<>();
 
-        try (final BTree originalBTree = createNewPersistedBtree(file))
+        try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < numberOfPairs; i++)
             {
@@ -153,7 +144,7 @@ public class BBTreeIntegrationTest
         expectedOrder.sort(Long::compareTo);
 
         final LinkedList<Long> actualOrder = new LinkedList<>();
-        try (final BTreeImpl loadedBTree = loadPersistedBtree(file))
+        try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
 
             loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
@@ -170,11 +161,9 @@ public class BBTreeIntegrationTest
     @Test
     void shouldConsumeKeyValuesInOrderAfterCommit() throws Exception
     {
-        final String filename = "testBtree4.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final List<Long> expectedOrder = new ArrayList<>();
 
-        try (final BTree originalBTree = createNewPersistedBtree(file))
+        try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < 100; i++)
             {
@@ -188,7 +177,7 @@ public class BBTreeIntegrationTest
         expectedOrder.sort(Long::compareTo);
 
         final LinkedList<Long> actualOrder = new LinkedList<>();
-        try (final BTreeImpl loadedBTree = loadPersistedBtree(file))
+        try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
             loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
@@ -204,12 +193,10 @@ public class BBTreeIntegrationTest
     @Test
     void shouldGetHistoricValuesFromOpenDB() throws Exception
     {
-        final String filename = "testBtree5.logdb";
-        final File file = tempDirectory.resolve(filename).toFile();
         final long key = 123L;
         final int maxVersions = 100;
 
-        try (final BTree originalBTree = createNewPersistedBtree(file))
+        try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < maxVersions; i++)
             {
@@ -219,7 +206,7 @@ public class BBTreeIntegrationTest
             originalBTree.commit();
         }
 
-        try (final BTreeImpl loadedBTree = loadPersistedBtree(file))
+        try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
             final int[] index = new int[1]; //ugh... lambdas
             for (index[0] = 0; index[0] < maxVersions; index[0]++)

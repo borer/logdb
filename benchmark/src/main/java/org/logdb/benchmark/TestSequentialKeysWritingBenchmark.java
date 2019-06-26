@@ -4,6 +4,8 @@ import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.FileStorage;
+import org.logdb.storage.FileStorageFactory;
+import org.logdb.storage.FileType;
 import org.logdb.storage.NodesManager;
 import org.logdb.storage.StorageUnits;
 import org.logdb.time.SystemTimeSource;
@@ -17,33 +19,35 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestSequentialKeysWritingBenchmark
 {
-    private static final @ByteSize long MAPPED_CHUNK_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
+    private static final @ByteSize long SEGMENT_FILE_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
 
     @State(Scope.Thread)
     public static class BenchmarkState
     {
         private long key;
-        private File dbFile;
         private FileStorage storage;
         private NodesManager nodesManager;
         private BTree btree;
+        private Path rootDirectory;
 
         @Setup(Level.Trial)
-        public void doSetup()
+        public void doSetup() throws IOException
         {
-            dbFile = new File("benchmark.logdb");
-            dbFile.delete();
+            rootDirectory = Paths.get("./");
 
-            storage = FileStorage.createNewFileDb(
-                    dbFile,
-                    MAPPED_CHUNK_SIZE,
+            storage = FileStorageFactory.createNew(
+                    rootDirectory,
+                    FileType.INDEX,
+                    SEGMENT_FILE_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
                     PAGE_SIZE_BYTES);
 
@@ -58,7 +62,7 @@ public class TestSequentialKeysWritingBenchmark
         public void doTearDown() throws Exception
         {
             btree.close();
-            dbFile.delete();
+            BenchmarkUtils.removeAllFilesFromDirectory(rootDirectory);
         }
 
         void putKey()
