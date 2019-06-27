@@ -25,6 +25,32 @@ public class BBTreeWithLogIntegrationTest
     Path tempDirectory;
 
     @Test
+    void shouldNotFindKeyLowerThatAnyOtherKey() throws Exception
+    {
+        final long nonExistingKeyValuePair = -1919191919L;
+
+        try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
+        {
+            bTree.put(1, 1);
+            bTree.commit();
+            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+        }
+    }
+
+    @Test
+    void shouldNotFindKeyBiggerThatAnyOtherKey() throws Exception
+    {
+        final long nonExistingKeyValuePair = 1919191919L;
+
+        try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
+        {
+            bTree.put(1, 1);
+            bTree.commit();
+            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+        }
+    }
+
+    @Test
     void shouldBeABleToCreateNewDBWithLogFileAndReadLeafNodeWithBigEndianEncoding() throws Exception
     {
         final long nonExistingKeyValuePair = 1919191919L;

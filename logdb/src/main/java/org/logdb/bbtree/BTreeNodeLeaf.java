@@ -45,7 +45,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public int getKeyIndex(long key)
+    public int getKeyIndex(final long key)
     {
         final int index = binarySearch(key);
         if (index < 0)

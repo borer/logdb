@@ -57,6 +57,7 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
+    //TODO: split this function
     private void removeWithLogInternal(
             final BTreeNodeHeap parent,
             final int nodeIndexInParent,
@@ -137,13 +138,14 @@ public class BTreeWithLog extends BTreeAbstract
                     }
                     else
                     {
-                        putWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
+                        putWithLogRecursive(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
                     }
                 }
             }
         }
     }
 
+    //TODO: split this function
     /**
      * Removes the key by first walking the tree and searching if it actually has a value with that key.
      * If no value is found this operation is a no-op.
@@ -295,18 +297,18 @@ public class BTreeWithLog extends BTreeAbstract
             parent.setChild(1, split);
 
             newRoot = split.getMinKey() > key ? newRoot : split;
-            putWithLogInternal(parent, at, newRoot, key, value);
+            putWithLogRecursive(parent, at, newRoot, key, value);
 
             setNewRoot(parent);
         }
         else
         {
-            putWithLogInternal(null, -1, newRoot, key, value);
+            putWithLogRecursive(null, -1, newRoot, key, value);
             setNewRoot(newRoot);
         }
     }
 
-    private void putWithLogInternal(
+    private void putWithLogRecursive(
             final BTreeNodeHeap parent,
             final int nodeIndexInParent,
             final BTreeNodeHeap node,
@@ -358,6 +360,7 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
+    //TODO: rename function to something easier to understand
     private void splitIfRequiredAndPutWithLogInternal(
             final BTreeNodeNonLeaf parent,
             final long key,
@@ -379,17 +382,17 @@ public class BTreeWithLog extends BTreeAbstract
 
             if (childrenSplit.getMinKey() > key)
             {
-                putWithLogInternal(parent, keyIndex - 1, childrenCopy, key, value);
+                putWithLogRecursive(parent, keyIndex - 1, childrenCopy, key, value);
             }
             else
             {
-                putWithLogInternal(parent, keyIndex, childrenSplit, key, value);
+                putWithLogRecursive(parent, keyIndex, childrenSplit, key, value);
             }
         }
         else
         {
             parent.setChild(keyIndex, childrenCopy);
-            putWithLogInternal(parent, keyIndex, childrenCopy, key, value);
+            putWithLogRecursive(parent, keyIndex, childrenCopy, key, value);
         }
     }
 

@@ -3,70 +3,77 @@ package org.logdb.bbtree;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.ByteBuffer;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.logdb.support.TestUtils.createValue;
 
 public class SearchUtilsTest
 {
-    private ByteBuffer key0;
-    private ByteBuffer key1;
-    private ByteBuffer key2;
-    private ByteBuffer key3;
-    private ByteBuffer[] array;
+    private MyKeyIndexSupplier keySupplier;
+    private long[] keys;
 
     @BeforeEach
     void setUp()
     {
-        key0 = createValue("0");
-        key1 = createValue("1");
-        key2 = createValue("2");
-        key3 = createValue("3");
-        array = new ByteBuffer[] {key0, key1, key2, key3};
+        keys = new long[]{0, 1, 2, 5};
+        keySupplier = new MyKeyIndexSupplier(keys);
     }
 
     @Test
     void shouldPerformBinarySearch()
     {
-        assertEquals(0, SearchUtils.binarySearch(key0, array));
-        assertEquals(1, SearchUtils.binarySearch(key1, array));
-        assertEquals(2, SearchUtils.binarySearch(key2, array));
-        assertEquals(3, SearchUtils.binarySearch(key3, array));
+        assertEquals(0, SearchUtils.binarySearch(0, keys.length, keySupplier));
+        assertEquals(1, SearchUtils.binarySearch(1, keys.length, keySupplier));
+        assertEquals(2, SearchUtils.binarySearch(2, keys.length, keySupplier));
+        assertEquals(3, SearchUtils.binarySearch(5, keys.length, keySupplier));
     }
 
     @Test
     void shouldNotFindAKeyBiggerThenAll()
     {
-        int expectedIndex = -(array.length + 1);
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("4"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("5"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("6"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("7"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("8"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("9"), array));
+        int expectedIndex = -(keys.length + 1);
+        assertEquals(expectedIndex, SearchUtils.binarySearch(6, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(7, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(8, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(9, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(10, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(11, keys.length, keySupplier));
     }
 
     @Test
     void shouldNotFindAKeySmallerThenAll()
     {
         int expectedIndex = -1;
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-1"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-2"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-3"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-4"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-5"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-6"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-7"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-8"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-9"), array));
-        assertEquals(expectedIndex, SearchUtils.binarySearch(createValue("-10"), array));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-1, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-2, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-3, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-4, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-5, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-6, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-7, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-8, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-9, keys.length, keySupplier));
+        assertEquals(expectedIndex, SearchUtils.binarySearch(-10, keys.length, keySupplier));
     }
 
     @Test
     void shouldNotFindKeyInTheMiddle()
     {
-        assertEquals(-3, SearchUtils.binarySearch(createValue("11"), array));
-        assertEquals(-4, SearchUtils.binarySearch(createValue("22"), array));
+        assertEquals(-4, SearchUtils.binarySearch(3, keys.length, keySupplier));
+        assertEquals(-4, SearchUtils.binarySearch(4, keys.length, keySupplier));
+    }
+
+    static final class MyKeyIndexSupplier implements SearchUtils.KeyIndexSupplier
+    {
+        final long[] keys;
+
+        MyKeyIndexSupplier(final long[] keys)
+        {
+            this.keys = keys;
+        }
+
+        @Override
+        public long getKey(int index)
+        {
+            return keys[index];
+        }
     }
 }

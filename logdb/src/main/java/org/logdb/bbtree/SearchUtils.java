@@ -1,8 +1,5 @@
 package org.logdb.bbtree;
 
-import java.nio.ByteBuffer;
-
-//TODO: extract binary search from node or delete this one
 final class SearchUtils
 {
     private SearchUtils()
@@ -23,21 +20,23 @@ final class SearchUtils
      * <p>See also Arrays.binarySearch.</p>
      *
      * @param key the key to find
-     * @param existingKeys sorted array that is used for the search
+     * @param numberOfKeys the number of total keys
+     * @param keyIndexSupplier a functions that gets the key for a given index/position
      * @return the index in existing keys or negative
      */
-    static int binarySearch(final ByteBuffer key, final ByteBuffer[] existingKeys)
+    static int binarySearch(
+            final long key,
+            final int numberOfKeys,
+            final KeyIndexSupplier keyIndexSupplier)
     {
         int low = 0;
-        int high = existingKeys.length - 1;
+        int high = numberOfKeys - 1;
         int index = high >>> 1;
 
         while (low <= high)
         {
-            final ByteBuffer existingKey = existingKeys[index];
-            key.rewind();
-            existingKey.rewind();
-            final int compare = key.compareTo(existingKey);
+            final long existingKey = keyIndexSupplier.getKey(index);
+            final int compare = Long.compare(key, existingKey);
             if (compare > 0)
             {
                 low = index + 1;
@@ -53,5 +52,10 @@ final class SearchUtils
             index = (low + high) >>> 1;
         }
         return -(low + 1);
+    }
+
+    interface KeyIndexSupplier
+    {
+        long getKey(int index);
     }
 }

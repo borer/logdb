@@ -77,10 +77,6 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
             {
                 return KEY_NOT_FOUND_VALUE;
             }
-            else
-            {
-                index--;
-            }
         }
         return getValue(index);
     }
@@ -88,8 +84,10 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     @Override
     public int getKeyIndex(final long key)
     {
-        int index = binarySearch(key) + 1;
-        if (index < 0 && getNodeType().equals(BtreeNodeType.NonLeaf))
+        final boolean isNonLeaf = getNodeType().equals(BtreeNodeType.NonLeaf);
+        final int nonLeafAddition = isNonLeaf ? 1 : 0;
+        int index = binarySearch(key) + nonLeafAddition;
+        if (index < 0 && isNonLeaf)
         {
             index = -index;
         }
