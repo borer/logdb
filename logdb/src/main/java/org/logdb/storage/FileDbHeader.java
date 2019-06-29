@@ -3,7 +3,6 @@ package org.logdb.storage;
 import org.logdb.bit.MemoryOrder;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
@@ -46,6 +45,8 @@ public final class FileDbHeader
             LAST_PERSISTED_SIZE +
             APPEND_OFFSET_SIZE;
 
+    private final ByteBuffer writeBuffer;
+
     private @Version long version;
     private @ByteOffset long lastPersistedOffset;
     private @ByteOffset long appendOffset;
@@ -72,6 +73,8 @@ public final class FileDbHeader
         this.segmentFileSize = segmentFileSize;
         this.lastPersistedOffset = lastPersistedOffset;
         this.appendOffset = appendOffset;
+        this.writeBuffer = ByteBuffer.allocate(HEADER_SIZE); // version, lastPersistedOffset and appendOffset
+        this.writeBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
     }
 
     static FileDbHeader newHeader(
@@ -110,10 +113,11 @@ public final class FileDbHeader
                 StorageUnits.size(getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET)));
         final @ByteSize long segmentFileSize =
                 StorageUnits.size(getLongInCorrectByteOrder(buffer.getLong(SEGMENT_FILE_SIZE_OFFSET)));
-        final @ByteOffset long lastRootOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_PERSISTED_OFFSET)));
+        final @ByteOffset long lastPersistedOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_PERSISTED_OFFSET)));
         final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(APPEND_OFFSET)));
 
-        final FileDbHeader fileDbHeader = new FileDbHeader(byteOrder, version, pageSize, segmentFileSize, lastRootOffset, appendOffset);
+        final FileDbHeader fileDbHeader = new FileDbHeader(byteOrder, version, pageSize, segmentFileSize, lastPersistedOffset, appendOffset);
+        fileDbHeader.updateMeta(lastPersistedOffset, appendOffset, version);
 
         channel.position(fileDbHeader.getHeaderSizeAlignedToNearestPage());
 
@@ -122,21 +126,17 @@ public final class FileDbHeader
 
     void writeTo(final SeekableByteChannel channel) throws IOException
     {
-        final ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
+        writeBuffer.put(LOG_DB_MAGIC_STRING);
+        writeBuffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
+        writeBuffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
+        writeBuffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
+        writeBuffer.putLong(VERSION_OFFSET, getLongInCorrectByteOrder(version));
+        writeBuffer.putLong(LAST_PERSISTED_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
+        writeBuffer.putLong(APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
 
-        buffer.order(DEFAULT_HEADER_BYTE_ORDER);
+        writeBuffer.rewind();
 
-        buffer.put(LOG_DB_MAGIC_STRING);
-        buffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
-        buffer.putLong(VERSION_OFFSET, getLongInCorrectByteOrder(version));
-        buffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
-        buffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
-        buffer.putLong(LAST_PERSISTED_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
-        buffer.putLong(APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
-
-        buffer.rewind();
-
-        FileUtils.writeFully(channel, buffer);
+        FileUtils.writeFully(channel, writeBuffer);
 
         channel.position(getHeaderSizeAlignedToNearestPage());
     }
@@ -164,18 +164,12 @@ public final class FileDbHeader
         this.lastPersistedOffset = lastPersistedOffset;
         this.appendOffset = appendOffset;
         this.version = version;
-    }
 
-    //TODO: batch this long writes into a single buffer write
-    void writeMeta(final RandomAccessFile file) throws IOException
-    {
-        final long currentFilePosition = file.getFilePointer();
-        file.seek(FileDbHeader.VERSION_OFFSET);
-        //NOTE: RandomAccessFile.writeLong always writes the long in big endian. that is why we need to invert it.
-        file.writeLong(Long.reverseBytes(version));
-        file.writeLong(Long.reverseBytes(lastPersistedOffset));
-        file.writeLong(Long.reverseBytes(appendOffset));
-        file.seek(currentFilePosition);
+        writeBuffer.rewind();
+        writeBuffer.putLong(VERSION_OFFSET, getLongInCorrectByteOrder(version));
+        writeBuffer.putLong(LAST_PERSISTED_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
+        writeBuffer.putLong(APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
+        writeBuffer.rewind();
     }
 
     private @ByteSize int getHeaderSizeInPages()

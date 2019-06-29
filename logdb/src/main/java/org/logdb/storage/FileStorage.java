@@ -60,8 +60,13 @@ public final class FileStorage implements Storage
         {
             LOGGER.info("Mapping file " + filePath);
             final File file = filePath.toFile();
-            final RandomAccessFile accessFile = new RandomAccessFile(file, "r");
-            mapFile(accessFile);
+            try (RandomAccessFile accessFile = new RandomAccessFile(file, "r"))
+            {
+                try (FileChannel channel = accessFile.getChannel())
+                {
+                    mapFile(channel);
+                }
+            }
         }
 
         final @ByteOffset long appendOffset = fileDbHeader.getAppendOffset();
@@ -106,7 +111,7 @@ public final class FileStorage implements Storage
                 currentAppendingFile = accessFile;
                 currentAppendingChannel = channel;
 
-                mapFile(accessFile);
+                mapFile(currentAppendingChannel);
             }
         }
         catch (final IOException e)
@@ -115,7 +120,7 @@ public final class FileStorage implements Storage
         }
     }
 
-    //Move the generation of new file into the file allocator
+    //TODO: Move the generation of new file into the file allocator
     private void writeNewFileHeader(final FileChannel channel) throws IOException
     {
         //TODO: the invalid offset here is dangerous, as when we try to load a file with this values it will fail
@@ -123,14 +128,12 @@ public final class FileStorage implements Storage
         fileDbHeader.writeTo(channel);
     }
 
-    private void mapFile(final RandomAccessFile accessFile) throws IOException
+    private void mapFile(final FileChannel channel) throws IOException
     {
-        final FileChannel channel = accessFile.getChannel();
-
         final MappedByteBuffer map = channel.map(
                 FileChannel.MapMode.READ_ONLY,
                 0,
-                accessFile.length());
+                channel.size());
 
         map.order(fileDbHeader.byteOrder);
 
@@ -193,7 +196,13 @@ public final class FileStorage implements Storage
                     lastPersistedOffset,
                     StorageUnits.offset(currentAppendingChannel.position()),
                     version);
-            fileDbHeader.writeMeta(currentAppendingFile);
+
+            final long originalChannelPosition = currentAppendingChannel.position();
+            currentAppendingChannel.position(0);
+
+            fileDbHeader.writeTo(currentAppendingChannel);
+
+            currentAppendingChannel.position(originalChannelPosition);
         }
         catch (final IOException e)
         {
