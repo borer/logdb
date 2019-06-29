@@ -51,7 +51,6 @@ public class FileStorageFactory
 
             final FileDbHeader fileDbHeader = FileDbHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
             fileDbHeader.writeTo(channel);
-            fileDbHeader.alignChannelToHeaderPage(channel);
 
             fileStorage = new FileStorage(
                     rootDirectory,
@@ -93,7 +92,6 @@ public class FileStorageFactory
             final FileChannel channel = dbFile.getChannel();
 
             final FileDbHeader fileDbHeader = FileDbHeader.readFrom(channel);
-            fileDbHeader.alignChannelToHeaderPage(channel);
 
             fileStorage = new FileStorage(
                     rootDirectory,

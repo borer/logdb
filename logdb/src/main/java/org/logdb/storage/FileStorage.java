@@ -101,7 +101,7 @@ public final class FileStorage implements Storage
                 accessFile.setLength(fileDbHeader.segmentFileSize);
 
                 writeNewFileHeader(channel);
-                globalFilePosition += StorageUnits.offset(fileDbHeader.getHeaderSizeAlignedToNearestPage());
+                globalFilePosition += StorageUnits.offset(channel.position());
 
                 currentAppendingFile = accessFile;
                 currentAppendingChannel = channel;
@@ -121,7 +121,6 @@ public final class FileStorage implements Storage
         //TODO: the invalid offset here is dangerous, as when we try to load a file with this values it will fail
         fileDbHeader.updateMeta(INVALID_OFFSET, INVALID_OFFSET, Config.LOG_DB_VERSION);
         fileDbHeader.writeTo(channel);
-        fileDbHeader.alignChannelToHeaderPage(channel);
     }
 
     private void mapFile(final RandomAccessFile accessFile) throws IOException

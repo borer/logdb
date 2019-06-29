@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -21,26 +19,26 @@ public final class FileDbHeader
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
-    private static byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDb
-    private static @ByteOffset int BYTE_ORDER_OFFSET = StorageUnits.offset(LOG_DB_MAGIC_STRING.length); // size 7
-    private static @ByteSize int BYTE_ORDER_SIZE = BYTE_SIZE; // size 1
+    private static final byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDb
+    private static final @ByteOffset int BYTE_ORDER_OFFSET = StorageUnits.offset(LOG_DB_MAGIC_STRING.length); // size 7
+    private static final @ByteSize int BYTE_ORDER_SIZE = BYTE_SIZE; // size 1
 
-    private static @ByteOffset int PAGE_SIZE_OFFSET = StorageUnits.offset(BYTE_ORDER_OFFSET + BYTE_ORDER_SIZE); // size 7 + 1 = 8
-    private static @ByteSize int PAGE_SIZE_BYTES = INT_BYTES_SIZE;
+    private static final @ByteOffset int PAGE_SIZE_OFFSET = StorageUnits.offset(BYTE_ORDER_OFFSET + BYTE_ORDER_SIZE); // size 7 + 1 = 8
+    private static final @ByteSize int PAGE_SIZE_BYTES = INT_BYTES_SIZE;
 
-    private static @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
-    private static @ByteSize int SEGMENT_FILE_SIZE_BYTES = LONG_BYTES_SIZE;
+    private static final @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
+    private static final @ByteSize int SEGMENT_FILE_SIZE_BYTES = LONG_BYTES_SIZE;
 
-    private static @ByteOffset int VERSION_OFFSET = StorageUnits.offset(SEGMENT_FILE_SIZE_OFFSET + SEGMENT_FILE_SIZE_BYTES);
-    private static @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
+    private static final @ByteOffset int VERSION_OFFSET = StorageUnits.offset(SEGMENT_FILE_SIZE_OFFSET + SEGMENT_FILE_SIZE_BYTES);
+    private static final @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
 
-    private static @ByteOffset int LAST_PERSISTED_OFFSET = StorageUnits.offset(VERSION_OFFSET + VERSION_SIZE);
-    private static @ByteSize int LAST_PERSISTED_SIZE = LONG_BYTES_SIZE;
+    private static final @ByteOffset int LAST_PERSISTED_OFFSET = StorageUnits.offset(VERSION_OFFSET + VERSION_SIZE);
+    private static final @ByteSize int LAST_PERSISTED_SIZE = LONG_BYTES_SIZE;
 
-    private static @ByteOffset int APPEND_OFFSET = StorageUnits.offset(LAST_PERSISTED_OFFSET + LAST_PERSISTED_SIZE);
-    private static @ByteSize int APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
+    private static final @ByteOffset int APPEND_OFFSET = StorageUnits.offset(LAST_PERSISTED_OFFSET + LAST_PERSISTED_SIZE);
+    private static final @ByteSize int APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
 
-    static @ByteSize int HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
+    static final @ByteSize int HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
             BYTE_ORDER_SIZE +
             PAGE_SIZE_BYTES +
             SEGMENT_FILE_SIZE_BYTES +
@@ -48,15 +46,14 @@ public final class FileDbHeader
             LAST_PERSISTED_SIZE +
             APPEND_OFFSET_SIZE;
 
-    private final int headerSizeInPages;
-
     private @Version long version;
     private @ByteOffset long lastPersistedOffset;
     private @ByteOffset long appendOffset;
 
+    final @ByteSize long segmentFileSize; //must be multiple of pageSize
+
     public final ByteOrder byteOrder;
     public final @ByteSize int pageSize; // Must be a power of two
-    final @ByteSize long segmentFileSize; //must be multiple of pageSize
 
     private FileDbHeader(
             final ByteOrder byteOrder,
@@ -72,13 +69,12 @@ public final class FileDbHeader
         this.byteOrder = byteOrder;
         this.version = version;
         this.pageSize = pageSize;
-        this.headerSizeInPages = (HEADER_SIZE / pageSize) + 1;
         this.segmentFileSize = segmentFileSize;
         this.lastPersistedOffset = lastPersistedOffset;
         this.appendOffset = appendOffset;
     }
 
-    public static FileDbHeader newHeader(
+    static FileDbHeader newHeader(
             final ByteOrder byteOrder,
             final @ByteSize int pageSizeBytes,
             final @ByteSize long segmentFileSize)
@@ -93,7 +89,7 @@ public final class FileDbHeader
         );
     }
 
-    public static FileDbHeader readFrom(final ReadableByteChannel channel) throws IOException
+    public static FileDbHeader readFrom(final SeekableByteChannel channel) throws IOException
     {
         final ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
         FileUtils.readFully(channel, buffer);
@@ -117,10 +113,14 @@ public final class FileDbHeader
         final @ByteOffset long lastRootOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_PERSISTED_OFFSET)));
         final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(APPEND_OFFSET)));
 
-        return new FileDbHeader(byteOrder, version, pageSize, segmentFileSize, lastRootOffset, appendOffset);
+        final FileDbHeader fileDbHeader = new FileDbHeader(byteOrder, version, pageSize, segmentFileSize, lastRootOffset, appendOffset);
+
+        channel.position(fileDbHeader.getHeaderSizeAlignedToNearestPage());
+
+        return fileDbHeader;
     }
 
-    void writeTo(final WritableByteChannel channel) throws IOException
+    void writeTo(final SeekableByteChannel channel) throws IOException
     {
         final ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
 
@@ -137,17 +137,13 @@ public final class FileDbHeader
         buffer.rewind();
 
         FileUtils.writeFully(channel, buffer);
-    }
 
-    //TODO: make this return the header size in pages
-    public void alignChannelToHeaderPage(final SeekableByteChannel channel) throws IOException
-    {
         channel.position(getHeaderSizeAlignedToNearestPage());
     }
 
     public @ByteSize long getHeaderSizeAlignedToNearestPage()
     {
-        return StorageUnits.size(headerSizeInPages * pageSize);
+        return StorageUnits.size(getHeaderSizeInPages() * pageSize);
     }
 
     public @ByteOffset long getLastPersistedOffset()
@@ -182,6 +178,11 @@ public final class FileDbHeader
         file.seek(currentFilePosition);
     }
 
+    private @ByteSize int getHeaderSizeInPages()
+    {
+        return StorageUnits.size((HEADER_SIZE / pageSize) + 1);
+    }
+
     private static long getLongInCorrectByteOrder(final long value)
     {
         return MemoryOrder.isNativeOrder(DEFAULT_HEADER_BYTE_ORDER) ? value : Long.reverseBytes(value);
@@ -206,7 +207,6 @@ public final class FileDbHeader
     public String toString()
     {
         return "FileDbHeader{" +
-                "headerSizeInPages=" + headerSizeInPages +
                 ", version=" + version +
                 ", lastPersistedOffset=" + lastPersistedOffset +
                 ", appendOffset=" + appendOffset +
@@ -228,8 +228,7 @@ public final class FileDbHeader
             return false;
         }
         FileDbHeader that = (FileDbHeader) o;
-        return headerSizeInPages == that.headerSizeInPages &&
-                version == that.version &&
+        return version == that.version &&
                 lastPersistedOffset == that.lastPersistedOffset &&
                 appendOffset == that.appendOffset &&
                 pageSize == that.pageSize &&
@@ -240,6 +239,6 @@ public final class FileDbHeader
     @Override
     public int hashCode()
     {
-        return Objects.hash(headerSizeInPages, version, lastPersistedOffset, appendOffset, byteOrder, pageSize, segmentFileSize);
+        return Objects.hash(version, lastPersistedOffset, appendOffset, byteOrder, pageSize, segmentFileSize);
     }
 }

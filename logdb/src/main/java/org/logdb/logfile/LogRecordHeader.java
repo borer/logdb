@@ -75,19 +75,19 @@ public class LogRecordHeader
         return timestamp;
     }
 
-    public void initPut(final int checksum,
-                        final @ByteSize int keyLength,
-                        final @ByteSize int valueLength,
-                        final @Version long version,
-                        final @Milliseconds long timestamp)
+    void initPut(final int checksum,
+                 final @ByteSize int keyLength,
+                 final @ByteSize int valueLength,
+                 final @Version long version,
+                 final @Milliseconds long timestamp)
     {
         init(checksum, LogRecordType.UPDATE, keyLength, valueLength, version, timestamp);
     }
 
-    public void initDelete(final int checksum,
-                           final @ByteSize int keyLength,
-                           final @Version long version,
-                           final @Milliseconds long timestamp)
+    void initDelete(final int checksum,
+                    final @ByteSize int keyLength,
+                    final @Version long version,
+                    final @Milliseconds long timestamp)
     {
         init(checksum, LogRecordType.DELETE, keyLength, ZERO_SIZE, version, timestamp);
     }
@@ -120,7 +120,7 @@ public class LogRecordHeader
         buffer.rewind();
     }
 
-    public void write(final ByteBuffer destinationBuffer)
+    void write(final ByteBuffer destinationBuffer)
     {
         destinationBuffer.rewind();
         destinationBuffer.putInt(CRC_OFFSET, checksum);

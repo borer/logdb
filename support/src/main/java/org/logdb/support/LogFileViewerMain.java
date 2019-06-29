@@ -38,7 +38,6 @@ public class LogFileViewerMain
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
             final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
-            fileDbHeader.alignChannelToHeaderPage(fileChannel);
 
             final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
             final @ByteSize int pageSize = fileDbHeader.pageSize;
@@ -63,6 +62,9 @@ public class LogFileViewerMain
             keyBuffer.order(fileByteOrder);
             for (long i = fileHeaderOffsetToSkip; i < lastPersistedOffset; i += lastRecordSize)
             {
+                headerBuffer.rewind();
+                keyBuffer.rewind();
+
                 fileChannel.read(headerBuffer);
 
                 //read header

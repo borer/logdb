@@ -43,7 +43,6 @@ public class IndexFileViewerMain
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
             final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
-            fileDbHeader.alignChannelToHeaderPage(fileChannel);
 
             final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
             final @ByteSize int pageSize = fileDbHeader.pageSize;

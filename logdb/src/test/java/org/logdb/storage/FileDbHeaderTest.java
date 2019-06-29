@@ -14,12 +14,13 @@ class FileDbHeaderTest
     @Test
     void shouldBeAbleToSaveAndLoadHeader() throws IOException
     {
+        final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
         final FileDbHeader expectedHeader = FileDbHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
-                4096,
-                4096 << 5);
+                pageSizeBytes,
+                pageSizeBytes << 5);
 
-        final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(FileDbHeader.HEADER_SIZE));
+        final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(pageSizeBytes));
         expectedHeader.writeTo(channel);
 
         final FileDbHeader actualHeader = FileDbHeader.readFrom(channel);
@@ -40,7 +41,7 @@ class FileDbHeaderTest
         public int read(final ByteBuffer dst)
         {
             buffer.rewind();
-            dst.put(buffer);
+            dst.put(buffer.array(), 0, FileDbHeader.HEADER_SIZE);
             return dst.limit();
         }
 
