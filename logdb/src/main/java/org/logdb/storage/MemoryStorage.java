@@ -25,7 +25,7 @@ public class MemoryStorage implements Storage
         this.pageSizeBytes = pageSizeBytes;
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = ZERO_OFFSET;
-        this.lastPersistedOffset = StorageUnits.offset(1);
+        this.lastPersistedOffset = StorageUnits.INVALID_OFFSET;
     }
 
     @Override

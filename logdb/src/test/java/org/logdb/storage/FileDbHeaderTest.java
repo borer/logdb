@@ -14,13 +14,10 @@ class FileDbHeaderTest
     @Test
     void shouldBeAbleToSaveAndLoadHeader() throws IOException
     {
-        final FileDbHeader expectedHeader = new FileDbHeader(
+        final FileDbHeader expectedHeader = FileDbHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
-                123L,
                 4096,
-                4096 << 5,
-                987654321L,
-                123123L);
+                4096 << 5);
 
         final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(FileDbHeader.HEADER_SIZE));
         expectedHeader.writeTo(channel);

@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -20,8 +18,6 @@ import static org.logdb.integration.TestIntegrationUtils.loadPersistedBtree;
 
 public class BBTreeIntegrationTest
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BBTreeIntegrationTest.class);
-
     @TempDir
     Path tempDirectory;
 

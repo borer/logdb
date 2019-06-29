@@ -12,8 +12,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.Objects;
 
-import static org.logdb.Config.LOG_DB_VERSION;
-
 public class FileStorageFactory
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorageFactory.class);
@@ -51,15 +49,7 @@ public class FileStorageFactory
             final FileChannel channel = dbFile.getChannel();
             dbFile.setLength(segmentFileSize);
 
-            final FileDbHeader fileDbHeader = new FileDbHeader(
-                    byteOrder,
-                    LOG_DB_VERSION,
-                    pageSizeBytes,
-                    segmentFileSize,
-                    StorageUnits.INVALID_OFFSET,
-                    StorageUnits.INVALID_OFFSET
-            );
-
+            final FileDbHeader fileDbHeader = FileDbHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
             fileDbHeader.writeTo(channel);
             fileDbHeader.alignChannelToHeaderPage(channel);
 

@@ -12,11 +12,12 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static org.logdb.Config.LOG_DB_VERSION;
 import static org.logdb.storage.StorageUnits.BYTE_SIZE;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
 
-public class FileDbHeader
+public final class FileDbHeader
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
@@ -57,7 +58,7 @@ public class FileDbHeader
     public final @ByteSize int pageSize; // Must be a power of two
     final @ByteSize long segmentFileSize; //must be multiple of pageSize
 
-    FileDbHeader(
+    private FileDbHeader(
             final ByteOrder byteOrder,
             final @Version long version,
             final @ByteSize int pageSize,
@@ -75,6 +76,21 @@ public class FileDbHeader
         this.segmentFileSize = segmentFileSize;
         this.lastPersistedOffset = lastPersistedOffset;
         this.appendOffset = appendOffset;
+    }
+
+    public static FileDbHeader newHeader(
+            final ByteOrder byteOrder,
+            final @ByteSize int pageSizeBytes,
+            final @ByteSize long segmentFileSize)
+    {
+        return new FileDbHeader(
+                byteOrder,
+                LOG_DB_VERSION,
+                pageSizeBytes,
+                segmentFileSize,
+                StorageUnits.INVALID_OFFSET,
+                StorageUnits.INVALID_OFFSET
+        );
     }
 
     public static FileDbHeader readFrom(final ReadableByteChannel channel) throws IOException

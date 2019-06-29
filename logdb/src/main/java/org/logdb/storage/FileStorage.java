@@ -64,16 +64,19 @@ public final class FileStorage implements Storage
             mapFile(accessFile);
         }
 
-        //TODO: we use globalFilePosition for 2 different things: 1 for start of last record, 2 for where we sound be appending
-        final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
-        if (lastPersistedOffset != INVALID_OFFSET)
+        final @ByteOffset long appendOffset = fileDbHeader.getAppendOffset();
+        if (appendOffset != INVALID_OFFSET)
         {
-            globalFilePosition += lastPersistedOffset;
-            currentAppendingChannel.position(fileDbHeader.getAppendOffset());
+            currentAppendingChannel.position(appendOffset);
+        }
+
+        if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
+        {
+            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileDbHeader.segmentFileSize) + appendOffset);
         }
         else
         {
-            globalFilePosition += StorageUnits.offset(fileDbHeader.getHeaderSizeAlignedToNearestPage());
+            globalFilePosition = StorageUnits.offset(currentAppendingChannel.position());
         }
     }
 
@@ -202,14 +205,7 @@ public final class FileStorage implements Storage
     @Override
     public @ByteOffset long getLastPersistedOffset()
     {
-        final @ByteOffset long globalFilePosition = this.globalFilePosition;
-
-        //TODO: ugh...nasty....sorry
-        if (globalFilePosition > fileDbHeader.pageSize)
-        {
-            this.globalFilePosition += StorageUnits.offset(fileDbHeader.pageSize);
-        }
-        return globalFilePosition;
+        return fileDbHeader.getLastPersistedOffset();
     }
 
     @Override

@@ -18,8 +18,6 @@ abstract class BTreeAbstract implements BTree
      */
     private static final @Version long INITIAL_VERSION = StorageUnits.version(0);
 
-    private static final @PageNumber long NEW_TREE_HEADER_PAGE = StorageUnits.pageNumber(1);
-
     /**
      * Reference to the current uncommitted root page.
      */
@@ -44,8 +42,7 @@ abstract class BTreeAbstract implements BTree
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
-        final boolean isNewBtree = isNewTree(lastRootPageNumber);
-        if (isNewBtree)
+        if (isNewTree(lastRootPageNumber))
         {
             final RootReference rootReference = new RootReference(
                     nodesManager.createEmptyLeafNode(),
@@ -72,7 +69,7 @@ abstract class BTreeAbstract implements BTree
 
     static boolean isNewTree(final @PageNumber long lastRootPageNumber)
     {
-        return lastRootPageNumber == NEW_TREE_HEADER_PAGE;
+        return lastRootPageNumber == StorageUnits.INVALID_PAGE_NUMBER;
     }
 
     @Override

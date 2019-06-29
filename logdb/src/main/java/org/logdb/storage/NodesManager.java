@@ -227,7 +227,12 @@ public class NodesManager
     {
         if (lastPersistedPageNumber == StorageUnits.INVALID_PAGE_NUMBER)
         {
-            lastPersistedPageNumber = storage.getPageNumber(storage.getLastPersistedOffset());
+            final @ByteOffset long lastPersistedOffset = storage.getLastPersistedOffset();
+
+            if (lastPersistedOffset != StorageUnits.INVALID_OFFSET)
+            {
+                lastPersistedPageNumber = storage.getPageNumber(lastPersistedOffset);
+            }
         }
 
         return lastPersistedPageNumber;
