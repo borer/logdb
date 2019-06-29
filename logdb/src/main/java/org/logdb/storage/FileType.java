@@ -2,9 +2,10 @@ package org.logdb.storage;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.function.Predicate;
 
-public enum FileType implements Predicate<Path>
+public enum FileType implements Predicate<Path>, Comparator<Path>
 {
     HEAP("heap.logdb"),
     INDEX("index.logIndex"),
@@ -32,5 +33,11 @@ public enum FileType implements Predicate<Path>
     public static long getFileSequence(final Path filePath)
     {
         return Long.valueOf(filePath.getFileName().toString().split("-")[0]);
+    }
+
+    @Override
+    public int compare(final Path file1, final Path file2)
+    {
+        return (int) (FileType.getFileSequence(file1) - FileType.getFileSequence(file2));
     }
 }

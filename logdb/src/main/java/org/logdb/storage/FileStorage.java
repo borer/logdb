@@ -56,10 +56,10 @@ public final class FileStorage implements Storage
     //TODO: extract this method in the FileStorageFactory. Think about how to reuse the mapFile method
     void initFromFile() throws IOException
     {
-        final List<Path> existingFiles = fileAllocator.getAllFiles();
+        final List<Path> existingFiles = fileAllocator.getAllFilesInOrder();
         for (final Path filePath : existingFiles)
         {
-            System.out.println("mapping file " + filePath);
+            LOGGER.info("Mapping file " + filePath);
             final File file = filePath.toFile();
             final RandomAccessFile accessFile = new RandomAccessFile(file, "r");
             mapFile(accessFile);

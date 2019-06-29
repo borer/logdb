@@ -45,16 +45,17 @@ final class FileAllocator
     {
         final Optional<Path> maybeLastPath = Files.list(rootDirectory)
                 .filter(fileType)
-                .min((file1, file2) -> (int) (FileType.getFileSequence(file2) - FileType.getFileSequence(file1)));
+                .max(fileType);
 
         return maybeLastPath.orElseThrow(() -> new FileNotFoundException("cannot find any file of type " +
                 fileType.name() + " in directory " + rootDirectory.toAbsolutePath().toString()));
     }
 
-    List<Path> getAllFiles() throws IOException
+    List<Path> getAllFilesInOrder() throws IOException
     {
         return Files.list(rootDirectory)
                 .filter(fileType)
+                .sorted(fileType)
                 .collect(Collectors.toList());
     }
 
