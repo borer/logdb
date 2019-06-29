@@ -57,6 +57,5 @@ public interface Storage extends AutoCloseable
 
     DirectMemory loadPage(@PageNumber long pageNumber);
 
-    //TODO: get rid of this interface and use the previous but also pass the DirectMemory that is going to get mapped into
-    @ByteOffset long getBaseOffsetForPageNumber(@PageNumber long pageNumber);
+    void mapPage(@PageNumber long pageNumber, DirectMemory memory);
 }

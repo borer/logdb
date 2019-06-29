@@ -234,7 +234,13 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public @ByteOffset long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
+    public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
+    {
+        final @ByteOffset long baseOffset = getBaseOffset(pageNumber);
+        memory.setBaseAddress(baseOffset);
+    }
+
+    private @ByteOffset long getBaseOffset(final @PageNumber long pageNumber)
     {
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
         assert pageNumber <= getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileDbHeader.segmentFileSize))

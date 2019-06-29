@@ -115,14 +115,16 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public @ByteOffset long getBaseOffsetForPageNumber(final @PageNumber long pageNumber)
+    public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
     {
         final DirectMemory directMemory = maps.get(pageNumber);
         if (directMemory == null)
         {
-            return StorageUnits.offset(pageNumber);
+            memory.setBaseAddress(StorageUnits.offset(pageNumber));
         }
-
-        return directMemory.getBaseAddress();
+        else
+        {
+            memory.setBaseAddress(directMemory.getBaseAddress());
+        }
     }
 }

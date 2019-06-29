@@ -140,8 +140,7 @@ class LogRecordStorage
         @ByteOffset long offsetInsidePage = offset - storage.getOffset(pageNumber);
 
         //get page address
-        final @ByteOffset long baseOffsetForPageNumber = storage.getBaseOffsetForPageNumber(pageNumber);
-        directMemory.setBaseAddress(baseOffsetForPageNumber);
+        storage.mapPage(pageNumber, directMemory);
 
         //try to read a complete header
         @ByteSize long pageLeftSpace = StorageUnits.size(pageSize - offsetInsidePage);
@@ -157,8 +156,7 @@ class LogRecordStorage
         {
             //continue reading the header from the beginning of the next page
             pageNumber++;
-            final @ByteOffset long baseOffsetForNextPage = storage.getBaseOffsetForPageNumber(pageNumber);
-            directMemory.setBaseAddress(baseOffsetForNextPage);
+            storage.mapPage(pageNumber, directMemory);
 
             final @ByteSize long remainingHeaderBytes = StorageUnits.size(
                     LogRecordHeader.RECORD_HEADER_SIZE - recordHeaderBytesRead);
@@ -212,8 +210,7 @@ class LogRecordStorage
             @ByteSize long leftSize = logRecordHeader.getValueLength();
             while (leftSize > 0)
             {
-                final @ByteOffset long baseOffsetForPageNumber = storage.getBaseOffsetForPageNumber(pageNumber);
-                directMemory.setBaseAddress(baseOffsetForPageNumber);
+                storage.mapPage(pageNumber, directMemory);
                 final @ByteSize long bytesToRead = StorageUnits.size(Math.min(leftSize, pageSize));
                 directMemory.getBytes(offsetPage, bytesToRead, valueBuffer.array(), totalBytesRead);
                 leftSize -= bytesToRead;

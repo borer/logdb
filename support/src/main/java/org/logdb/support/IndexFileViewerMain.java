@@ -91,7 +91,6 @@ public class IndexFileViewerMain
 
     private static final class MyStorage implements Storage
     {
-
         private final FileChannel fileChannel;
         private final @ByteSize int pageSize;
         private final ByteOrder fileByteOrder;
@@ -110,7 +109,7 @@ public class IndexFileViewerMain
         }
 
         @Override
-        public void close() throws Exception
+        public void close()
         {
             throw new UnsupportedOperationException("Method not Implemented");
         }
@@ -140,13 +139,13 @@ public class IndexFileViewerMain
         }
 
         @Override
-        public @PageNumber long getPageNumber(@ByteOffset long offset)
+        public @PageNumber long getPageNumber(final @ByteOffset long offset)
         {
             return StorageUnits.pageNumber(offset / pageSize);
         }
 
         @Override
-        public @ByteOffset long getOffset(@PageNumber long pageNumber)
+        public @ByteOffset long getOffset(final @PageNumber long pageNumber)
         {
             return StorageUnits.offset(pageNumber * pageSize);
         }
@@ -188,11 +187,12 @@ public class IndexFileViewerMain
         }
 
         @Override
-        public @ByteOffset long getBaseOffsetForPageNumber(@PageNumber long pageNumber)
+        public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
         {
             assert pageNumber > 0 : "page number must be > 0, provided " + pageNumber;
 
-            return MemoryFactory.getPageOffset(mappedByteBuffer, getOffset(pageNumber));
+            final @ByteOffset long pageOffset = MemoryFactory.getPageOffset(mappedByteBuffer, getOffset(pageNumber));
+            memory.setBaseAddress(pageOffset);
         }
     }
 }
