@@ -3,6 +3,7 @@ package org.logdb.storage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -59,11 +60,19 @@ final class FileAllocator
                 .collect(Collectors.toList());
     }
 
-    File generateNextFile()
+    File generateNextFile() throws IOException
     {
         final String filename = fileType.generateFilename(nextFileSequence);
         nextFileSequence++;
 
-        return new File(rootDirectory.toFile(), filename);
+        final File newFile = new File(rootDirectory.toFile(), filename);
+
+        if (!newFile.createNewFile())
+        {
+            throw new FileAlreadyExistsException("File " + newFile.getAbsolutePath() + " already exists");
+        }
+
+
+        return newFile;
     }
 }

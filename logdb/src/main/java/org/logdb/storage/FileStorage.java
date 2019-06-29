@@ -14,7 +14,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,10 +87,6 @@ public final class FileStorage implements Storage
             if (shouldRollFile)
             {
                 final File file = fileAllocator.generateNextFile();
-                if (!file.createNewFile())
-                {
-                    throw new FileAlreadyExistsException("File " + file.getAbsolutePath() + " already exists");
-                }
 
                 final @ByteOffset long spaceLeftInCurrentSegmentFile = StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
                 globalFilePosition += spaceLeftInCurrentSegmentFile;

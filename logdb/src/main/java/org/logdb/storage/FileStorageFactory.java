@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -42,13 +41,8 @@ public class FileStorageFactory
 
         LOGGER.info("Using database root directory " + rootDirectory.toAbsolutePath().toString());
 
-        //TODO: extract file creation and resize into a fileFactory
         final FileAllocator fileAllocator = FileAllocator.createNew(rootDirectory, fileType);
         final File newFile = fileAllocator.generateNextFile();
-        if (!newFile.createNewFile())
-        {
-            throw new FileAlreadyExistsException("File " + newFile.getAbsolutePath() + " already exists");
-        }
 
         FileStorage fileStorage = null;
         try
