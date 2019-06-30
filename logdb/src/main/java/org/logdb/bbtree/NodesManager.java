@@ -1,14 +1,11 @@
-package org.logdb.storage;
+package org.logdb.bbtree;
 
-import org.logdb.bbtree.BTreeMappedNode;
-import org.logdb.bbtree.BTreeNode;
-import org.logdb.bbtree.BTreeNodeHeap;
-import org.logdb.bbtree.BTreeNodeLeaf;
-import org.logdb.bbtree.BTreeNodeNonLeaf;
-import org.logdb.bbtree.BtreeNodeType;
-import org.logdb.bbtree.IdSupplier;
-import org.logdb.bbtree.RootReference;
 import org.logdb.bit.ReadMemory;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,10 +143,12 @@ public class NodesManager
 
         final @PageNumber long lastRootPageNumber = loadLastRootPageNumber();
 
-        //TODO: make explicit that dirtyNodes are sorted by version (previous root is always committed before current)
-
-        for (final RootReference dirtyRootNode : dirtyRootNodes)
+        //Note: dirty nodes are sorted by version (previous root is always committed before current).
+        // That is because of the way they are inserted and because the array list they are stored in, preserves the insertion order.
+        for (int i = 0; i < dirtyRootNodes.size(); ++i)
         {
+            final RootReference dirtyRootNode = dirtyRootNodes.get(i);
+
             final @PageNumber long previousRootPageNumber = dirtyRootNode.previous == null
                     ? lastRootPageNumber
                     : dirtyRootNode.previous.getPageNumber();

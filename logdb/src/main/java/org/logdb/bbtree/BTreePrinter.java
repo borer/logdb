@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.storage.NodesManager;
 import org.logdb.storage.PageNumber;
 
 public class BTreePrinter

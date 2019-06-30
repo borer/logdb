@@ -2,11 +2,11 @@ package org.logdb.integration;
 
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
+import org.logdb.bbtree.NodesManager;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.FileStorageFactory;
 import org.logdb.storage.FileType;
-import org.logdb.storage.NodesManager;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;

@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.storage.NodesManager;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
