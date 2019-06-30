@@ -8,9 +8,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+
+import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 
 public class FileStorageFactory
 {
@@ -45,21 +50,14 @@ public class FileStorageFactory
         FileStorage fileStorage = null;
         try
         {
-            final RandomAccessFile dbFile = new RandomAccessFile(newFile, "rw");
-            final FileChannel channel = dbFile.getChannel();
-            dbFile.setLength(segmentFileSize);
+            final RandomAccessFile currentAppendFile = new RandomAccessFile(newFile, "rw");
+            final FileChannel currentAppendChannel = currentAppendFile.getChannel();
+            currentAppendFile.setLength(segmentFileSize);
 
             final FileDbHeader fileDbHeader = FileDbHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
-            fileDbHeader.writeTo(channel);
+            fileDbHeader.writeTo(currentAppendChannel);
 
-            fileStorage = new FileStorage(
-                    rootDirectory,
-                    fileAllocator,
-                    fileDbHeader,
-                    dbFile,
-                    channel);
-
-            fileStorage.initFromFile();
+            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileDbHeader, currentAppendFile, currentAppendChannel);
         }
         catch (final FileNotFoundException e)
         {
@@ -83,24 +81,14 @@ public class FileStorageFactory
         try
         {
             final Path lastFile = FileAllocator.findLastFile(rootDirectory, fileType);
-            final FileAllocator fileAllocator = FileAllocator.openLatest(
-                    rootDirectory,
-                    lastFile,
-                    fileType);
+            final FileAllocator fileAllocator = FileAllocator.openLatest(rootDirectory, lastFile, fileType);
 
-            final RandomAccessFile dbFile = new RandomAccessFile(lastFile.toFile(), "rw");
-            final FileChannel channel = dbFile.getChannel();
+            final RandomAccessFile currentAppendFile = new RandomAccessFile(lastFile.toFile(), "rw");
+            final FileChannel currentAppendChannel = currentAppendFile.getChannel();
 
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(channel);
+            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(currentAppendChannel);
 
-            fileStorage = new FileStorage(
-                    rootDirectory,
-                    fileAllocator,
-                    fileDbHeader,
-                    dbFile,
-                    channel);
-
-            fileStorage.initFromFile();
+            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileDbHeader, currentAppendFile, currentAppendChannel);
         }
         catch (final FileNotFoundException e)
         {
@@ -119,4 +107,53 @@ public class FileStorageFactory
 
         return fileStorage;
     }
+
+    private static FileStorage createFileStorage(
+            final Path rootDirectory,
+            final FileAllocator fileAllocator,
+            final FileDbHeader fileDbHeader,
+            final RandomAccessFile currentAppendFile,
+            final FileChannel currentAppendChannel) throws IOException
+    {
+        final List<MappedByteBuffer> mappedByteBuffers = new ArrayList<>();
+        final List<Path> existingFiles = fileAllocator.getAllFilesInOrder();
+        for (final Path filePath : existingFiles)
+        {
+            LOGGER.info("Mapping file " + filePath);
+            final File file = filePath.toFile();
+            try (RandomAccessFile accessFile = new RandomAccessFile(file, "r"))
+            {
+                try (FileChannel channel = accessFile.getChannel())
+                {
+                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileDbHeader.byteOrder));
+                }
+            }
+        }
+
+        final @ByteOffset long appendOffset = fileDbHeader.getAppendOffset();
+        if (appendOffset != INVALID_OFFSET)
+        {
+            currentAppendChannel.position(appendOffset);
+        }
+
+        final @ByteOffset long globalFilePosition;
+        if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
+        {
+            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileDbHeader.segmentFileSize) + appendOffset);
+        }
+        else
+        {
+            globalFilePosition = StorageUnits.offset(currentAppendChannel.position());
+        }
+
+        return new FileStorage(
+                rootDirectory,
+                fileAllocator,
+                fileDbHeader,
+                currentAppendFile,
+                currentAppendChannel,
+                mappedByteBuffers,
+                globalFilePosition);
+    }
+
 }

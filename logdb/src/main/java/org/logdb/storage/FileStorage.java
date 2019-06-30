@@ -15,7 +15,6 @@ import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,7 +31,6 @@ public final class FileStorage implements Storage
     private RandomAccessFile currentAppendingFile;
     private FileChannel currentAppendingChannel;
 
-    private @ByteSize long currentMapSize;
     private @ByteOffset long globalFilePosition;
 
     FileStorage(
@@ -40,49 +38,17 @@ public final class FileStorage implements Storage
             final FileAllocator fileAllocator,
             final FileDbHeader fileDbHeader,
             final RandomAccessFile currentAppendingFile,
-            final FileChannel currentAppendingChannel)
+            final FileChannel currentAppendingChannel,
+            final List<MappedByteBuffer> mappedBuffers,
+            final @ByteOffset long globalFilePosition)
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
         this.fileAllocator = Objects.requireNonNull(fileAllocator, "filename strategy cannot be null");
         this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
         this.currentAppendingFile = Objects.requireNonNull(currentAppendingFile, "db file cannot be null");
         this.currentAppendingChannel = Objects.requireNonNull(currentAppendingChannel, "db file currentAppendingChannel cannot be null");
-        this.mappedBuffers = new ArrayList<>();
-        this.currentMapSize = StorageUnits.ZERO_SIZE;
-        this.globalFilePosition = StorageUnits.ZERO_OFFSET;
-    }
-
-    //TODO: extract this method in the FileStorageFactory. Think about how to reuse the mapFile method
-    void initFromFile() throws IOException
-    {
-        final List<Path> existingFiles = fileAllocator.getAllFilesInOrder();
-        for (final Path filePath : existingFiles)
-        {
-            LOGGER.info("Mapping file " + filePath);
-            final File file = filePath.toFile();
-            try (RandomAccessFile accessFile = new RandomAccessFile(file, "r"))
-            {
-                try (FileChannel channel = accessFile.getChannel())
-                {
-                    mapFile(channel);
-                }
-            }
-        }
-
-        final @ByteOffset long appendOffset = fileDbHeader.getAppendOffset();
-        if (appendOffset != INVALID_OFFSET)
-        {
-            currentAppendingChannel.position(appendOffset);
-        }
-
-        if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
-        {
-            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileDbHeader.segmentFileSize) + appendOffset);
-        }
-        else
-        {
-            globalFilePosition = StorageUnits.offset(currentAppendingChannel.position());
-        }
+        this.mappedBuffers = mappedBuffers;
+        this.globalFilePosition = globalFilePosition;
     }
 
     private void tryRollCurrentFile(final @ByteSize int nextWriteSize)
@@ -94,30 +60,36 @@ public final class FileStorage implements Storage
             final boolean shouldRollFile = nextFileSize > fileDbHeader.segmentFileSize;
             if (shouldRollFile)
             {
-                final File file = fileAllocator.generateNextFile();
 
                 final @ByteOffset long spaceLeftInCurrentSegmentFile = StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
                 globalFilePosition += spaceLeftInCurrentSegmentFile;
 
                 currentAppendingFile.close();
 
-                final RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
-                final FileChannel channel = accessFile.getChannel();
-                accessFile.setLength(fileDbHeader.segmentFileSize);
-
-                writeNewFileHeader(channel);
-                globalFilePosition += StorageUnits.offset(channel.position());
-
-                currentAppendingFile = accessFile;
-                currentAppendingChannel = channel;
-
-                mapFile(currentAppendingChannel);
+                createAndMapNewFile();
             }
         }
         catch (final IOException e)
         {
             LOGGER.error("Couldn't extend the mapped db file", e);
         }
+    }
+
+    private void createAndMapNewFile() throws IOException
+    {
+        final File file = fileAllocator.generateNextFile();
+        final RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
+        final FileChannel channel = accessFile.getChannel();
+        accessFile.setLength(fileDbHeader.segmentFileSize);
+
+        writeNewFileHeader(channel);
+        globalFilePosition += StorageUnits.offset(channel.position());
+
+        currentAppendingFile = accessFile;
+        currentAppendingChannel = channel;
+
+        final MappedByteBuffer mappedByteBuffer = mapFile(channel, fileDbHeader.byteOrder);
+        mappedBuffers.add(mappedByteBuffer);
     }
 
     //TODO: Move the generation of new file into the file allocator
@@ -128,18 +100,17 @@ public final class FileStorage implements Storage
         fileDbHeader.writeTo(channel);
     }
 
-    private void mapFile(final FileChannel channel) throws IOException
+    static MappedByteBuffer mapFile(final FileChannel channel, final ByteOrder byteOrder) throws IOException
     {
+        final @ByteSize long size = StorageUnits.size(channel.size());
         final MappedByteBuffer map = channel.map(
                 FileChannel.MapMode.READ_ONLY,
                 0,
-                channel.size());
+                size);
 
-        map.order(fileDbHeader.byteOrder);
+        map.order(byteOrder);
 
-        currentMapSize += fileDbHeader.segmentFileSize;
-
-        mappedBuffers.add(map);
+        return map;
     }
 
     @Override
