@@ -67,10 +67,9 @@ public class IndexFileViewerMain
             storage.mapFile();
 
             final BTreeMappedNode bTreeMappedNode = new BTreeMappedNode(
-                    null,
+               (mappedNode) -> {},
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
-                    pageSize,
                     StorageUnits.INVALID_PAGE_NUMBER);
 
             final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileDbHeader.getHeaderSizeAlignedToNearestPage() / pageSize);

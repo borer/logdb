@@ -7,25 +7,24 @@ import org.logdb.storage.Storage;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import java.util.function.Consumer;
+
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
 {
-    //TODO: remove dependency to nodesManager into a close handler
-    private final NodesManager nodesManager;
+    private final Consumer<BTreeMappedNode> closeHandler;
     private final Storage storage;
     private final DirectMemory memory;
 
-    //TODO: not rely on having an empty initial map.
     public BTreeMappedNode(
-            final NodesManager nodesManager,
+            final Consumer<BTreeMappedNode> closeHandler,
             final Storage storage,
             final DirectMemory memory,
-            final long pageSize,
             final @PageNumber long pageNumber)
     {
         super(pageNumber, memory, 0, 0, 0);
-        this.nodesManager = nodesManager;
+        this.closeHandler = closeHandler;
         this.storage = storage;
         this.memory = memory;
     }
@@ -38,7 +37,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     {
         this.pageNumber = pageNumber;
         storage.mapPage(pageNumber, memory);
-        super.initNodeFromBuffer();
+        initNodeFromBuffer();
     }
 
     @Override
@@ -142,6 +141,6 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     @Override
     public void close()
     {
-        nodesManager.returnMappedNode(this);
+        closeHandler.accept(this);
     }
 }

@@ -55,6 +55,12 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
     }
 
     @Override
+    public boolean isUninitialized()
+    {
+        return baseAddress == UNINITIALIZED_ADDRESS;
+    }
+
+    @Override
     public ByteOrder getByteOrder()
     {
         return MemoryOrder.nonNativeOrder;

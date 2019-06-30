@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
@@ -339,7 +340,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
     void setLogKeyValue(final int index, final long key, final long value)
     {
-        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key); //TODO: maybe we don't need to set the key again.
+        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key);
         buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
     }
 
@@ -513,6 +514,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public String toString()
     {
+        if (buffer instanceof DirectMemory && ((DirectMemory) buffer).isUninitialized())
+        {
+            return "Node is Uninitialized.";
+        }
+
         final StringBuilder contentBuilder = new StringBuilder();
 
         if (isRoot())

@@ -61,6 +61,12 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
+    public boolean isUninitialized()
+    {
+        return baseAddress == UNINITIALIZED_ADDRESS;
+    }
+
+    @Override
     public void resetPosition()
     {
         position = StorageUnits.ZERO_OFFSET;

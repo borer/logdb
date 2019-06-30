@@ -42,7 +42,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                 String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
     }
 
-    public void insertLog(final long key, final long value)
+    void insertLog(final long key, final long value)
     {
         final int index = binarySearchInLog(key);
 
@@ -64,7 +64,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
      * @param key the key that identifies the key/value pair to remove from the node log
      * @return true if removed successfully, false if key/value are not in the log.
      */
-    public boolean removeLog(final long key)
+    boolean removeLog(final long key)
     {
         final int index = binarySearchInLog(key);
         if (index >= 0)
@@ -81,7 +81,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     @Override
     public void setChild(final int index, final BTreeNodeHeap child)
     {
-        //TODO (handle this better) : this will be replaced once we commit the child page
+        //Note: this sentinel value will be replaced with the actual page number once we commit the child page
         setValue(index, NON_COMMITTED_CHILD);
 
         children[index] = child;

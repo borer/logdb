@@ -59,10 +59,9 @@ public class NodesManager
         else
         {
             return new BTreeMappedNode(
-                    this,
+                    this::returnMappedNode,
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
-                    storage.getPageSize(),
                     StorageUnits.pageNumber(0));
         }
     }
