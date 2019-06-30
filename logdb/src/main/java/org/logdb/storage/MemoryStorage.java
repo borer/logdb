@@ -109,12 +109,6 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public DirectMemory loadPage(final @PageNumber long pageNumber)
-    {
-        return maps.get(pageNumber);
-    }
-
-    @Override
     public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
     {
         final DirectMemory directMemory = maps.get(pageNumber);

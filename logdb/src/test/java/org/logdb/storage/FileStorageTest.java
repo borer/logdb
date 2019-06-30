@@ -7,9 +7,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
+import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
-import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.bit.MemoryFactory;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.logdb.support.TestUtils.BYTE_ORDER;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class FileStorageTest
@@ -41,7 +43,7 @@ class FileStorageTest
                 tempDirectory,
                 FileType.INDEX,
                 TestUtils.SEGMENT_FILE_SIZE,
-                TestUtils.BYTE_ORDER,
+                BYTE_ORDER,
                 PAGE_SIZE_BYTES);
 
         nodesManager = new NodesManager(storage);
@@ -67,7 +69,7 @@ class FileStorageTest
                 tempDirectory,
                 FileType.INDEX,
                 TestUtils.SEGMENT_FILE_SIZE,
-                TestUtils.BYTE_ORDER,
+                BYTE_ORDER,
                 100))
         {
             fail("should have failed creating file storage with invalid page size");
@@ -81,7 +83,7 @@ class FileStorageTest
                     tempDirectory,
                     FileType.INDEX,
                     TestUtils.SEGMENT_FILE_SIZE,
-                    TestUtils.BYTE_ORDER,
+                    BYTE_ORDER,
                     4097))
         {
             fail("should have failed creating file storage with invalid page size");
@@ -104,7 +106,9 @@ class FileStorageTest
         final long pageNumber = leaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
         storage.flush();
 
-        final Memory persistedMemory = storage.loadPage(pageNumber);
+        final DirectMemory persistedMemory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
+        storage.mapPage(pageNumber, persistedMemory);
+
         final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
         final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemory);
@@ -133,7 +137,9 @@ class FileStorageTest
         final long pageNumber = nonLeaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
         storage.flush();
 
-        final Memory persistedMemory = storage.loadPage(pageNumber);
+        final DirectMemory persistedMemory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
+        storage.mapPage(pageNumber, persistedMemory);
+
         final HeapMemory heapMemory = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemory, heapMemory);
         final BTreeNodeNonLeaf loadedNonLeaf = BTreeNodeNonLeaf.load(pageNumber, heapMemory);
@@ -144,7 +150,9 @@ class FileStorageTest
         assertEquals(timestamp, loadedNonLeaf.getTimestamp());
 
         final long pageNumberLeaf = loadedNonLeaf.getValue(0);
-        final Memory persistedMemoryLeaf = storage.loadPage(pageNumberLeaf);
+        final DirectMemory persistedMemoryLeaf = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
+        storage.mapPage(pageNumberLeaf, persistedMemoryLeaf);
+
         final HeapMemory heapMemoryLeaf = storage.allocateHeapPage();
         MemoryCopy.copy(persistedMemoryLeaf, heapMemoryLeaf);
         final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemoryLeaf);

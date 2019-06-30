@@ -180,12 +180,6 @@ public class IndexFileViewerMain
         }
 
         @Override
-        public DirectMemory loadPage(@PageNumber long pageNumber)
-        {
-            throw new UnsupportedOperationException("Method not Implemented");
-        }
-
-        @Override
         public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
         {
             assert pageNumber > 0 : "page number must be > 0, provided " + pageNumber;

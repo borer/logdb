@@ -188,31 +188,6 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public DirectMemory loadPage(final @PageNumber long pageNumber)
-    {
-        @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
-        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
-
-        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
-        for (int i = 0; i < mappedBuffers.size(); i++)
-        {
-            final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            if (pageOffset >= offsetMappedBuffer && pageOffset < (offsetMappedBuffer + mappedBuffer.limit()))
-            {
-                return MemoryFactory.mapDirect(
-                        mappedBuffer,
-                        pageOffset - offsetMappedBuffer,
-                        fileDbHeader.pageSize,
-                        fileDbHeader.byteOrder);
-            }
-
-            offsetMappedBuffer += StorageUnits.offset(mappedBuffer.limit());
-        }
-
-        return null;
-    }
-
-    @Override
     public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
     {
         final @ByteOffset long baseOffset = getBaseOffset(pageNumber);
