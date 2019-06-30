@@ -40,7 +40,7 @@ public class BTreeWithLog extends BTreeAbstract
             }
             BTreeNodeHeap newRoot = nodesManager.copyNode(currentNode, newVersion);
 
-            removeWithLogInternal(null, -1, newRoot, key);
+            removeWithLogRecursive(null, -1, newRoot, key);
 
             if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getKeyCount() == 1)
             {
@@ -57,8 +57,7 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
-    //TODO: split this function
-    private void removeWithLogInternal(
+    private void removeWithLogRecursive(
             final BTreeNodeHeap parent,
             final int nodeIndexInParent,
             final BTreeNodeHeap node,
@@ -84,66 +83,68 @@ public class BTreeWithLog extends BTreeAbstract
                 final int keyIndex = nonLeaf.getKeyIndex(key);
                 final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(nonLeaf, keyIndex);
                 nonLeaf.setChild(keyIndex, childrenCopy);
-                removeWithLogInternal(nonLeaf, keyIndex, childrenCopy, key);
-
-                final int childKeyIndex = nonLeaf.getKeyIndex(key);
-                final BTreeNodeHeap childToRemove = getOrCreateChildrenCopy(nonLeaf, childKeyIndex);
-                if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
-                {
-                    this.nodesCount--;
-                    nonLeaf.remove(keyIndex);
-                }
-                else if (childToRemove.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
-                {
-                    this.nodesCount = this.nodesCount - 2;
-                    final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - childKeyIndex);
-                    parent.setChild(nodeIndexInParent, childrenCopy3);
-                }
+                removeWithLogRecursiveAndRebalanceParent(parent, nodeIndexInParent, nonLeaf, key, keyIndex, childrenCopy);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
                 nonLeaf.removeLog(key);
 
-                //spill the rest of the log
-                final HeapMemory keyValues = nonLeaf.spillLog();
-
-                for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
-                {
-                    final long logKey = KeyValueLog.getKey(keyValues, i);
-                    final long logValue = KeyValueLog.getValue(keyValues, i);
-
-                    final int keyIndex2 = nonLeaf.getKeyIndex(logKey);
-                    final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
-                    nonLeaf.setChild(keyIndex2, childrenCopy2);
-
-                    final boolean shouldRemoveValue = logValue == LOG_VALUE_TO_REMOVE_SENTINEL;
-                    if (shouldRemoveValue)
-                    {
-                        removeWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, logKey);
-
-                        final int childKeyIndex2 = nonLeaf.getKeyIndex(logKey);
-                        final BTreeNodeHeap childToRemove2 = getOrCreateChildrenCopy(nonLeaf, childKeyIndex2);
-                        if (childToRemove2.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
-                        {
-                            this.nodesCount--;
-                            nonLeaf.remove(childKeyIndex2);
-                        }
-                        else if (childToRemove2.getKeyCount() == 0 && nonLeaf.getKeyCount() == 1 && parent != null)
-                        {
-                            this.nodesCount = this.nodesCount - 2;
-                            final BTreeNodeHeap childrenCopy3 = getOrCreateChildrenCopy(nonLeaf, 1 - childKeyIndex2);
-                            parent.setChild(nodeIndexInParent, childrenCopy3);
-                        }
-                    }
-                    else
-                    {
-                        putWithLogRecursive(nonLeaf, keyIndex2, childrenCopy2, logKey, logValue);
-                    }
-                }
+                spillLogForRemove(parent, nodeIndexInParent, nonLeaf);
             }
         }
     }
 
-    //TODO: split this function
+    private void spillLogForRemove(
+            final BTreeNodeHeap parent,
+            final int nodeIndexInParent,
+            final BTreeNodeNonLeaf node)
+    {
+        final HeapMemory keyValues = node.spillLog();
+        for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
+        {
+            final long logKey = KeyValueLog.getKey(keyValues, i);
+            final long logValue = KeyValueLog.getValue(keyValues, i);
+
+            final int logKeyIndex = node.getKeyIndex(logKey);
+            final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(node, logKeyIndex);
+            node.setChild(logKeyIndex, childrenCopy);
+
+            final boolean shouldRemoveValue = logValue == LOG_VALUE_TO_REMOVE_SENTINEL;
+            if (shouldRemoveValue)
+            {
+                removeWithLogRecursiveAndRebalanceParent(parent, nodeIndexInParent, node, logKey, logKeyIndex, childrenCopy);
+            }
+            else
+            {
+                putWithLogRecursive(node, logKeyIndex, childrenCopy, logKey, logValue);
+            }
+        }
+    }
+
+    private void removeWithLogRecursiveAndRebalanceParent(
+            final BTreeNodeHeap grandparent,
+            final int parentIndexInGrandparent,
+            final BTreeNodeNonLeaf parent,
+            final long logKey,
+            final int keyIndexInParent,
+            final BTreeNodeHeap node)
+    {
+        removeWithLogRecursive(parent, keyIndexInParent, node, logKey);
+
+        final int childKeyIndex = parent.getKeyIndex(logKey);
+        final BTreeNodeHeap childToRemove = getOrCreateChildrenCopy(parent, childKeyIndex);
+        if (childToRemove.getKeyCount() == 0 && parent.getKeyCount() > 1)
+        {
+            this.nodesCount--;
+            parent.remove(childKeyIndex);
+        }
+        else if (childToRemove.getKeyCount() == 0 && parent.getKeyCount() == 1 && grandparent != null)
+        {
+            this.nodesCount = this.nodesCount - 2;
+            final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(parent, 1 - childKeyIndex);
+            grandparent.setChild(parentIndexInGrandparent, childrenCopy);
+        }
+    }
+
     /**
      * Removes the key by first walking the tree and searching if it actually has a value with that key.
      * If no value is found this operation is a no-op.
@@ -161,6 +162,7 @@ public class BTreeWithLog extends BTreeAbstract
             CursorPosition parentCursor = cursorPosition.parent;
             boolean wasFound = false;
 
+            //NOTE: remove from leaf node
             if (index >= 0 && newRoot.getNodeType() == BtreeNodeType.Leaf)
             {
                 wasFound = true;
@@ -174,7 +176,7 @@ public class BTreeWithLog extends BTreeAbstract
                     isSafeToRemoveParent = logKeyValuesCount == 0;
                 }
 
-                //if current leaf has only one element, try to remove directly from parent
+                //Note: if current leaf has only one element, try to remove directly from parent
                 if (newRoot.getKeyCount() == 1 && parent != null && parent.getKeyCount() == 1 && isSafeToRemoveParent)
                 {
                     this.nodesCount = this.nodesCount - 2;
@@ -209,7 +211,7 @@ public class BTreeWithLog extends BTreeAbstract
                 }
             }
 
-            //remove from parent logs
+            //NOTE: remove from internal nodes (parents of the leaf node)
             while (parentCursor != null)
             {
                 index = parentCursor.index;
@@ -319,6 +321,8 @@ public class BTreeWithLog extends BTreeAbstract
         }
         else
         {
+            assert node instanceof BTreeNodeNonLeaf : "Node is not instance of BTreeNodeNonLeaf. " + node.toString();
+
             BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
             if (nonLeaf.logHasFreeSpace())
             {
@@ -326,17 +330,8 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                final HeapMemory keyValues = nonLeaf.spillLog();
-
-                splitIfRequiredAndPutWithLogInternal(nonLeaf, key, value);
-
-                for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
-                {
-                    final long key2 = KeyValueLog.getKey(keyValues, i);
-                    final long value2 = KeyValueLog.getValue(keyValues, i);
-
-                    splitIfRequiredAndPutWithLogInternal(nonLeaf, key2, value2);
-                }
+                putWithLogRecursiveInChildAndSplitIfRequired(nonLeaf, key, value);
+                spillLogForPut(parent, nodeIndexInParent, nonLeaf);
             }
 
             if (nonLeaf.shouldSplit() && parent != null)
@@ -355,8 +350,7 @@ public class BTreeWithLog extends BTreeAbstract
         }
     }
 
-    //TODO: rename function to something easier to understand
-    private void splitIfRequiredAndPutWithLogInternal(
+    private void putWithLogRecursiveInChildAndSplitIfRequired(
             final BTreeNodeNonLeaf parent,
             final long key,
             final long value)
@@ -388,6 +382,29 @@ public class BTreeWithLog extends BTreeAbstract
         {
             parent.setChild(keyIndex, childrenCopy);
             putWithLogRecursive(parent, keyIndex, childrenCopy, key, value);
+        }
+    }
+
+    private void spillLogForPut(
+            final BTreeNodeHeap parent,
+            final int nodeIndexInParent,
+            final BTreeNodeNonLeaf nonLeaf)
+    {
+        final HeapMemory keyValues = nonLeaf.spillLog();
+        for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
+        {
+            final long logKey = KeyValueLog.getKey(keyValues, i);
+            final long logValue = KeyValueLog.getValue(keyValues, i);
+
+            final boolean shouldRemoveValue = logValue == LOG_VALUE_TO_REMOVE_SENTINEL;
+            if (shouldRemoveValue)
+            {
+                removeWithLogRecursive(parent, nodeIndexInParent, nonLeaf, logKey);
+            }
+            else
+            {
+                putWithLogRecursiveInChildAndSplitIfRequired(nonLeaf, logKey, logValue);
+            }
         }
     }
 
