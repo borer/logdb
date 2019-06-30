@@ -1,6 +1,5 @@
 package org.logdb.storage;
 
-import org.logdb.Config;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
@@ -27,6 +26,7 @@ public final class FileStorage implements Storage
     private final List<MappedByteBuffer> mappedBuffers;
     private final FileDbHeader fileDbHeader;
     private final FileAllocator fileAllocator;
+    private final FileDbHeader newFileDbHeader;
 
     private RandomAccessFile currentAppendingFile;
     private FileChannel currentAppendingChannel;
@@ -49,6 +49,7 @@ public final class FileStorage implements Storage
         this.currentAppendingChannel = Objects.requireNonNull(currentAppendingChannel, "db file currentAppendingChannel cannot be null");
         this.mappedBuffers = mappedBuffers;
         this.globalFilePosition = globalFilePosition;
+        this.newFileDbHeader = FileDbHeader.newHeader(fileDbHeader.byteOrder, fileDbHeader.pageSize, fileDbHeader.segmentFileSize);
     }
 
     private void tryRollCurrentFile(final @ByteSize int nextWriteSize)
@@ -82,7 +83,7 @@ public final class FileStorage implements Storage
         final FileChannel channel = accessFile.getChannel();
         accessFile.setLength(fileDbHeader.segmentFileSize);
 
-        writeNewFileHeader(channel);
+        newFileDbHeader.writeTo(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
         currentAppendingFile = accessFile;
@@ -90,14 +91,6 @@ public final class FileStorage implements Storage
 
         final MappedByteBuffer mappedByteBuffer = mapFile(channel, fileDbHeader.byteOrder);
         mappedBuffers.add(mappedByteBuffer);
-    }
-
-    //TODO: Move the generation of new file into the file allocator
-    private void writeNewFileHeader(final FileChannel channel) throws IOException
-    {
-        //TODO: the invalid offset here is dangerous, as when we try to load a file with this values it will fail
-        fileDbHeader.updateMeta(INVALID_OFFSET, INVALID_OFFSET, Config.LOG_DB_VERSION);
-        fileDbHeader.writeTo(channel);
     }
 
     static MappedByteBuffer mapFile(final FileChannel channel, final ByteOrder byteOrder) throws IOException
