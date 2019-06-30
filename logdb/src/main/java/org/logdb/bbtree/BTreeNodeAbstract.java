@@ -1,7 +1,9 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.bit.MemoryFactory;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -13,6 +15,9 @@ import org.logdb.time.TimeUnits;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
+
+import static org.logdb.bbtree.KeyValueLog.getLogKeyIndexOffset;
+import static org.logdb.bbtree.KeyValueLog.getLogValueIndexOffset;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
@@ -244,16 +249,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getLogValueIndexOffset(buffer.getCapacity(), index));
     }
 
-    private static @ByteOffset long getLogKeyIndexOffset(final long pageSize, final int index)
-    {
-        return StorageUnits.offset(pageSize - ((index + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE)));
-    }
-
-    private static @ByteOffset long getLogValueIndexOffset(final long pageSize, final int index)
-    {
-        return StorageUnits.offset(getLogKeyIndexOffset(pageSize, index) + BTreeNodePage.KEY_SIZE);
-    }
-
     void insertKeyAndValue(final int index, final long key, final long value)
     {
         final int keyCount = getKeyCount();
@@ -316,7 +311,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getValueIndexOffsetNew(index));
     }
 
-    public boolean logHasFreeSpace()
+    boolean logHasFreeSpace()
     {
         return freeSizeLeftBytes > (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
     }
@@ -348,16 +343,20 @@ abstract class BTreeNodeAbstract implements BTreeNode
         buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
     }
 
-    public long[] spillLog()
+    HeapMemory spillLog()
     {
-        //TODO: optimize the copy in bulk
-        final long[] keyValueLog = new long[numberOfLogKeyValues * 2];
-        for (int i = 0; i < numberOfLogKeyValues; i++)
-        {
-            final int index = i * 2;
-            keyValueLog[index] = getLogKey(i);
-            keyValueLog[index + 1] = getLogValue(i);
-        }
+        final @ByteSize int keyValueLogSize = StorageUnits.size(numberOfLogKeyValues * 2 * Long.BYTES);
+        final HeapMemory keyValueLog = MemoryFactory.allocateHeap(keyValueLogSize, buffer.getByteOrder());
+
+        final @ByteOffset long logStartOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
+        buffer.getBytes(
+                logStartOffset,
+                keyValueLog.getCapacity(),
+                keyValueLog.getSupportByteBufferIfAny().array());
+
+        final long numberOfElements = KeyValueLog.getNumberOfElements(keyValueLog.getCapacity());
+        assert numberOfElements % 2 == 0
+                : "log key/value array must even size. Current size " + numberOfElements;
 
         updateNumberOfLogKeyValues(0);
         recalculateFreeSpaceLeft();

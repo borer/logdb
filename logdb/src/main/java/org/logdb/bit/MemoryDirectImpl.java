@@ -5,6 +5,7 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import static org.logdb.storage.StorageUnits.BYTE_OFFSET;
 import static org.logdb.storage.StorageUnits.BYTE_SIZE;
@@ -45,6 +46,12 @@ public class MemoryDirectImpl implements DirectMemory
     public @ByteOffset long getBaseAddress()
     {
         return baseAddress;
+    }
+
+    @Override
+    public ByteOrder getByteOrder()
+    {
+        return MemoryOrder.nativeOrder;
     }
 
     @Override

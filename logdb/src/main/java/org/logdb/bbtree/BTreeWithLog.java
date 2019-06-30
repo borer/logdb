@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.HeapMemory;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -103,25 +104,23 @@ public class BTreeWithLog extends BTreeAbstract
                 nonLeaf.removeLog(key);
 
                 //spill the rest of the log
-                final long[] keyValues = nonLeaf.spillLog();
-                assert keyValues.length % 2 == 0 : "log key/value array must even size. Current size " + keyValues.length;
-                final int maxIndex = keyValues.length / 2;
+                final HeapMemory keyValues = nonLeaf.spillLog();
 
-                for (int i = 0; i < maxIndex; i++)
+                for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
                 {
-                    final int index = i * 2;
-                    final long key2 = keyValues[index];
-                    final long value2 = keyValues[index + 1];
-                    final int keyIndex2 = nonLeaf.getKeyIndex(key2);
+                    final long logKey = KeyValueLog.getKey(keyValues, i);
+                    final long logValue = KeyValueLog.getValue(keyValues, i);
+
+                    final int keyIndex2 = nonLeaf.getKeyIndex(logKey);
                     final BTreeNodeHeap childrenCopy2 = getOrCreateChildrenCopy(nonLeaf, keyIndex2);
                     nonLeaf.setChild(keyIndex2, childrenCopy2);
 
-                    final boolean shouldRemoveValue = value2 == LOG_VALUE_TO_REMOVE_SENTINEL;
+                    final boolean shouldRemoveValue = logValue == LOG_VALUE_TO_REMOVE_SENTINEL;
                     if (shouldRemoveValue)
                     {
-                        removeWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, key2);
+                        removeWithLogInternal(nonLeaf, keyIndex2, childrenCopy2, logKey);
 
-                        final int childKeyIndex2 = nonLeaf.getKeyIndex(key2);
+                        final int childKeyIndex2 = nonLeaf.getKeyIndex(logKey);
                         final BTreeNodeHeap childToRemove2 = getOrCreateChildrenCopy(nonLeaf, childKeyIndex2);
                         if (childToRemove2.getKeyCount() == 0 && nonLeaf.getKeyCount() > 1)
                         {
@@ -137,7 +136,7 @@ public class BTreeWithLog extends BTreeAbstract
                     }
                     else
                     {
-                        putWithLogRecursive(nonLeaf, keyIndex2, childrenCopy2, key2, value2);
+                        putWithLogRecursive(nonLeaf, keyIndex2, childrenCopy2, logKey, logValue);
                     }
                 }
             }
@@ -327,17 +326,14 @@ public class BTreeWithLog extends BTreeAbstract
             }
             else
             {
-                final long[] keyValues = nonLeaf.spillLog();
-                assert keyValues.length % 2 == 0 : "log key/value array must even size. Current size " + keyValues.length;
-                final int maxIndex = keyValues.length / 2;
+                final HeapMemory keyValues = nonLeaf.spillLog();
 
                 splitIfRequiredAndPutWithLogInternal(nonLeaf, key, value);
 
-                for (int i = 0; i < maxIndex; i++)
+                for (int i = 0; i < KeyValueLog.getNumberOfPairs(keyValues.getCapacity()); ++i)
                 {
-                    final int index = i * 2;
-                    final long key2 = keyValues[index];
-                    final long value2 = keyValues[index + 1];
+                    final long key2 = KeyValueLog.getKey(keyValues, i);
+                    final long value2 = KeyValueLog.getValue(keyValues, i);
 
                     splitIfRequiredAndPutWithLogInternal(nonLeaf, key2, value2);
                 }

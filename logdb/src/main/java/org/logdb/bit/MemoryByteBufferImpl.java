@@ -6,6 +6,7 @@ import org.logdb.storage.StorageUnits;
 import sun.misc.Unsafe;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
@@ -30,6 +31,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     public @ByteOffset long getBaseAddress()
     {
         return StorageUnits.offset(Unsafe.ARRAY_BYTE_BASE_OFFSET);
+    }
+
+    @Override
+    public ByteOrder getByteOrder()
+    {
+        return buffer.order();
     }
 
     @Override
@@ -105,12 +112,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void getBytes(final @ByteOffset long offset, final @ByteSize long length, byte[] destinationArray)
+    public void getBytes(
+            final @ByteOffset long offset,
+            final @ByteSize long length,
+            final byte[] destinationArray)
     {
-        for (int i = 0; i < length; i++)
-        {
-            destinationArray[i] = buffer.get((int) offset + i);
-        }
+        System.arraycopy(buffer.array(), (int)offset, destinationArray, ZERO_OFFSET, (int)length);
     }
 
     @Override
@@ -120,11 +127,12 @@ public class MemoryByteBufferImpl implements HeapMemory
             final byte[] destinationArray,
             final @ByteOffset long destinationArrayOffset)
     {
-        for (int i = 0; i < length; i++)
-        {
-            final int destinationOffset = (int)destinationArrayOffset + i;
-            destinationArray[destinationOffset] = buffer.get((int) offset + i);
-        }
+        System.arraycopy(
+                buffer.array(),
+                (int)offset,
+                destinationArray,
+                (int)destinationArrayOffset,
+                (int)length);
     }
 
     @Override
@@ -134,12 +142,9 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public void putBytes(@ByteOffset long destinationOffset, byte[] sourceArray)
+    public void putBytes(@ByteOffset long destinationOffset, final byte[] sourceArray)
     {
-        for (int i = 0; i < sourceArray.length; i++)
-        {
-            buffer.put((int)destinationOffset + i, sourceArray[i]);
-        }
+        System.arraycopy(sourceArray, ZERO_OFFSET, buffer.array(), (int)destinationOffset, sourceArray.length);
     }
 
     @Override

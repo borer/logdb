@@ -3,9 +3,13 @@ package org.logdb.bit;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 
+import java.nio.ByteOrder;
+
 public interface Memory extends ReadMemory, WriteMemory
 {
     @ByteOffset long getBaseAddress();
+
+    ByteOrder getByteOrder();
 
     void resetPosition();
 
