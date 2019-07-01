@@ -6,6 +6,8 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+
 public class BTreeWithLog extends BTreeAbstract
 {
     private static final int LOG_VALUE_TO_REMOVE_SENTINEL = -1;
@@ -480,7 +482,15 @@ public class BTreeWithLog extends BTreeAbstract
                     final int logIndex = ((BTreeNodeAbstract) currentNode).binarySearchInLog(key);
                     if (logIndex >= 0)
                     {
-                        return ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                        final long logValue = ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                        if (logValue != LOG_VALUE_TO_REMOVE_SENTINEL)
+                        {
+                            return logValue;
+                        }
+                        else
+                        {
+                            return KEY_NOT_FOUND_VALUE;
+                        }
                     }
                 }
                 final int keyIndex = currentNode.getKeyIndex(key);
