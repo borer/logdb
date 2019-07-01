@@ -58,7 +58,7 @@ public interface BTreeNode
     /**
      * Get the key index corresponding to this key or -1.
      * @param key key whose index to search for
-     * @return the index corresponding to that key -1.
+     * @return the index corresponding to that key -1. It's >= 0 if found and  negative if not found
      */
     int getKeyIndex(long key);
 
