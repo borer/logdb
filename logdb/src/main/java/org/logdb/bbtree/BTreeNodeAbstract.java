@@ -355,9 +355,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
                 keyValueLog.getCapacity(),
                 keyValueLog.getSupportByteBufferIfAny().array());
 
-        final long numberOfElements = KeyValueLog.getNumberOfElements(keyValueLog.getCapacity());
-        assert numberOfElements % 2 == 0
-                : "log key/value array must even size. Current size " + numberOfElements;
+        assert KeyValueLog.getNumberOfElements(keyValueLog.getCapacity()) % 2 == 0
+                : "log key/value array must even size. Current size " + KeyValueLog.getNumberOfElements(keyValueLog.getCapacity());
 
         updateNumberOfLogKeyValues(0);
         recalculateFreeSpaceLeft();
@@ -456,17 +455,17 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         assert removeIndex >= 0;
 
-        final int numberOfKeysToMove = numberOfKeys - 1;
-        final int numberOfValuesToMove = numberOfValues - 1;
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int pairsToMove = numberOfKeys - removeIndex;
 
-        assert numberOfKeysToMove >= 0;
-        assert numberOfValuesToMove >= 0;
+        assert extraValues >= 0;
+        assert pairsToMove >= 0;
 
         final @ByteOffset long oldIndexOffset = getKeyIndexOffset(removeIndex);
         final @ByteOffset long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
 
         final @ByteSize int size =
-                StorageUnits.size((numberOfKeysToMove * BTreeNodePage.KEY_SIZE) + (numberOfValuesToMove * BTreeNodePage.VALUE_SIZE));
+                StorageUnits.size((pairsToMove + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 

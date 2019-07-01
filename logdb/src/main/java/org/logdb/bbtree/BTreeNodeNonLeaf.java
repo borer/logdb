@@ -121,7 +121,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     {
         final int keyCount = getKeyCount();
 
-        assert keyCount > index && keyCount > 0
+        assert keyCount >= index && keyCount > 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
         removeKeyAndValue(index, keyCount);
