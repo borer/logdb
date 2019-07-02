@@ -4,12 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.logdb.storage.MemoryStorage;
 import org.logdb.support.TestUtils;
 
+import java.io.IOException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LogRecordStorageTest
 {
     @Test
-    void shouldPersistAndReadRecord()
+    void shouldPersistAndReadRecord() throws IOException
     {
         final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES);
         final LogRecordStorage logRecordStorage = new LogRecordStorage(storage);

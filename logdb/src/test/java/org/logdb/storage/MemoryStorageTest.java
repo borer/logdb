@@ -8,6 +8,8 @@ import org.logdb.bbtree.NodesManager;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
+import java.io.IOException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
@@ -15,7 +17,7 @@ class MemoryStorageTest
 {
     @Test
     @Disabled
-    void shouldBeAbleToReadBtreeAfterCommit()
+    void shouldBeAbleToReadBtreeAfterCommit() throws IOException
     {
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
 

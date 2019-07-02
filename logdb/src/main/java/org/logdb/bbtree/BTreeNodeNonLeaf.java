@@ -6,9 +6,11 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import java.io.IOException;
+
 public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
-    public static final int NON_COMMITTED_CHILD = Integer.MIN_VALUE;
+    static final int NON_COMMITTED_CHILD = Integer.MIN_VALUE;
 
     private BTreeNodeHeap[] children;
 
@@ -218,7 +220,7 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
                        final boolean isRoot,
                        final @PageNumber long previousRootPageNumber,
                        final @Milliseconds long timestamp,
-                       final @Version long version)
+                       final @Version long version) throws IOException
     {
         if (isDirty)
         {

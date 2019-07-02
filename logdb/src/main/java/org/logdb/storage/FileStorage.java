@@ -52,7 +52,7 @@ public final class FileStorage implements Storage
         this.newFileDbHeader = FileDbHeader.newHeader(fileDbHeader.byteOrder, fileDbHeader.pageSize, fileDbHeader.segmentFileSize);
     }
 
-    private void tryRollCurrentFile(final @ByteSize int nextWriteSize)
+    private void tryRollCurrentFile(final @ByteSize int nextWriteSize) throws IOException
     {
         try
         {
@@ -72,7 +72,9 @@ public final class FileStorage implements Storage
         }
         catch (final IOException e)
         {
-            LOGGER.error("Couldn't extend the mapped db file", e);
+            final String msg = "Couldn't extend the mapped db file";
+            LOGGER.error(msg, e);
+            throw new IOException(msg, e);
         }
     }
 
@@ -119,7 +121,7 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public @ByteOffset long append(final ByteBuffer buffer)
+    public @ByteOffset long append(final ByteBuffer buffer) throws IOException
     {
         assert buffer != null : "buffer to persist must be non null";
 
@@ -134,14 +136,16 @@ public final class FileStorage implements Storage
         }
         catch (final IOException e)
         {
-            LOGGER.error("Unable to persist node to database file. Position offset " + positionOffset, e);
+            final String msg = "Unable to persist node to database file. Position offset " + positionOffset;
+            LOGGER.error(msg, e);
+            throw new IOException(msg, e);
         }
 
         return positionOffset;
     }
 
     @Override
-    public @PageNumber long appendPageAligned(final ByteBuffer buffer)
+    public @PageNumber long appendPageAligned(final ByteBuffer buffer) throws IOException
     {
         assert (buffer.capacity() % fileDbHeader.pageSize) == 0
                 : "buffer must be of multiple of page size " + fileDbHeader.pageSize +

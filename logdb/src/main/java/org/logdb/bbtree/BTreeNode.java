@@ -4,6 +4,8 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import java.io.IOException;
+
 public interface BTreeNode
 {
     /**
@@ -88,7 +90,7 @@ public interface BTreeNode
             boolean isRoot,
             @PageNumber long previousRootPageNumber,
             @Milliseconds long timestamp,
-            @Version long version);
+            @Version long version) throws IOException;
 
     boolean isDirty();
 

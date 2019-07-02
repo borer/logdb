@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class LogDbIntegrationTest
+class LogDbIntegrationTest
 {
     @TempDir Path tempDirectory;
     private LogDb logDB;
@@ -40,7 +40,7 @@ public class LogDbIntegrationTest
     }
 
     @Test
-    void shouldPersistsAndGetFromDB()
+    void shouldPersistsAndGetFromDB() throws IOException
     {
         final int numOfPairs = 10;
         for (int i = 0; i < numOfPairs; i++)
@@ -61,7 +61,7 @@ public class LogDbIntegrationTest
     }
 
     @Test
-    void shouldPersistsAndGetHistoricValuesFromDB()
+    void shouldPersistsAndGetHistoricValuesFromDB() throws IOException
     {
         final long key = 123123123L;
         final int numOfPairs = 10;
@@ -83,7 +83,7 @@ public class LogDbIntegrationTest
     }
 
     @Test
-    void shouldPersistsAndDeleteFromDB()
+    void shouldPersistsAndDeleteFromDB() throws IOException
     {
         final int numOfPairs = 10;
         for (int i = 0; i < numOfPairs; i++)

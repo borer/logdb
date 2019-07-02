@@ -6,6 +6,7 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -72,7 +73,7 @@ abstract class BTreeAbstract implements BTree
     }
 
     @Override
-    public void commit()
+    public void commit() throws IOException
     {
         nodesManager.commitDirtyNodes();
 
@@ -115,7 +116,7 @@ abstract class BTreeAbstract implements BTree
         return committedRootPageNumber;
     }
 
-    protected CursorPosition getLastCursorPosition(long key)
+    CursorPosition getLastCursorPosition(long key)
     {
         CursorPosition cursorPosition;
         final RootReference rootReference = uncommittedRoot.get();

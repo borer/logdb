@@ -3,6 +3,8 @@ package org.logdb.bbtree;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 
+import java.io.IOException;
+
 public interface BTree extends AutoCloseable
 {
     void remove(long key);
@@ -13,7 +15,7 @@ public interface BTree extends AutoCloseable
 
     long get(long key);
 
-    void commit();
+    void commit() throws IOException;
 
     String print();
 

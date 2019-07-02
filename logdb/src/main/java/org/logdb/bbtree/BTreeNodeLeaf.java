@@ -6,6 +6,8 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import java.io.IOException;
+
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
@@ -117,7 +119,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
             final boolean isRoot,
             final @PageNumber long previousRootPageNumber,
             final @Milliseconds long timestamp,
-            final @Version long version)
+            final @Version long version) throws IOException
     {
         if (isDirty)
         {

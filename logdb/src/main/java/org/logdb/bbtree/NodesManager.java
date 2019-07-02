@@ -9,6 +9,7 @@ import org.logdb.storage.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,17 +41,17 @@ public class NodesManager
         this.lastPersistedPageNumber = StorageUnits.INVALID_PAGE_NUMBER;
     }
 
-    public BTreeNodeLeaf createEmptyLeafNode()
+    BTreeNodeLeaf createEmptyLeafNode()
     {
         return getOrCreateLeafNode();
     }
 
-    public BTreeNodeNonLeaf createEmptyNonLeafNode()
+    BTreeNodeNonLeaf createEmptyNonLeafNode()
     {
         return getOrCreateNonLeafNode();
     }
 
-    public BTreeMappedNode getOrCreateMappedNode()
+    BTreeMappedNode getOrCreateMappedNode()
     {
         if (!mappedNodes.isEmpty())
         {
@@ -66,12 +67,12 @@ public class NodesManager
         }
     }
 
-    public void returnMappedNode(final BTreeMappedNode mappedNode)
+    private void returnMappedNode(final BTreeMappedNode mappedNode)
     {
         mappedNodes.add(mappedNode);
     }
 
-    public BTreeNodeHeap splitNode(
+    BTreeNodeHeap splitNode(
             final BTreeNode originalNode,
             final int at,
             final @Version long newVersion)
@@ -83,7 +84,7 @@ public class NodesManager
         return splitNode;
     }
 
-    public BTreeNodeHeap copyNode(final BTreeNode originalNode, final @Version long newVersion)
+    BTreeNodeHeap copyNode(final BTreeNode originalNode, final @Version long newVersion)
     {
         final BTreeNodeHeap copyNode = createSameNodeType(originalNode);
         originalNode.copy(copyNode);
@@ -125,7 +126,7 @@ public class NodesManager
         return leaf;
     }
 
-    public void addDirtyRoot(final RootReference rootNode)
+    void addDirtyRoot(final RootReference rootNode)
     {
         dirtyRootNodes.add(rootNode);
     }
@@ -133,7 +134,7 @@ public class NodesManager
     /**
      * Stores into persistent storage all the dirty roots and their paths.
      */
-    public void commitDirtyNodes()
+    void commitDirtyNodes() throws IOException
     {
         if (dirtyRootNodes.isEmpty())
         {
@@ -172,7 +173,7 @@ public class NodesManager
      * @param node the node to commit
      * @return the page number where this node is stored
      */
-    public @PageNumber long commitNode(final BTreeNodeNonLeaf node)
+    @PageNumber long commitNode(final BTreeNodeNonLeaf node) throws IOException
     {
         final @PageNumber long pageNumber = commitNodeToStorage(node);
         node.reset();
@@ -185,7 +186,7 @@ public class NodesManager
      * @param node the node to commit
      * @return the page number where this node is stored
      */
-    public @PageNumber long commitNode(final BTreeNodeLeaf node)
+    @PageNumber long commitNode(final BTreeNodeLeaf node) throws IOException
     {
         final @PageNumber long pageNumber = commitNodeToStorage(node);
         node.reset();
@@ -193,13 +194,13 @@ public class NodesManager
         return pageNumber;
     }
 
-    private @PageNumber long commitNodeToStorage(final BTreeNodeHeap node)
+    private @PageNumber long commitNodeToStorage(final BTreeNodeHeap node) throws IOException
     {
         final ReadMemory buffer = node.getBuffer();
         return storage.appendPageAligned(buffer.getSupportByteBufferIfAny());
     }
 
-    public BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)
+    BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)
     {
         assert parentNode.getNodeType() == BtreeNodeType.NonLeaf : "node must be non leaf";
 
@@ -215,13 +216,13 @@ public class NodesManager
         }
     }
 
-    public void commitLastRootPage(final @PageNumber long pageNumber, final @Version long version)
+    void commitLastRootPage(final @PageNumber long pageNumber, final @Version long version)
     {
         final @ByteOffset long offset = storage.getOffset(pageNumber);
         storage.commitMetadata(offset, version);
     }
 
-    public @PageNumber long loadLastRootPageNumber()
+    @PageNumber long loadLastRootPageNumber()
     {
         if (lastPersistedPageNumber == StorageUnits.INVALID_PAGE_NUMBER)
         {

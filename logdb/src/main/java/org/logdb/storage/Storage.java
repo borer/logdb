@@ -3,6 +3,7 @@ package org.logdb.storage;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -40,14 +41,14 @@ public interface Storage extends AutoCloseable
      * @param buffer the buffer to store. Can be any size
      * @return the byte offset where the buffer start is located.
      */
-    @ByteOffset long append(ByteBuffer buffer);
+    @ByteOffset long append(ByteBuffer buffer) throws IOException;
 
     /**
      * Writes a page aligned bytebuffer.
      * @param buffer the buffer to store, must be of size of a page
      * @return the page number where the buffer is located
      */
-    @PageNumber long appendPageAligned(ByteBuffer buffer);
+    @PageNumber long appendPageAligned(ByteBuffer buffer) throws IOException;
 
     void flush();
 

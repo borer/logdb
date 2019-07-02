@@ -6,6 +6,7 @@ import org.logdb.storage.ByteOffset;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
@@ -23,7 +24,7 @@ public class LogDb implements AutoCloseable
         this.index = index;
     }
 
-    public void put(final long key, final byte[] value)
+    public void put(final long key, final byte[] value) throws IOException
     {
         final @ByteOffset long offset = logFile.put(longToBytes(key), value);
         index.put(key, offset);
@@ -57,13 +58,13 @@ public class LogDb implements AutoCloseable
         return logFile.read(offset);
     }
 
-    public void delete(final long key)
+    public void delete(final long key) throws IOException
     {
         logFile.delete(longToBytes(key));
         index.remove(key);
     }
 
-    public void commitIndex()
+    public void commitIndex() throws IOException
     {
         index.commit();
     }

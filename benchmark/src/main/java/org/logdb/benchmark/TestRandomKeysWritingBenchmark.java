@@ -69,7 +69,14 @@ public class TestRandomKeysWritingBenchmark
 
         void commit()
         {
-            btree.commit();
+            try
+            {
+                btree.commit();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 

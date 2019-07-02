@@ -6,7 +6,6 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.time.SystemTimeSource;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -96,7 +95,7 @@ public class CliMain
         }
     }
 
-    private static void handleDeleteCommand(final LogDb logDb, final String command, final String[] commandParts)
+    private static void handleDeleteCommand(final LogDb logDb, final String command, final String[] commandParts) throws IOException
     {
         if (commandParts.length != 2)
         {
@@ -108,7 +107,7 @@ public class CliMain
         System.out.println("Ok.");
     }
 
-    private static void handlePutCommand(final LogDb logDb, final String command, final String[] commandParts)
+    private static void handlePutCommand(final LogDb logDb, final String command, final String[] commandParts) throws IOException
     {
         if (commandParts.length != 3)
         {
@@ -138,19 +137,6 @@ public class CliMain
         else
         {
             System.out.println(new String(value));
-        }
-    }
-
-    private static boolean isFilenameValid(final File file)
-    {
-        try
-        {
-            file.getCanonicalPath();
-            return true;
-        }
-        catch (IOException e)
-        {
-            return false;
         }
     }
 }

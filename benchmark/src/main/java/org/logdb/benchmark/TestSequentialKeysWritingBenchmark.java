@@ -73,7 +73,14 @@ public class TestSequentialKeysWritingBenchmark
 
         void commit()
         {
-            btree.commit();
+            try
+            {
+                btree.commit();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 

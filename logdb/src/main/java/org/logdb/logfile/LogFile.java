@@ -8,6 +8,8 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
+import java.io.IOException;
+
 public class LogFile implements AutoCloseable
 {
     private final LogRecordStorage logRecordStorage;
@@ -24,7 +26,7 @@ public class LogFile implements AutoCloseable
         this.logRecordStorage = new LogRecordStorage(storage);
     }
 
-    public @ByteOffset long put(final byte[] key, final byte[] value)
+    public @ByteOffset long put(final byte[] key, final byte[] value) throws IOException
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
@@ -48,7 +50,7 @@ public class LogFile implements AutoCloseable
         return logRecordStorage.readRecordValue(offset);
     }
 
-    public @ByteOffset long delete(final byte[] key)
+    public @ByteOffset long delete(final byte[] key) throws IOException
     {
         version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();

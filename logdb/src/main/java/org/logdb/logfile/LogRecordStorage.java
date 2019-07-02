@@ -10,6 +10,7 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
@@ -48,7 +49,11 @@ class LogRecordStorage
         this.logRecordHeader = new LogRecordHeader();
     }
 
-    @ByteOffset long writePut(final byte[] key, final byte[] value, final @Version long version, final @Milliseconds long timestamp)
+    @ByteOffset long writePut(
+            final byte[] key,
+            final byte[] value,
+            final @Version long version,
+            final @Milliseconds long timestamp) throws IOException
     {
         final int checksum = calculatePutChecksum(key, value, version, timestamp);
         logRecordHeader.initPut(
@@ -84,7 +89,10 @@ class LogRecordStorage
         }
     }
 
-    @ByteOffset long writeDelete(final byte[] key, final @Version long version, final @Milliseconds long timestamp)
+    @ByteOffset long writeDelete(
+            final byte[] key,
+            final @Version long version,
+            final @Milliseconds long timestamp) throws IOException
     {
         final int checksum = calculateDeleteChecksum(key, version, timestamp);
         logRecordHeader.initDelete(
