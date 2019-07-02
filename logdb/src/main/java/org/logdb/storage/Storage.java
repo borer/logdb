@@ -47,7 +47,7 @@ public interface Storage extends AutoCloseable
      * @param buffer the buffer to store, must be of size of a page
      * @return the page number where the buffer is located
      */
-    @PageNumber long writePageAligned(ByteBuffer buffer);
+    @PageNumber long appendPageAligned(ByteBuffer buffer);
 
     void flush();
 

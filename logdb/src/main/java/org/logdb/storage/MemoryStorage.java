@@ -79,7 +79,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public @PageNumber long writePageAligned(final ByteBuffer buffer)
+    public @PageNumber long appendPageAligned(final ByteBuffer buffer)
     {
         return StorageUnits.pageNumber(append(buffer));
     }

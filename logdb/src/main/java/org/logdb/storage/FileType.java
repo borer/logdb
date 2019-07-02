@@ -8,8 +8,8 @@ import java.util.function.Predicate;
 public enum FileType implements Predicate<Path>, Comparator<Path>
 {
     HEAP("heap.logdb"),
-    INDEX("index.logIndex"),
-    ROOT_INDEX("root.logIndex");
+    INDEX("index.logdbIndex"),
+    ROOT_INDEX("root.logdbIndex");
 
     private final String fileNameSuffix;
 

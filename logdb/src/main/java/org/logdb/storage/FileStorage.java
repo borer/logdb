@@ -141,7 +141,7 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public @PageNumber long writePageAligned(final ByteBuffer buffer)
+    public @PageNumber long appendPageAligned(final ByteBuffer buffer)
     {
         assert (buffer.capacity() % fileDbHeader.pageSize) == 0
                 : "buffer must be of multiple of page size " + fileDbHeader.pageSize +

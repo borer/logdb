@@ -155,7 +155,7 @@ public class IndexFileViewerMain
         }
 
         @Override
-        public @PageNumber long writePageAligned(ByteBuffer buffer)
+        public @PageNumber long appendPageAligned(ByteBuffer buffer)
         {
             throw new UnsupportedOperationException("Method not Implemented");
         }
