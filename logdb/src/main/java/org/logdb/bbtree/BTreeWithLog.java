@@ -333,6 +333,10 @@ public class BTreeWithLog extends BTreeAbstract
             else
             {
                 putWithLogRecursiveInChildAndSplitIfRequired(nonLeaf, key, value);
+
+                //remove log if there is any, as we already removed the key/value in the previous step
+                nonLeaf.removeLog(key);
+
                 spillLogForPut(parent, nodeIndexInParent, nonLeaf);
             }
 

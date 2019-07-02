@@ -1,6 +1,5 @@
 package org.logdb.integration;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
@@ -307,7 +306,6 @@ public class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    @Disabled
     void shouldBeABleInsertAndDeleteAndInsertSomeMoreInBtreeWithLog() throws IOException
     {
         final int numberOfPairsToInsert = 600;
@@ -348,11 +346,6 @@ public class BBTreeWithLogIntegrationTest
         {
             for (int i = 0; i < numberOfPairsToInsert; i++)
             {
-                //439 is still appearing as deleted...WTF????
-                if (i == 439)
-                {
-                    continue;
-                }
                 assertEquals(i, loadedTree.get(i));
             }
         }
