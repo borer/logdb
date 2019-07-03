@@ -160,7 +160,9 @@ class FileStorageTest
             fileStorage.appendPageAligned(buffer);
             fileStorage.appendPageAligned(buffer);
 
-            final List<Path> storageFilesAfterRoll = Files.list(tempDirectory).collect(Collectors.toList());
+            final List<Path> storageFilesAfterRoll = Files.list(tempDirectory)
+                    .sorted(FileType.HEAP)
+                    .collect(Collectors.toList());
             assertEquals(2, storageFilesAfterRoll.size());
             assertEquals("0-heap.logdb", storageFilesAfterRoll.get(0).getFileName().toString());
             assertEquals("1-heap.logdb", storageFilesAfterRoll.get(1).getFileName().toString());
@@ -188,7 +190,9 @@ class FileStorageTest
             fileStorage.append(buffer);
             fileStorage.append(buffer);
 
-            final List<Path> storageFilesAfterRoll = Files.list(tempDirectory).collect(Collectors.toList());
+            final List<Path> storageFilesAfterRoll = Files.list(tempDirectory)
+                    .sorted(FileType.INDEX)
+                    .collect(Collectors.toList());
             assertEquals(2, storageFilesAfterRoll.size());
             assertEquals("0-index.logdbIndex", storageFilesAfterRoll.get(0).getFileName().toString());
             assertEquals("1-index.logdbIndex", storageFilesAfterRoll.get(1).getFileName().toString());
