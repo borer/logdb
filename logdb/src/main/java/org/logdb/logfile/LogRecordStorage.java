@@ -75,11 +75,11 @@ class LogRecordStorage
     {
         final PagePosition pagePosition = readHeader(offset);
 
-        if (LogRecordType.UPDATE.equals(logRecordHeader.getRecordType()))
+        if (LogRecordType.UPDATE == logRecordHeader.getRecordType())
         {
             return readValue(pagePosition);
         }
-        else if (LogRecordType.DELETE.equals(logRecordHeader.getRecordType()))
+        else if (LogRecordType.DELETE == logRecordHeader.getRecordType())
         {
             throw new IllegalArgumentException("offset " + offset + " refers to a delete record");
         }

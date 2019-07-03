@@ -19,7 +19,7 @@ public class MemoryDirectImpl implements DirectMemory
 {
     private static final @ByteOffset long UNINITIALIZED_ADDRESS = StorageUnits.offset(Long.MIN_VALUE);
 
-    private @ByteSize final long capacity;
+    private final @ByteSize long capacity;
 
     private @ByteOffset long baseAddress;
     private @ByteOffset long position;

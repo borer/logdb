@@ -75,7 +75,7 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     @Override
     public int getKeyIndex(final long key)
     {
-        final boolean isNonLeaf = getNodeType().equals(BtreeNodeType.NonLeaf);
+        final boolean isNonLeaf = getNodeType() == BtreeNodeType.NonLeaf;
         final int nonLeafAddition = isNonLeaf ? 1 : 0;
         int index = binarySearch(key) + nonLeafAddition;
         if (index < 0 && isNonLeaf)

@@ -5,7 +5,7 @@ import org.logdb.storage.PageNumber;
 public final class CursorPosition
 {
     private final BTreeNode node;
-    private @PageNumber final long pageNumber;
+    private final @PageNumber long pageNumber;
 
     final int index;
     final CursorPosition parent;
