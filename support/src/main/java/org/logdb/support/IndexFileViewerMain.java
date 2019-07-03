@@ -46,7 +46,7 @@ public class IndexFileViewerMain
 
             final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
             final @ByteSize int pageSize = fileDbHeader.pageSize;
-            final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
+            final @ByteOffset long lastPersistedOffset = fileDbHeader.getGlobalAppendOffset();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
@@ -67,13 +67,15 @@ public class IndexFileViewerMain
             storage.mapFile();
 
             final BTreeMappedNode bTreeMappedNode = new BTreeMappedNode(
-               (mappedNode) -> {},
+                    (mappedNode) ->
+                    {
+                    },
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
                     StorageUnits.INVALID_PAGE_NUMBER);
 
             final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileDbHeader.getHeaderSizeAlignedToNearestPage() / pageSize);
-            final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileDbHeader.getAppendOffset() / pageSize);
+            final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileDbHeader.getLastFileAppendOffset() / pageSize);
 
             for (long i = headerPagesToSkip; i < lastPersistedPageNumber; i++)
             {
@@ -174,6 +176,12 @@ public class IndexFileViewerMain
 
         @Override
         public @ByteOffset long getLastPersistedOffset()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
+        public @Version long getAppendVersion()
         {
             throw new UnsupportedOperationException("Method not Implemented");
         }

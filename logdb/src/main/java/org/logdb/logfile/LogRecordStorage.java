@@ -108,16 +108,6 @@ class LogRecordStorage
         return offset;
     }
 
-    @ByteSize long getPutRecordSize(final byte[] key, final byte[] value)
-    {
-        return StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE + key.length + value.length);
-    }
-
-    @ByteSize long getDeleteRecordSize(final byte[] key)
-    {
-        return StorageUnits.size(LogRecordHeader.RECORD_HEADER_SIZE + key.length);
-    }
-
     private int calculateDeleteChecksum(
             final byte[] key,
             final @Version long version,

@@ -55,7 +55,7 @@ public class FileStorageFactory
             currentAppendFile.setLength(segmentFileSize);
 
             final FileDbHeader fileDbHeader = FileDbHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
-            fileDbHeader.writeTo(currentAppendChannel);
+            fileDbHeader.writeToAndPageAlign(currentAppendChannel);
 
             fileStorage = createFileStorage(rootDirectory, fileAllocator, fileDbHeader, currentAppendFile, currentAppendChannel);
         }
@@ -130,7 +130,7 @@ public class FileStorageFactory
             }
         }
 
-        final @ByteOffset long appendOffset = fileDbHeader.getAppendOffset();
+        final @ByteOffset long appendOffset = fileDbHeader.getLastFileAppendOffset();
         if (appendOffset != INVALID_OFFSET)
         {
             currentAppendChannel.position(appendOffset);

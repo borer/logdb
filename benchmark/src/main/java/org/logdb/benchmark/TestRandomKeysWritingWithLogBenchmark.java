@@ -24,6 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 
+import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
+
 public class TestRandomKeysWritingWithLogBenchmark
 {
     private static final @ByteSize long SEGMENT_FILE_SIZE = StorageUnits.size(DefaultBenchmarkConfig.PAGE_SIZE_BYTES * 200);
@@ -50,7 +52,7 @@ public class TestRandomKeysWritingWithLogBenchmark
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
-            btree = new BTreeWithLog(nodesManager, new SystemTimeSource());
+            btree = new BTreeWithLog(nodesManager, new SystemTimeSource(), INITIAL_VERSION);
             random = new Random();
         }
 

@@ -11,6 +11,7 @@ import org.logdb.support.TestUtils;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class MemoryStorageTest
@@ -22,7 +23,7 @@ class MemoryStorageTest
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage);
-        final BTreeImpl originalBTree = new BTreeImpl(nodesManager, new StubTimeSource());
+        final BTreeImpl originalBTree = new BTreeImpl(nodesManager, new StubTimeSource(), INITIAL_VERSION);
 
         for (int i = 0; i < 100; i++)
         {
@@ -35,7 +36,7 @@ class MemoryStorageTest
 
         //load btree from existing memory
         final NodesManager readNodesManager = new NodesManager(memoryStorage);
-        final BTreeImpl loadedBTree = new BTreeImpl(readNodesManager, new StubTimeSource());
+        final BTreeImpl loadedBTree = new BTreeImpl(readNodesManager, new StubTimeSource(), INITIAL_VERSION);
 
         final String loadedBtreePrint = BTreePrinter.print(loadedBTree, readNodesManager);
 

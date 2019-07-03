@@ -7,6 +7,8 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.FileStorageFactory;
 import org.logdb.storage.FileType;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,15 +76,24 @@ public class LogDbBuilder
     private BTreeWithLog buildIndex(TimeSource timeSource) throws IOException
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
-
+        final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
         final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage);
-        return new BTreeWithLog(nodesManager, timeSource);
+        return new BTreeWithLog(nodesManager, timeSource, nextWriteVersion);
     }
 
     private LogFile buildLogFile(TimeSource timeSource) throws IOException
     {
         final FileStorage logDbFileStorage = buildFileStorage(FileType.HEAP);
-        return new LogFile(logDbFileStorage, timeSource);
+        final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage);
+        return new LogFile(logDbFileStorage, timeSource, nextWriteVersion);
+    }
+
+    private @Version long getNextWriteVersion(final FileStorage logDbFileStorage)
+    {
+        final @Version long appendVersion = logDbFileStorage.getAppendVersion();
+        return appendVersion == Config.INITIAL_STORAGE_VERSION
+                ? Config.INITIAL_STORAGE_VERSION
+                : StorageUnits.version(appendVersion + 1);
     }
 
     private FileStorage buildFileStorage(FileType fileType) throws IOException

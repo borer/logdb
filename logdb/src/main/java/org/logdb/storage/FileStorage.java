@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
+import static org.logdb.storage.FileDbHeader.HEADER_OFFSET;
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 
 public final class FileStorage implements Storage
@@ -85,7 +86,7 @@ public final class FileStorage implements Storage
         final FileChannel channel = accessFile.getChannel();
         accessFile.setLength(fileDbHeader.segmentFileSize);
 
-        newFileDbHeader.writeTo(channel);
+        newFileDbHeader.writeToAndPageAlign(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
         currentAppendingFile = accessFile;
@@ -166,7 +167,7 @@ public final class FileStorage implements Storage
                     version);
 
             final long originalChannelPosition = currentAppendingChannel.position();
-            currentAppendingChannel.position(0);
+            currentAppendingChannel.position(HEADER_OFFSET);
 
             fileDbHeader.writeTo(currentAppendingChannel);
 
@@ -181,7 +182,13 @@ public final class FileStorage implements Storage
     @Override
     public @ByteOffset long getLastPersistedOffset()
     {
-        return fileDbHeader.getLastPersistedOffset();
+        return fileDbHeader.getGlobalAppendOffset();
+    }
+
+    @Override
+    public @Version long getAppendVersion()
+    {
+        return fileDbHeader.getAppendVersion();
     }
 
     @Override

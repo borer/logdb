@@ -56,5 +56,7 @@ public interface Storage extends AutoCloseable
 
     @ByteOffset long getLastPersistedOffset();
 
+    @Version long getAppendVersion();
+
     void mapPage(@PageNumber long pageNumber, DirectMemory memory);
 }

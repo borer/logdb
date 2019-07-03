@@ -1,5 +1,6 @@
 package org.logdb.storage;
 
+import org.logdb.Config;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
@@ -18,6 +19,7 @@ public class MemoryStorage implements Storage
 
     private @ByteOffset long allocatedMemoryOffset;
     private @ByteOffset long lastPersistedOffset;
+    private @Version long version;
 
     public MemoryStorage(final ByteOrder byteOrder, final @ByteSize int pageSizeBytes)
     {
@@ -26,6 +28,7 @@ public class MemoryStorage implements Storage
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = ZERO_OFFSET;
         this.lastPersistedOffset = StorageUnits.INVALID_OFFSET;
+        this.version = Config.INITIAL_STORAGE_VERSION;
     }
 
     @Override
@@ -103,9 +106,16 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void commitMetadata(final @ByteOffset long lastPersistedOffset, @Version long version)
+    public @Version long getAppendVersion()
+    {
+        return version;
+    }
+
+    @Override
+    public void commitMetadata(final @ByteOffset long lastPersistedOffset, final @Version long version)
     {
         this.lastPersistedOffset = lastPersistedOffset;
+        this.version = version;
     }
 
     @Override

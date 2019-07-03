@@ -41,7 +41,7 @@ public class LogFileViewerMain
 
             final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
             final @ByteSize int pageSize = fileDbHeader.pageSize;
-            final @ByteOffset long lastPersistedOffset = fileDbHeader.getLastPersistedOffset();
+            final @ByteOffset long lastPersistedOffset = fileDbHeader.getGlobalAppendOffset();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
@@ -60,7 +60,7 @@ public class LogFileViewerMain
             long lastRecordSize = 0;
             final ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
             keyBuffer.order(fileByteOrder);
-            for (long i = fileHeaderOffsetToSkip; i < lastPersistedOffset; i += lastRecordSize)
+            for (long i = fileHeaderOffsetToSkip; i <= lastPersistedOffset; i += lastRecordSize)
             {
                 headerBuffer.rewind();
                 keyBuffer.rewind();

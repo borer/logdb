@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.Config;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -12,12 +13,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 abstract class BTreeAbstract implements BTree
 {
-    /**
-     * This designates the "last stored" version for a store which was
-     * just open for the first time.
-     */
-    private static final @Version long INITIAL_VERSION = StorageUnits.version(0);
-
     /**
      * Reference to the current uncommitted root page.
      */
@@ -34,34 +29,31 @@ abstract class BTreeAbstract implements BTree
 
     @Version long nextWriteVersion;
 
-    BTreeAbstract(final NodesManager nodesManager, final TimeSource timeSource)
+    BTreeAbstract(
+            final NodesManager nodesManager,
+            final TimeSource timeSource,
+            final @Version long nextWriteVersion)
     {
-        this.nodesManager = Objects.requireNonNull(
-                nodesManager, "nodesManager must not be null");
+        this.nodesManager = Objects.requireNonNull(nodesManager, "nodesManager must not be null");
         this.timeSource = timeSource;
+        this.nextWriteVersion = nextWriteVersion;
+
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
 
+        //TODO: extract this allocation and condition outside of the constructor
         if (isNewTree(lastRootPageNumber))
         {
             final RootReference rootReference = new RootReference(
                     nodesManager.createEmptyLeafNode(),
                     timeSource.getCurrentMillis(),
-                    INITIAL_VERSION,
+                    StorageUnits.version(Config.INITIAL_STORAGE_VERSION - 1),
                     null);
             this.uncommittedRoot = new AtomicReference<>(rootReference);
-            this.nextWriteVersion = INITIAL_VERSION;
-
-            nodesManager.addDirtyRoot(rootReference);
         }
         else
         {
             this.uncommittedRoot = new AtomicReference<>(null);
-            try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
-            {
-                mappedNode.initNode(lastRootPageNumber);
-                this.nextWriteVersion = StorageUnits.version(mappedNode.getVersion() + 1);
-            }
         }
 
         this.nodesCount = 1;
@@ -116,7 +108,7 @@ abstract class BTreeAbstract implements BTree
         return committedRootPageNumber;
     }
 
-    CursorPosition getLastCursorPosition(long key)
+    CursorPosition getLastCursorPosition(final long key)
     {
         CursorPosition cursorPosition;
         final RootReference rootReference = uncommittedRoot.get();

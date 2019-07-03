@@ -25,7 +25,13 @@ class FileDbHeaderTest
 
         final FileDbHeader actualHeader = FileDbHeader.readFrom(channel);
 
-        assertEquals(expectedHeader, actualHeader);
+        assertEquals(expectedHeader.pageSize, actualHeader.pageSize);
+        assertEquals(expectedHeader.segmentFileSize, actualHeader.segmentFileSize);
+        assertEquals(expectedHeader.byteOrder, actualHeader.byteOrder);
+        assertEquals(expectedHeader.logDbVersion, actualHeader.logDbVersion);
+        assertEquals(expectedHeader.getAppendVersion(), actualHeader.getAppendVersion());
+        assertEquals(expectedHeader.getGlobalAppendOffset(), actualHeader.getGlobalAppendOffset());
+        assertEquals(expectedHeader.getLastFileAppendOffset(), actualHeader.getLastFileAppendOffset());
     }
 
     private static class ByteBufferSeekableByteChannel implements SeekableByteChannel

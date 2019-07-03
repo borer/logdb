@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.logdb.support.TestUtils.INITIAL_VERSION;
 
 class BTreeImplTest
 {
@@ -25,7 +26,7 @@ class BTreeImplTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTreeImpl(nodesManager, new StubTimeSource());
+        bTree = new BTreeImpl(nodesManager, new StubTimeSource(), INITIAL_VERSION);
     }
 
     @Test

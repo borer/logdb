@@ -1,9 +1,7 @@
 package org.logdb.logfile;
 
 import org.logdb.storage.ByteOffset;
-import org.logdb.storage.ByteSize;
 import org.logdb.storage.Storage;
-import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
@@ -16,31 +14,28 @@ public class LogFile implements AutoCloseable
     private final Storage storage;
     private final TimeSource timeSource;
 
-    private @Version long version;
+    private @Version long nextWriteVersion;
 
-    public LogFile(final Storage storage, final TimeSource timeSource)
+    public LogFile(final Storage storage, final TimeSource timeSource, final @Version long nextWriteVersion)
     {
         this.storage = storage;
         this.timeSource = timeSource;
-        this.version = StorageUnits.version(0);
+        this.nextWriteVersion = nextWriteVersion;
         this.logRecordStorage = new LogRecordStorage(storage);
     }
 
     public @ByteOffset long put(final byte[] key, final byte[] value) throws IOException
     {
-        version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final @ByteOffset long putRecordStartOffset = logRecordStorage.writePut(
                 key,
                 value,
-                version,
+                nextWriteVersion,
                 timestamp);
 
-        final @ByteSize long putRecordSize = logRecordStorage.getPutRecordSize(key, value);
-        final @ByteOffset long putRecordEndOffset = StorageUnits.offset(putRecordStartOffset + putRecordSize);
-
-        storage.commitMetadata(putRecordEndOffset, version);
+        storage.commitMetadata(putRecordStartOffset, nextWriteVersion);
         storage.flush();
+        nextWriteVersion++;
 
         return putRecordStartOffset;
     }
@@ -52,18 +47,15 @@ public class LogFile implements AutoCloseable
 
     public @ByteOffset long delete(final byte[] key) throws IOException
     {
-        version++;
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
         final @ByteOffset long deleteRecordStartOffset = logRecordStorage.writeDelete(
                 key,
-                version,
+                nextWriteVersion,
                 timestamp);
 
-        final @ByteSize long deleteRecordSize = logRecordStorage.getDeleteRecordSize(key);
-        final @ByteOffset long deleteRecordEndOffset = StorageUnits.offset(deleteRecordStartOffset + deleteRecordSize);
-
-        storage.commitMetadata(deleteRecordEndOffset, version);
+        storage.commitMetadata(deleteRecordStartOffset, nextWriteVersion);
         storage.flush();
+        nextWriteVersion++;
 
         return deleteRecordStartOffset;
     }

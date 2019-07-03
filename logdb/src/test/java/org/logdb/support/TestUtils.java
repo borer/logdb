@@ -5,6 +5,8 @@ import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -16,6 +18,7 @@ public class TestUtils
     public static final int PAGE_SIZE_BYTES = 512;
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
+    public static final @Version long INITIAL_VERSION = StorageUnits.version(0);
 
     public static ByteBuffer createValue(final String value)
     {

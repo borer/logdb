@@ -10,6 +10,7 @@ import org.logdb.support.TestUtils;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+import static org.logdb.support.TestUtils.INITIAL_VERSION;
 
 class BTreeWithLogTest
 {
@@ -22,7 +23,7 @@ class BTreeWithLogTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTreeWithLog(nodesManager, new StubTimeSource());
+        bTree = new BTreeWithLog(nodesManager, new StubTimeSource(), INITIAL_VERSION);
     }
 
     @Test

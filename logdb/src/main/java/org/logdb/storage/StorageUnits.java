@@ -22,6 +22,11 @@ public class StorageUnits
         return version;
     }
 
+    public static @Version int version(final int version)
+    {
+        return version;
+    }
+
     public static @PageNumber long pageNumber(final long pageNumber)
     {
         return pageNumber;

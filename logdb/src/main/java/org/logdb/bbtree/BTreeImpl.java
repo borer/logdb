@@ -9,9 +9,12 @@ import java.util.function.BiConsumer;
 
 public class BTreeImpl extends BTreeAbstract
 {
-    public BTreeImpl(final NodesManager nodesManager, final TimeSource timeSource)
+    public BTreeImpl(
+            final NodesManager nodesManager,
+            final TimeSource timeSource,
+            final @Version long nextWriteVersion)
     {
-        super(nodesManager, timeSource);
+        super(nodesManager, timeSource, nextWriteVersion);
     }
 
     /**
