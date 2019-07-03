@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.LogDb;
 import org.logdb.LogDbBuilder;
+import org.logdb.storage.FileStorageUtil;
+import org.logdb.storage.FileType;
+import org.logdb.storage.Version;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
@@ -13,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class LogDbIntegrationTest
@@ -104,6 +108,36 @@ class LogDbIntegrationTest
         {
             assertNull(logDB.get(i));
         }
+    }
+
+    @Test
+    void shouldHaveLogAndIndexVersionsInSync() throws IOException
+    {
+        final int numOfPutPairs = 10;
+        for (int i = 0; i < numOfPutPairs; i++)
+        {
+            final long key = (long)i;
+            final String value = buildExpectedValue(i);
+            final byte[] valueBytes = value.getBytes();
+            logDB.put(key, valueBytes);
+            logDB.commitIndex();
+        }
+
+        final int numOfDeletePairs = 5;
+        for (int i = 0; i < numOfDeletePairs; i++)
+        {
+            logDB.delete(i);
+            logDB.commitIndex();
+        }
+
+        final int expectedVersion = 14;
+
+        final @Version long indexVersion = FileStorageUtil.getLastAppendVersion(tempDirectory, FileType.INDEX);
+        final @Version long heapVersion = FileStorageUtil.getLastAppendVersion(tempDirectory, FileType.HEAP);
+
+        assertEquals(indexVersion, heapVersion);
+        assertEquals(expectedVersion, indexVersion);
+        assertEquals(expectedVersion, heapVersion);
     }
 
     private String buildExpectedValue(int i)
