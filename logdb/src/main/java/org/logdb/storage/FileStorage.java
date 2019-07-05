@@ -53,17 +53,18 @@ public final class FileStorage implements Storage
         this.newFileDbHeader = FileDbHeader.newHeader(fileDbHeader.byteOrder, fileDbHeader.pageSize, fileDbHeader.segmentFileSize);
     }
 
-    private void tryRollCurrentFile(final @ByteSize int nextWriteSize) throws IOException
+    private @ByteOffset long tryRollCurrentFile(final @ByteSize int nextWriteSize) throws IOException
     {
         try
         {
             final @ByteOffset long originalChannelPosition = StorageUnits.offset(currentAppendingChannel.position());
-            final @ByteSize long nextFileSize = StorageUnits.size(originalChannelPosition + nextWriteSize);
-            final boolean shouldRollFile = nextFileSize > fileDbHeader.segmentFileSize;
+            final @ByteSize long expectedFileSize = StorageUnits.size(originalChannelPosition + nextWriteSize);
+            final boolean shouldRollFile = expectedFileSize > fileDbHeader.segmentFileSize;
             if (shouldRollFile)
             {
 
-                final @ByteOffset long spaceLeftInCurrentSegmentFile = StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
+                final @ByteOffset long spaceLeftInCurrentSegmentFile =
+                        StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
                 globalFilePosition += spaceLeftInCurrentSegmentFile;
 
                 currentAppendingFile.close();
@@ -77,6 +78,8 @@ public final class FileStorage implements Storage
             LOGGER.error(msg, e);
             throw new IOException(msg, e);
         }
+
+        return globalFilePosition;
     }
 
     private void createAndMapNewFile() throws IOException
@@ -130,8 +133,7 @@ public final class FileStorage implements Storage
         try
         {
             final @ByteSize int writeSize = StorageUnits.size(buffer.capacity());
-            tryRollCurrentFile(writeSize);
-            positionOffset = globalFilePosition;
+            positionOffset = tryRollCurrentFile(writeSize);
             FileUtils.writeFully(currentAppendingChannel, buffer);
             globalFilePosition += StorageUnits.offset(writeSize);
         }
