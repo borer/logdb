@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.LogDb;
 import org.logdb.LogDbBuilder;
-import org.logdb.storage.FileStorageUtil;
-import org.logdb.storage.FileType;
 import org.logdb.storage.Version;
+import org.logdb.storage.file.FileStorageUtil;
+import org.logdb.storage.file.FileType;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 

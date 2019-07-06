@@ -2,9 +2,9 @@ package org.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.logdb.storage.MemoryStorage;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
+import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 

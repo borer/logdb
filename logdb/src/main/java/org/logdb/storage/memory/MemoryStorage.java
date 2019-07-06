@@ -1,8 +1,14 @@
-package org.logdb.storage;
+package org.logdb.storage.memory;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

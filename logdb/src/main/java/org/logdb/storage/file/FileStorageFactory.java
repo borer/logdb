@@ -1,5 +1,8 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -3,8 +3,8 @@ package org.logdb.support;
 import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
-import org.logdb.storage.FileDbHeader;
 import org.logdb.storage.StorageUnits;
+import org.logdb.storage.file.FileDbHeader;
 
 import java.io.File;
 import java.io.IOException;

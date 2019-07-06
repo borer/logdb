@@ -1,4 +1,4 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.logdb.storage.FileStorageFactory.createNew;
+import static org.logdb.storage.file.FileStorageFactory.createNew;
 import static org.logdb.support.TestUtils.BYTE_ORDER;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 

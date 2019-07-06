@@ -6,11 +6,11 @@ import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
-import org.logdb.storage.FileDbHeader;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.storage.file.FileDbHeader;
 
 import java.io.File;
 import java.io.IOException;

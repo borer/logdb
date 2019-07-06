@@ -1,6 +1,8 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

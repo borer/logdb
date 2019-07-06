@@ -1,4 +1,4 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

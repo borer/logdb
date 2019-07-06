@@ -1,4 +1,4 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

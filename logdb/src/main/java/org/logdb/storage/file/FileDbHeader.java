@@ -1,6 +1,10 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import org.logdb.bit.MemoryOrder;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

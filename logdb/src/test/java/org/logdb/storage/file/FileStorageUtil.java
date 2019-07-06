@@ -1,4 +1,6 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
+
+import org.logdb.storage.Version;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

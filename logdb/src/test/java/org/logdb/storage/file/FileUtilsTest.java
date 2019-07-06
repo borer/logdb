@@ -1,4 +1,4 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

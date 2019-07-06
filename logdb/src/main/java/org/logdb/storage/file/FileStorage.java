@@ -1,8 +1,14 @@
-package org.logdb.storage;
+package org.logdb.storage.file;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +23,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
-import static org.logdb.storage.FileDbHeader.HEADER_OFFSET;
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
+import static org.logdb.storage.file.FileDbHeader.HEADER_OFFSET;
 
 public final class FileStorage implements Storage
 {

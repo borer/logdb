@@ -1,7 +1,7 @@
 package org.logdb.bbtree;
 
 import org.junit.jupiter.api.Test;
-import org.logdb.storage.MemoryStorage;
+import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.TestUtils;
 
 import java.nio.ByteOrder;
