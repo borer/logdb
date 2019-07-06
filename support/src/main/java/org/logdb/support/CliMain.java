@@ -47,6 +47,7 @@ public class CliMain
                                     .setPageSizeBytes(PAGE_SIZE_BYTES)
                                     .setByteOrder(BYTE_ORDER)
                                     .setSegmentFileSize(FILE_SEGMENT_SIZE)
+                                    .useIndexWithLog(true)
                                     .build())
         {
             final Scanner scanner = new Scanner(System.in);

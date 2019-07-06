@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.logdb.bbtree.BTreeValidation.isNewTree;
+
 abstract class BTreeAbstract implements BTree
 {
     /**
@@ -128,7 +130,7 @@ abstract class BTreeAbstract implements BTree
         return cursor;
     }
 
-    CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
+    private CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
@@ -192,6 +194,63 @@ abstract class BTreeAbstract implements BTree
         {
             return null;
         }
+    }
+
+    BTreeNode getRootNode(final @Version long version, final BTreeMappedNode mappedNode)
+    {
+        final BTreeNode rootForVersion;
+        final RootReference currentRootReference = uncommittedRoot.get();
+        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
+        if (currentRootReference != null)
+        {
+            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
+            if (rootNodeForVersion != null)
+            {
+                rootForVersion = rootNodeForVersion.root;
+            }
+            else
+            {
+                if (!isNewTree(committedRootPageNumber))
+                {
+                    mappedNode.initNode(committedRootPageNumber);
+                    rootForVersion = mappedNode;
+                }
+                else
+                {
+                    throw new VersionNotFoundException(version);
+                }
+            }
+        }
+        else
+        {
+            if (!isNewTree(committedRootPageNumber))
+            {
+                mappedNode.initNode(committedRootPageNumber);
+
+                while (mappedNode.getVersion() > version)
+                {
+                    final @PageNumber long previousRoot = mappedNode.getPreviousRoot();
+                    if (previousRoot < 0)
+                    {
+                        throw new VersionNotFoundException(version);
+                    }
+                    mappedNode.initNode(previousRoot);
+                }
+
+                rootForVersion = mappedNode;
+            }
+            else
+            {
+                throw new VersionNotFoundException(version);
+            }
+        }
+
+        if (rootForVersion.getVersion() != version)
+        {
+            throw new VersionNotFoundException(version);
+        }
+
+        return rootForVersion;
     }
 
     @Override

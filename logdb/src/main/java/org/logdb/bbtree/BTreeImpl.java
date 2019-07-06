@@ -7,8 +7,6 @@ import org.logdb.time.TimeSource;
 
 import java.util.function.BiConsumer;
 
-import static org.logdb.bbtree.BTreeValidation.isNewTree;
-
 public class BTreeImpl extends BTreeAbstract
 {
     public BTreeImpl(
@@ -134,15 +132,11 @@ public class BTreeImpl extends BTreeAbstract
     {
         assert version >= 0;
 
-        //TODO optimize, we don't need the whole path, just the end node.
-        final CursorPosition cursorPosition = getLastCursorPosition(key, version);
-        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
+        try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
+            final BTreeNode rootNode = getRootNode(version, mappedNode);
+            final CursorPosition cursorPosition = traverseDown(rootNode, key);
             final BTreeNode node = cursorPosition.getNode(mappedNode);
-            if (node == null)
-            {
-                throw new KeyNotFoundException(key);
-            }
 
             return node.get(key);
         }
@@ -157,47 +151,6 @@ public class BTreeImpl extends BTreeAbstract
         {
             return cursorPosition.getNode(mappedNode).get(key);
         }
-    }
-
-    private CursorPosition getLastCursorPosition(final long key, final @Version long version)
-    {
-        CursorPosition cursorPosition = getCursorPositionFromUncommittedRoot(key, version);
-        if (cursorPosition == null)
-        {
-            cursorPosition = getCursorPositionFromCommittedRoot(key);
-        }
-
-        return cursorPosition;
-    }
-
-    private CursorPosition getCursorPositionFromUncommittedRoot(final long key, final @Version long version)
-    {
-        final RootReference currentRootReference = uncommittedRoot.get();
-        if (currentRootReference != null)
-        {
-            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
-            if (rootNodeForVersion != null)
-            {
-                return traverseDown(rootNodeForVersion.root, key);
-            }
-        }
-
-        return null;
-    }
-
-    private CursorPosition getCursorPositionFromCommittedRoot(final long key)
-    {
-        CursorPosition cursorPosition;
-        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-        if (!isNewTree(committedRootPageNumber))
-        {
-            cursorPosition = traverseDown(committedRootPageNumber, key);
-        }
-        else
-        {
-            throw new KeyNotFoundException(key);
-        }
-        return cursorPosition;
     }
 
     /**

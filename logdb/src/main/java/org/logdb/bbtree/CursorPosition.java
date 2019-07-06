@@ -2,7 +2,7 @@ package org.logdb.bbtree;
 
 import org.logdb.storage.PageNumber;
 
-public final class CursorPosition
+final class CursorPosition
 {
     private final BTreeNode node;
     private final @PageNumber long pageNumber;
@@ -17,7 +17,7 @@ public final class CursorPosition
      * @param index the index inside that node
      * @param parent the parent of the current node
      */
-    public CursorPosition(final BTreeNode node, final @PageNumber long pageNumber, final int index, final CursorPosition parent)
+    CursorPosition(final BTreeNode node, final @PageNumber long pageNumber, final int index, final CursorPosition parent)
     {
         this.node = node;
         this.pageNumber = pageNumber;
@@ -25,12 +25,12 @@ public final class CursorPosition
         this.parent = parent;
     }
 
-    public boolean isMapped()
+    private boolean isMapped()
     {
         return node == null && pageNumber > 0;
     }
 
-    public BTreeNode getNode(final BTreeMappedNode mappedNode)
+    BTreeNode getNode(final BTreeMappedNode mappedNode)
     {
         if (isMapped())
         {

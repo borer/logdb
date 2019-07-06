@@ -1,5 +1,6 @@
 package org.logdb;
 
+import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
@@ -33,6 +34,7 @@ public class LogDbBuilder
     private ByteOrder byteOrder;
     private @ByteSize int pageSizeBytes;
     private TimeSource timeSource;
+    private boolean useIndexWithLog;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -64,6 +66,12 @@ public class LogDbBuilder
         return this;
     }
 
+    public LogDbBuilder useIndexWithLog(final boolean useIndexWithLog)
+    {
+        this.useIndexWithLog = useIndexWithLog;
+        return this;
+    }
+
     public LogDb build() throws IOException
     {
         LOGGER.info("Constructing LogDB");
@@ -73,13 +81,13 @@ public class LogDbBuilder
         LOGGER.info("Finnish constructing LogDB heap file");
 
         LOGGER.info("Starting constructing LogDB index file");
-        final BTreeWithLog bTreeWithLog = buildIndexWithLog(timeSource);
+        final BTree index = buildIndex(timeSource);
         LOGGER.info("Finnish constructing LogDB index file");
 
-        return new LogDb(logFile, bTreeWithLog);
+        return new LogDb(logFile, index);
     }
 
-    private BTreeWithLog buildIndexWithLog(TimeSource timeSource) throws IOException
+    private BTree buildIndex(final TimeSource timeSource) throws IOException
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
@@ -100,41 +108,17 @@ public class LogDbBuilder
             rootReference = null;
         }
 
-        return new BTreeWithLog(
-                nodesManager,
-                timeSource,
-                nextWriteVersion,
-                lastRootPageNumber,
-                rootReference);
-    }
-
-    private BTreeImpl buildIndex(TimeSource timeSource) throws IOException
-    {
-        final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
-        final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
-        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage);
-
-        final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
-        final RootReference rootReference;
-        if (isNewTree(lastRootPageNumber))
+        final BTree index;
+        if (useIndexWithLog)
         {
-            rootReference = new RootReference(
-                    nodesManager.createEmptyLeafNode(),
-                    timeSource.getCurrentMillis(),
-                    StorageUnits.version(INITIAL_VERSION - 1),
-                    null);
+            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
         else
         {
-            rootReference = null;
+            index = new BTreeImpl(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
 
-        return new BTreeImpl(
-                nodesManager,
-                timeSource,
-                nextWriteVersion,
-                lastRootPageNumber,
-                rootReference);
+        return index;
     }
 
     private LogFile buildLogFile(TimeSource timeSource) throws IOException

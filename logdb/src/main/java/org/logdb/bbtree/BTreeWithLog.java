@@ -6,7 +6,6 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 
-import static org.logdb.bbtree.BTreeValidation.isNewTree;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class BTreeWithLog extends BTreeAbstract
@@ -473,7 +472,7 @@ public class BTreeWithLog extends BTreeAbstract
     @Override
     public long get(final long key, final @Version long version)
     {
-        try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
+        try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
             final BTreeNode currentNode = getRootNode(version, mappedNode);
             return getKey(key, currentNode);
@@ -509,62 +508,5 @@ public class BTreeWithLog extends BTreeAbstract
 
             return currentNode.get(key);
         }
-    }
-
-    private BTreeNode getRootNode(final @Version long version, final BTreeMappedNode mappedNode)
-    {
-        final BTreeNode rootForVersion;
-        final RootReference currentRootReference = uncommittedRoot.get();
-        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-        if (currentRootReference != null)
-        {
-            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
-            if (rootNodeForVersion != null)
-            {
-                rootForVersion = rootNodeForVersion.root;
-            }
-            else
-            {
-                if (!isNewTree(committedRootPageNumber))
-                {
-                    mappedNode.initNode(committedRootPageNumber);
-                    rootForVersion = mappedNode;
-                }
-                else
-                {
-                    throw new VersionNotFoundException(version);
-                }
-            }
-        }
-        else
-        {
-            if (!isNewTree(committedRootPageNumber))
-            {
-                mappedNode.initNode(committedRootPageNumber);
-
-                while (mappedNode.getVersion() > version)
-                {
-                    final @PageNumber long previousRoot = mappedNode.getPreviousRoot();
-                    if (previousRoot < 0)
-                    {
-                        throw new VersionNotFoundException(version);
-                    }
-                    mappedNode.initNode(previousRoot);
-                }
-
-                rootForVersion = mappedNode;
-            }
-            else
-            {
-                throw new VersionNotFoundException(version);
-            }
-        }
-
-        if (rootForVersion.getVersion() != version)
-        {
-            throw new VersionNotFoundException(version);
-        }
-
-        return rootForVersion;
     }
 }

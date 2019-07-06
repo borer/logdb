@@ -19,10 +19,17 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class LogDbIntegrationTest
+abstract class LogDbBaseIntegrationTest
 {
     @TempDir Path tempDirectory;
     private LogDb logDB;
+
+    private final boolean shouldUseIndexWithLog;
+
+    protected LogDbBaseIntegrationTest(boolean shouldUseIndexWithLog)
+    {
+        this.shouldUseIndexWithLog = shouldUseIndexWithLog;
+    }
 
     @BeforeEach
     void setUp() throws IOException
@@ -34,6 +41,7 @@ class LogDbIntegrationTest
                 .setByteOrder(TestUtils.BYTE_ORDER)
                 .setSegmentFileSize(TestUtils.SEGMENT_FILE_SIZE)
                 .setPageSizeBytes(TestUtils.PAGE_SIZE_BYTES)
+                .useIndexWithLog(shouldUseIndexWithLog)
                 .build();
     }
 
