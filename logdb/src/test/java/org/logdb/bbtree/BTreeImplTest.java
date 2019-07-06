@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.logdb.storage.MemoryStorage;
 import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.createInitialRootReference;
 
 class BTreeImplTest
 {
@@ -26,7 +28,13 @@ class BTreeImplTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        bTree = new BTreeImpl(nodesManager, new StubTimeSource(), INITIAL_VERSION);
+
+        bTree = new BTreeImpl(
+                nodesManager,
+                new StubTimeSource(),
+                INITIAL_VERSION,
+                StorageUnits.INVALID_PAGE_NUMBER,
+                createInitialRootReference(nodesManager));
     }
 
     @Test

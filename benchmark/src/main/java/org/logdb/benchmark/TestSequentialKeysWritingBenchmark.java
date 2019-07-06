@@ -24,6 +24,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
@@ -54,7 +55,12 @@ public class TestSequentialKeysWritingBenchmark
 
             nodesManager = new NodesManager(storage);
 
-            btree = new BTreeImpl(nodesManager, new SystemTimeSource(), INITIAL_VERSION);
+            btree = new BTreeImpl(
+                    nodesManager,
+                    new SystemTimeSource(),
+                    INITIAL_VERSION,
+                    StorageUnits.INVALID_PAGE_NUMBER,
+                    createInitialRootReference(nodesManager));
 
             key = 1L;
         }

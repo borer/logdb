@@ -41,7 +41,7 @@ public class NodesManager
         this.lastPersistedPageNumber = StorageUnits.INVALID_PAGE_NUMBER;
     }
 
-    BTreeNodeLeaf createEmptyLeafNode()
+    public BTreeNodeLeaf createEmptyLeafNode()
     {
         return getOrCreateLeafNode();
     }
@@ -222,7 +222,7 @@ public class NodesManager
         storage.commitMetadata(offset, version);
     }
 
-    @PageNumber long loadLastRootPageNumber()
+    public @PageNumber long loadLastRootPageNumber()
     {
         if (lastPersistedPageNumber == StorageUnits.INVALID_PAGE_NUMBER)
         {

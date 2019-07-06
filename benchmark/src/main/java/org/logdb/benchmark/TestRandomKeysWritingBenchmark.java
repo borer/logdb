@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 
+import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
 
 public class TestRandomKeysWritingBenchmark
@@ -53,7 +54,12 @@ public class TestRandomKeysWritingBenchmark
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
-            btree = new BTreeImpl(nodesManager, new SystemTimeSource(), INITIAL_VERSION);
+            btree = new BTreeImpl(
+                    nodesManager,
+                    new SystemTimeSource(),
+                    INITIAL_VERSION,
+                    StorageUnits.INVALID_PAGE_NUMBER,
+                    createInitialRootReference(nodesManager));
             random = new Random();
         }
 

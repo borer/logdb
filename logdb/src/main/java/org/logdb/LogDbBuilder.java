@@ -1,12 +1,15 @@
 package org.logdb;
 
+import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.bbtree.RootReference;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.FileStorageFactory;
 import org.logdb.storage.FileType;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
@@ -17,6 +20,9 @@ import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import static org.logdb.bbtree.BTreeValidation.isNewTree;
+import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 
 public class LogDbBuilder
 {
@@ -67,18 +73,68 @@ public class LogDbBuilder
         LOGGER.info("Finnish constructing LogDB heap file");
 
         LOGGER.info("Starting constructing LogDB index file");
-        final BTreeWithLog bTreeWithLog = buildIndex(timeSource);
+        final BTreeWithLog bTreeWithLog = buildIndexWithLog(timeSource);
         LOGGER.info("Finnish constructing LogDB index file");
 
         return new LogDb(logFile, bTreeWithLog);
     }
 
-    private BTreeWithLog buildIndex(TimeSource timeSource) throws IOException
+    private BTreeWithLog buildIndexWithLog(TimeSource timeSource) throws IOException
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
         final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage);
-        return new BTreeWithLog(nodesManager, timeSource, nextWriteVersion);
+
+        final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
+        final RootReference rootReference;
+        if (isNewTree(lastRootPageNumber))
+        {
+            rootReference = new RootReference(
+                    nodesManager.createEmptyLeafNode(),
+                    timeSource.getCurrentMillis(),
+                    StorageUnits.version(INITIAL_VERSION - 1),
+                    null);
+        }
+        else
+        {
+            rootReference = null;
+        }
+
+        return new BTreeWithLog(
+                nodesManager,
+                timeSource,
+                nextWriteVersion,
+                lastRootPageNumber,
+                rootReference);
+    }
+
+    private BTreeImpl buildIndex(TimeSource timeSource) throws IOException
+    {
+        final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
+        final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
+        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage);
+
+        final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
+        final RootReference rootReference;
+        if (isNewTree(lastRootPageNumber))
+        {
+            rootReference = new RootReference(
+                    nodesManager.createEmptyLeafNode(),
+                    timeSource.getCurrentMillis(),
+                    StorageUnits.version(INITIAL_VERSION - 1),
+                    null);
+        }
+        else
+        {
+            rootReference = null;
+        }
+
+        return new BTreeImpl(
+                nodesManager,
+                timeSource,
+                nextWriteVersion,
+                lastRootPageNumber,
+                rootReference);
     }
 
     private LogFile buildLogFile(TimeSource timeSource) throws IOException
@@ -91,8 +147,8 @@ public class LogDbBuilder
     private @Version long getNextWriteVersion(final FileStorage logDbFileStorage)
     {
         final @Version long appendVersion = logDbFileStorage.getAppendVersion();
-        return appendVersion == Config.INITIAL_STORAGE_VERSION
-                ? Config.INITIAL_STORAGE_VERSION
+        return appendVersion == INITIAL_VERSION
+                ? INITIAL_VERSION
                 : StorageUnits.version(appendVersion + 1);
     }
 

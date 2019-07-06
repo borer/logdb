@@ -27,7 +27,7 @@ public final class RootReference
      */
     public final RootReference previous;
 
-    RootReference(final BTreeNodeHeap root,
+    public RootReference(final BTreeNodeHeap root,
                   final @Milliseconds long timestamp,
                   final @Version long version,
                   final RootReference previous)

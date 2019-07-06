@@ -8,9 +8,9 @@ import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
 import java.util.Arrays;
 
-import static org.logdb.Config.INITIAL_STORAGE_VERSION;
 import static org.logdb.Config.LOG_DB_VERSION;
 import static org.logdb.storage.StorageUnits.BYTE_SIZE;
+import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
 
@@ -92,7 +92,7 @@ public final class FileDbHeader
     {
         return new FileDbHeader(
                 byteOrder,
-                INITIAL_STORAGE_VERSION,
+                INITIAL_VERSION,
                 pageSizeBytes,
                 segmentFileSize,
                 StorageUnits.INVALID_OFFSET,

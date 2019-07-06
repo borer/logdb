@@ -4,9 +4,12 @@ import org.logdb.bbtree.BTreeNodeHeap;
 import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
+import org.logdb.bbtree.NodesManager;
+import org.logdb.bbtree.RootReference;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -19,6 +22,15 @@ public class TestUtils
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
     public static final @Version long INITIAL_VERSION = StorageUnits.version(0);
+
+    public static RootReference createInitialRootReference(final NodesManager nodesManager)
+    {
+        return new RootReference(
+                nodesManager.createEmptyLeafNode(),
+                TimeUnits.millis(0),
+                StorageUnits.INITIAL_VERSION,
+                null);
+    }
 
     public static ByteBuffer createValue(final String value)
     {

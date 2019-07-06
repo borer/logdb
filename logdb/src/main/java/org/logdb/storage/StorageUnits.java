@@ -6,6 +6,8 @@ public class StorageUnits
 
     public static final @ByteOffset long INVALID_OFFSET = offset(Long.MIN_VALUE);
 
+    public static final @Version long INITIAL_VERSION = StorageUnits.version(0);
+
     public static final @ByteOffset int ZERO_OFFSET = offset(0);
     public static final @ByteOffset int LONG_BYTES_OFFSET = offset(Long.BYTES);
     public static final @ByteOffset int INT_BYTES_OFFSET = offset(Integer.BYTES);

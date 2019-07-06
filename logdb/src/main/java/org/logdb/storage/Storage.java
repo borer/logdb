@@ -32,6 +32,10 @@ public interface Storage extends AutoCloseable
 
     ByteOrder getOrder();
 
+    @ByteOffset long getLastPersistedOffset();
+
+    @Version long getAppendVersion();
+
     @PageNumber long getPageNumber(@ByteOffset long offset);
 
     @ByteOffset long getOffset(@PageNumber long pageNumber);
@@ -50,13 +54,14 @@ public interface Storage extends AutoCloseable
      */
     @PageNumber long appendPageAligned(ByteBuffer buffer) throws IOException;
 
-    void flush();
-
     void commitMetadata(@ByteOffset long lastPersistedOffset, @Version long version);
 
-    @ByteOffset long getLastPersistedOffset();
-
-    @Version long getAppendVersion();
-
+    /**
+     * Maps the page specified by pageNumber into memory object.
+     * @param pageNumber the page number to map
+     * @param memory the memory that is going to point to the start of the page
+     */
     void mapPage(@PageNumber long pageNumber, DirectMemory memory);
+
+    void flush();
 }

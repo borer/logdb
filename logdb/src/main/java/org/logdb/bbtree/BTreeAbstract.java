@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.Config;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -32,36 +31,18 @@ abstract class BTreeAbstract implements BTree
     BTreeAbstract(
             final NodesManager nodesManager,
             final TimeSource timeSource,
-            final @Version long nextWriteVersion)
+            final @Version long nextWriteVersion,
+            final @PageNumber long lastRootPageNumber,
+            final RootReference rootReference)
     {
         this.nodesManager = Objects.requireNonNull(nodesManager, "nodesManager must not be null");
         this.timeSource = timeSource;
         this.nextWriteVersion = nextWriteVersion;
 
-        final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
-
-        //TODO: extract this allocation and condition outside of the constructor
-        if (isNewTree(lastRootPageNumber))
-        {
-            final RootReference rootReference = new RootReference(
-                    nodesManager.createEmptyLeafNode(),
-                    timeSource.getCurrentMillis(),
-                    StorageUnits.version(Config.INITIAL_STORAGE_VERSION - 1),
-                    null);
-            this.uncommittedRoot = new AtomicReference<>(rootReference);
-        }
-        else
-        {
-            this.uncommittedRoot = new AtomicReference<>(null);
-        }
+        this.uncommittedRoot = new AtomicReference<>(rootReference);
 
         this.nodesCount = 1;
-    }
-
-    static boolean isNewTree(final @PageNumber long lastRootPageNumber)
-    {
-        return lastRootPageNumber == StorageUnits.INVALID_PAGE_NUMBER;
     }
 
     @Override

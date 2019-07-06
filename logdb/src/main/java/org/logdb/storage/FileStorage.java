@@ -129,6 +129,11 @@ public final class FileStorage implements Storage
     {
         assert buffer != null : "buffer to persist must be non null";
 
+        if (!fileDbHeader.byteOrder.equals(buffer.order()))
+        {
+            buffer.order(fileDbHeader.byteOrder);
+        }
+
         @ByteOffset long positionOffset = INVALID_OFFSET;
         try
         {

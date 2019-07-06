@@ -6,6 +6,7 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.TimeSource;
 
+import static org.logdb.bbtree.BTreeValidation.isNewTree;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class BTreeWithLog extends BTreeAbstract
@@ -15,9 +16,11 @@ public class BTreeWithLog extends BTreeAbstract
     public BTreeWithLog(
             final NodesManager nodesManager,
             final TimeSource timeSource,
-            final @Version long nextWriteVersion)
+            final @Version long nextWriteVersion,
+            final @PageNumber long lastRootPageNumber,
+            final RootReference rootReference)
     {
-        super(nodesManager, timeSource, nextWriteVersion);
+        super(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
     }
 
     /**

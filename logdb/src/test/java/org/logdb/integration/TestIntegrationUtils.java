@@ -7,6 +7,7 @@ import org.logdb.logfile.LogFile;
 import org.logdb.storage.FileStorage;
 import org.logdb.storage.FileStorageFactory;
 import org.logdb.storage.FileType;
+import org.logdb.storage.StorageUnits;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
+import static org.logdb.support.TestUtils.createInitialRootReference;
 
 class TestIntegrationUtils
 {
@@ -64,7 +66,12 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
-        return new BTreeWithLog(nodesManage, new StubTimeSource(), INITIAL_VERSION);
+        return new BTreeWithLog(
+                nodesManage,
+                new StubTimeSource(),
+                INITIAL_VERSION,
+                StorageUnits.INVALID_PAGE_NUMBER,
+                createInitialRootReference(nodesManage));
     }
 
     static BTreeWithLog loadPersistedLogBtree(final Path path)
@@ -74,7 +81,12 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        return new BTreeWithLog(nodesManager, new StubTimeSource(), INITIAL_VERSION);
+        return new BTreeWithLog(
+                nodesManager,
+                new StubTimeSource(),
+                INITIAL_VERSION,
+                nodesManager.loadLastRootPageNumber(),
+                null);
     }
 
     static BTreeImpl createNewPersistedBtree(final Path path) throws IOException
@@ -93,7 +105,12 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
-        return new BTreeImpl(nodesManage, new StubTimeSource(), INITIAL_VERSION);
+        return new BTreeImpl(
+                nodesManage,
+                new StubTimeSource(),
+                INITIAL_VERSION,
+                StorageUnits.INVALID_PAGE_NUMBER,
+                createInitialRootReference(nodesManage));
     }
 
     static BTreeImpl loadPersistedBtree(final Path path)
@@ -101,6 +118,11 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final NodesManager nodesManager = new NodesManager(storage);
-        return new BTreeImpl(nodesManager, new StubTimeSource(), INITIAL_VERSION);
+        return new BTreeImpl(
+                nodesManager,
+                new StubTimeSource(),
+                INITIAL_VERSION,
+                nodesManager.loadLastRootPageNumber(),
+                null);
     }
 }

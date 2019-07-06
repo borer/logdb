@@ -7,14 +7,18 @@ import org.logdb.time.TimeSource;
 
 import java.util.function.BiConsumer;
 
+import static org.logdb.bbtree.BTreeValidation.isNewTree;
+
 public class BTreeImpl extends BTreeAbstract
 {
     public BTreeImpl(
             final NodesManager nodesManager,
             final TimeSource timeSource,
-            final @Version long nextWriteVersion)
+            final @Version long nextWriteVersion,
+            final @PageNumber long lastRootPageNumber,
+            final RootReference rootReference)
     {
-        super(nodesManager, timeSource, nextWriteVersion);
+        super(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
     }
 
     /**

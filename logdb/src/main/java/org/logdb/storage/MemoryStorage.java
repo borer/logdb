@@ -1,6 +1,5 @@
 package org.logdb.storage;
 
-import org.logdb.Config;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
@@ -9,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
+import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryStorage implements Storage
@@ -28,7 +28,7 @@ public class MemoryStorage implements Storage
         this.maps = new HashMap<>();
         this.allocatedMemoryOffset = ZERO_OFFSET;
         this.lastPersistedOffset = StorageUnits.INVALID_OFFSET;
-        this.version = Config.INITIAL_STORAGE_VERSION;
+        this.version = INITIAL_VERSION;
     }
 
     @Override
