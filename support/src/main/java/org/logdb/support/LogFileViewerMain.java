@@ -39,8 +39,8 @@ public class LogFileViewerMain
         {
             final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
 
-            final ByteOrder fileByteOrder = fileStorageHeader.byteOrder;
-            final @ByteSize int pageSize = fileStorageHeader.pageSize;
+            final ByteOrder fileByteOrder = fileStorageHeader.getOrder();
+            final @ByteSize int pageSize = fileStorageHeader.getPageSize();
             final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
 
             System.out.println(

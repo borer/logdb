@@ -128,7 +128,7 @@ public class FileStorageFactory
             {
                 try (FileChannel channel = accessFile.getChannel())
                 {
-                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileStorageHeader.byteOrder));
+                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileStorageHeader.getOrder()));
                 }
             }
         }
@@ -142,17 +142,24 @@ public class FileStorageFactory
         final @ByteOffset long globalFilePosition;
         if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
         {
-            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileStorageHeader.segmentFileSize) + appendOffset);
+            final long offset = ((existingFiles.size() - 1) * fileStorageHeader.getSegmentFileSize()) + appendOffset;
+            globalFilePosition = StorageUnits.offset(offset);
         }
         else
         {
             globalFilePosition = StorageUnits.offset(currentAppendChannel.position());
         }
 
+        final FileStorageHeader newFileStorageHeader = FileStorageHeader.newHeader(
+                fileStorageHeader.getOrder(),
+                fileStorageHeader.getPageSize(),
+                fileStorageHeader.getSegmentFileSize());
+
         return new FileStorage(
                 rootDirectory,
                 fileAllocator,
                 fileStorageHeader,
+                newFileStorageHeader,
                 currentAppendFile,
                 currentAppendChannel,
                 mappedByteBuffers,

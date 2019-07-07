@@ -18,7 +18,7 @@ import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
 
-public final class FileStorageHeader
+public final class FileStorageHeader implements FileHeader
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
@@ -60,11 +60,10 @@ public final class FileStorageHeader
     private @ByteOffset long globalAppendOffset;
     private @ByteOffset long lastFileAppendOffset;
 
-    final @ByteSize long segmentFileSize; //must be multiple of pageSize
-
-    public final ByteOrder byteOrder;
-    public final @ByteSize int pageSize; // Must be a power of two
-    public final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
+    private final @ByteSize long segmentFileSize; //must be multiple of pageSize
+    private final ByteOrder byteOrder;
+    private final @ByteSize int pageSize; // Must be a power of two
+    private final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
 
     private FileStorageHeader(
             final ByteOrder byteOrder,
@@ -143,13 +142,15 @@ public final class FileStorageHeader
         return fileStorageHeader;
     }
 
-    void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
+    @Override
+    public void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
     {
         writeTo(channel);
         channel.position(getHeaderSizeAlignedToNearestPage());
     }
 
-    void writeTo(final SeekableByteChannel channel) throws IOException
+    @Override
+    public void writeTo(final SeekableByteChannel channel) throws IOException
     {
         writeBuffer.put(LOG_DB_MAGIC_STRING);
         writeBuffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
@@ -165,27 +166,56 @@ public final class FileStorageHeader
         FileUtils.writeFully(channel, writeBuffer);
     }
 
+    @Override
     public @ByteSize long getHeaderSizeAlignedToNearestPage()
     {
         return StorageUnits.size(getHeaderSizeInPages() * pageSize);
     }
 
+    @Override
+    public @ByteSize long getSegmentFileSize()
+    {
+        return segmentFileSize;
+    }
+
+    @Override
+    public @ByteSize int getPageSize()
+    {
+        return pageSize;
+    }
+
+    @Override
+    public ByteOrder getOrder()
+    {
+        return byteOrder;
+    }
+
+    @Override
+    public @Version int getDbVersion()
+    {
+        return logDbVersion;
+    }
+
+    @Override
     public @ByteOffset long getGlobalAppendOffset()
     {
         return globalAppendOffset;
     }
 
+    @Override
     public @ByteOffset long getLastFileAppendOffset()
     {
         return lastFileAppendOffset;
     }
 
-    @Version long getAppendVersion()
+    @Override
+    public @Version long getAppendVersion()
     {
         return appendVersion;
     }
 
-    void updateMeta(
+    @Override
+    public void updateMeta(
             final @ByteOffset long lastPersistedOffset,
             final @ByteOffset long appendOffset,
             final @Version long appendVersion)

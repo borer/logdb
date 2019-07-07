@@ -27,10 +27,10 @@ class FileStorageHeaderTest
 
         final FileStorageHeader actualHeader = FileStorageHeader.readFrom(channel);
 
-        assertEquals(expectedHeader.pageSize, actualHeader.pageSize);
-        assertEquals(expectedHeader.segmentFileSize, actualHeader.segmentFileSize);
-        assertEquals(expectedHeader.byteOrder, actualHeader.byteOrder);
-        assertEquals(expectedHeader.logDbVersion, actualHeader.logDbVersion);
+        assertEquals(expectedHeader.getPageSize(), actualHeader.getPageSize());
+        assertEquals(expectedHeader.getSegmentFileSize(), actualHeader.getSegmentFileSize());
+        assertEquals(expectedHeader.getOrder(), actualHeader.getOrder());
+        assertEquals(expectedHeader.getDbVersion(), actualHeader.getDbVersion());
         assertEquals(expectedHeader.getAppendVersion(), actualHeader.getAppendVersion());
         assertEquals(expectedHeader.getGlobalAppendOffset(), actualHeader.getGlobalAppendOffset());
         assertEquals(expectedHeader.getLastFileAppendOffset(), actualHeader.getLastFileAppendOffset());
