@@ -10,7 +10,7 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
-import org.logdb.storage.file.FileDbHeader;
+import org.logdb.storage.file.FileStorageHeader;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,11 +42,11 @@ public class IndexFileViewerMain
 
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
+            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
 
-            final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
-            final @ByteSize int pageSize = fileDbHeader.pageSize;
-            final @ByteOffset long lastPersistedOffset = fileDbHeader.getGlobalAppendOffset();
+            final ByteOrder fileByteOrder = fileStorageHeader.byteOrder;
+            final @ByteSize int pageSize = fileStorageHeader.pageSize;
+            final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
@@ -74,8 +74,8 @@ public class IndexFileViewerMain
                     storage.getUninitiatedDirectMemoryPage(),
                     StorageUnits.INVALID_PAGE_NUMBER);
 
-            final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileDbHeader.getHeaderSizeAlignedToNearestPage() / pageSize);
-            final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileDbHeader.getLastFileAppendOffset() / pageSize);
+            final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileStorageHeader.getHeaderSizeAlignedToNearestPage() / pageSize);
+            final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileStorageHeader.getLastFileAppendOffset() / pageSize);
 
             for (long i = headerPagesToSkip; i < lastPersistedPageNumber; i++)
             {

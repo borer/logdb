@@ -18,7 +18,7 @@ import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
 
-public final class FileDbHeader
+public final class FileStorageHeader
 {
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
@@ -66,7 +66,7 @@ public final class FileDbHeader
     public final @ByteSize int pageSize; // Must be a power of two
     public final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
 
-    private FileDbHeader(
+    private FileStorageHeader(
             final ByteOrder byteOrder,
             final @Version long appendVersion,
             final @ByteSize int pageSize,
@@ -89,12 +89,12 @@ public final class FileDbHeader
         this.writeBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
     }
 
-    static FileDbHeader newHeader(
+    static FileStorageHeader newHeader(
             final ByteOrder byteOrder,
             final @ByteSize int pageSizeBytes,
             final @ByteSize long segmentFileSize)
     {
-        return new FileDbHeader(
+        return new FileStorageHeader(
                 byteOrder,
                 INITIAL_VERSION,
                 pageSizeBytes,
@@ -104,7 +104,7 @@ public final class FileDbHeader
                 LOG_DB_VERSION);
     }
 
-    public static FileDbHeader readFrom(final SeekableByteChannel channel) throws IOException
+    public static FileStorageHeader readFrom(final SeekableByteChannel channel) throws IOException
     {
         final ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
         FileUtils.readFully(channel, buffer);
@@ -129,7 +129,7 @@ public final class FileDbHeader
         final @ByteOffset long lastPersistedOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(GLOBAL_APPEND_OFFSET)));
         final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_FILE_APPEND_OFFSET)));
 
-        final FileDbHeader fileDbHeader = new FileDbHeader(
+        final FileStorageHeader fileStorageHeader = new FileStorageHeader(
                 byteOrder,
                 appendVersion,
                 pageSize,
@@ -138,9 +138,9 @@ public final class FileDbHeader
                 appendOffset,
                 logDbVersion);
 
-        channel.position(fileDbHeader.getHeaderSizeAlignedToNearestPage());
+        channel.position(fileStorageHeader.getHeaderSizeAlignedToNearestPage());
 
-        return fileDbHeader;
+        return fileStorageHeader;
     }
 
     void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
@@ -229,7 +229,7 @@ public final class FileDbHeader
     @Override
     public String toString()
     {
-        return "FileDbHeader{" +
+        return "FileStorageHeader{" +
                 "writeBuffer=" + writeBuffer +
                 ", appendVersion=" + appendVersion +
                 ", globalAppendOffset=" + globalAppendOffset +

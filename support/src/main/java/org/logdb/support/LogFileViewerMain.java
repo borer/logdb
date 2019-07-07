@@ -4,7 +4,7 @@ import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
-import org.logdb.storage.file.FileDbHeader;
+import org.logdb.storage.file.FileStorageHeader;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,11 +37,11 @@ public class LogFileViewerMain
 
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
+            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
 
-            final ByteOrder fileByteOrder = fileDbHeader.byteOrder;
-            final @ByteSize int pageSize = fileDbHeader.pageSize;
-            final @ByteOffset long lastPersistedOffset = fileDbHeader.getGlobalAppendOffset();
+            final ByteOrder fileByteOrder = fileStorageHeader.byteOrder;
+            final @ByteSize int pageSize = fileStorageHeader.pageSize;
+            final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",

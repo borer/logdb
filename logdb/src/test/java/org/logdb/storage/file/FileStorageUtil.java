@@ -17,9 +17,9 @@ public class FileStorageUtil
 
         try (FileChannel fileChannel = new RandomAccessFile(lastFile.toFile(), "r").getChannel())
         {
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(fileChannel);
+            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
 
-            return fileDbHeader.getAppendVersion();
+            return fileStorageHeader.getAppendVersion();
         }
     }
 }

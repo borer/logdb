@@ -57,10 +57,10 @@ public class FileStorageFactory
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
             currentAppendFile.setLength(segmentFileSize);
 
-            final FileDbHeader fileDbHeader = FileDbHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
-            fileDbHeader.writeToAndPageAlign(currentAppendChannel);
+            final FileStorageHeader fileStorageHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
+            fileStorageHeader.writeToAndPageAlign(currentAppendChannel);
 
-            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileDbHeader, currentAppendFile, currentAppendChannel);
+            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileStorageHeader, currentAppendFile, currentAppendChannel);
         }
         catch (final FileNotFoundException e)
         {
@@ -89,9 +89,9 @@ public class FileStorageFactory
             final RandomAccessFile currentAppendFile = new RandomAccessFile(lastFile.toFile(), "rw");
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
 
-            final FileDbHeader fileDbHeader = FileDbHeader.readFrom(currentAppendChannel);
+            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(currentAppendChannel);
 
-            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileDbHeader, currentAppendFile, currentAppendChannel);
+            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileStorageHeader, currentAppendFile, currentAppendChannel);
         }
         catch (final FileNotFoundException e)
         {
@@ -114,7 +114,7 @@ public class FileStorageFactory
     private static FileStorage createFileStorage(
             final Path rootDirectory,
             final FileAllocator fileAllocator,
-            final FileDbHeader fileDbHeader,
+            final FileStorageHeader fileStorageHeader,
             final RandomAccessFile currentAppendFile,
             final FileChannel currentAppendChannel) throws IOException
     {
@@ -128,12 +128,12 @@ public class FileStorageFactory
             {
                 try (FileChannel channel = accessFile.getChannel())
                 {
-                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileDbHeader.byteOrder));
+                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileStorageHeader.byteOrder));
                 }
             }
         }
 
-        final @ByteOffset long appendOffset = fileDbHeader.getLastFileAppendOffset();
+        final @ByteOffset long appendOffset = fileStorageHeader.getLastFileAppendOffset();
         if (appendOffset != INVALID_OFFSET)
         {
             currentAppendChannel.position(appendOffset);
@@ -142,7 +142,7 @@ public class FileStorageFactory
         final @ByteOffset long globalFilePosition;
         if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
         {
-            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileDbHeader.segmentFileSize) + appendOffset);
+            globalFilePosition = StorageUnits.offset(((existingFiles.size() - 1) * fileStorageHeader.segmentFileSize) + appendOffset);
         }
         else
         {
@@ -152,7 +152,7 @@ public class FileStorageFactory
         return new FileStorage(
                 rootDirectory,
                 fileAllocator,
-                fileDbHeader,
+                fileStorageHeader,
                 currentAppendFile,
                 currentAppendChannel,
                 mappedByteBuffers,

@@ -24,16 +24,16 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
-import static org.logdb.storage.file.FileDbHeader.HEADER_OFFSET;
+import static org.logdb.storage.file.FileStorageHeader.HEADER_OFFSET;
 
 public final class FileStorage implements Storage
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
     private final List<MappedByteBuffer> mappedBuffers;
-    private final FileDbHeader fileDbHeader;
+    private final FileStorageHeader fileStorageHeader;
     private final FileAllocator fileAllocator;
-    private final FileDbHeader newFileDbHeader;
+    private final FileStorageHeader newFileStorageHeader;
 
     private RandomAccessFile currentAppendingFile;
     private FileChannel currentAppendingChannel;
@@ -43,7 +43,7 @@ public final class FileStorage implements Storage
     FileStorage(
             final Path rootDirectory,
             final FileAllocator fileAllocator,
-            final FileDbHeader fileDbHeader,
+            final FileStorageHeader fileStorageHeader,
             final RandomAccessFile currentAppendingFile,
             final FileChannel currentAppendingChannel,
             final List<MappedByteBuffer> mappedBuffers,
@@ -51,12 +51,15 @@ public final class FileStorage implements Storage
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
         this.fileAllocator = Objects.requireNonNull(fileAllocator, "filename strategy cannot be null");
-        this.fileDbHeader = Objects.requireNonNull(fileDbHeader, "db header cannot be null");
+        this.fileStorageHeader = Objects.requireNonNull(fileStorageHeader, "db header cannot be null");
         this.currentAppendingFile = Objects.requireNonNull(currentAppendingFile, "db file cannot be null");
         this.currentAppendingChannel = Objects.requireNonNull(currentAppendingChannel, "db file currentAppendingChannel cannot be null");
         this.mappedBuffers = mappedBuffers;
         this.globalFilePosition = globalFilePosition;
-        this.newFileDbHeader = FileDbHeader.newHeader(fileDbHeader.byteOrder, fileDbHeader.pageSize, fileDbHeader.segmentFileSize);
+        this.newFileStorageHeader = FileStorageHeader.newHeader(
+                fileStorageHeader.byteOrder,
+                fileStorageHeader.pageSize,
+                fileStorageHeader.segmentFileSize);
     }
 
     private @ByteOffset long tryRollCurrentFile(final @ByteSize int nextWriteSize) throws IOException
@@ -65,12 +68,12 @@ public final class FileStorage implements Storage
         {
             final @ByteOffset long originalChannelPosition = StorageUnits.offset(currentAppendingChannel.position());
             final @ByteSize long expectedFileSize = StorageUnits.size(originalChannelPosition + nextWriteSize);
-            final boolean shouldRollFile = expectedFileSize > fileDbHeader.segmentFileSize;
+            final boolean shouldRollFile = expectedFileSize > fileStorageHeader.segmentFileSize;
             if (shouldRollFile)
             {
 
                 final @ByteOffset long spaceLeftInCurrentSegmentFile =
-                        StorageUnits.offset(fileDbHeader.segmentFileSize - originalChannelPosition);
+                        StorageUnits.offset(fileStorageHeader.segmentFileSize - originalChannelPosition);
                 globalFilePosition += spaceLeftInCurrentSegmentFile;
 
                 currentAppendingFile.close();
@@ -93,25 +96,24 @@ public final class FileStorage implements Storage
         final File file = fileAllocator.generateNextFile();
         final RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
         final FileChannel channel = accessFile.getChannel();
-        accessFile.setLength(fileDbHeader.segmentFileSize);
+        accessFile.setLength(fileStorageHeader.segmentFileSize);
 
-        newFileDbHeader.writeToAndPageAlign(channel);
+
+        //TODO: have an object that implements file header interface
+        newFileStorageHeader.writeToAndPageAlign(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
         currentAppendingFile = accessFile;
         currentAppendingChannel = channel;
 
-        final MappedByteBuffer mappedByteBuffer = mapFile(channel, fileDbHeader.byteOrder);
+        final MappedByteBuffer mappedByteBuffer = mapFile(channel, fileStorageHeader.byteOrder);
         mappedBuffers.add(mappedByteBuffer);
     }
 
     static MappedByteBuffer mapFile(final FileChannel channel, final ByteOrder byteOrder) throws IOException
     {
         final @ByteSize long size = StorageUnits.size(channel.size());
-        final MappedByteBuffer map = channel.map(
-                FileChannel.MapMode.READ_ONLY,
-                0,
-                size);
+        final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, size);
 
         map.order(byteOrder);
 
@@ -121,13 +123,13 @@ public final class FileStorage implements Storage
     @Override
     public HeapMemory allocateHeapPage()
     {
-        return MemoryFactory.allocateHeap(fileDbHeader.pageSize, fileDbHeader.byteOrder);
+        return MemoryFactory.allocateHeap(fileStorageHeader.pageSize, fileStorageHeader.byteOrder);
     }
 
     @Override
     public DirectMemory getUninitiatedDirectMemoryPage()
     {
-        return MemoryFactory.getUninitiatedDirectMemory(fileDbHeader.pageSize, fileDbHeader.byteOrder);
+        return MemoryFactory.getUninitiatedDirectMemory(fileStorageHeader.pageSize, fileStorageHeader.byteOrder);
     }
 
     @Override
@@ -135,9 +137,9 @@ public final class FileStorage implements Storage
     {
         assert buffer != null : "buffer to persist must be non null";
 
-        if (!fileDbHeader.byteOrder.equals(buffer.order()))
+        if (!fileStorageHeader.byteOrder.equals(buffer.order()))
         {
-            buffer.order(fileDbHeader.byteOrder);
+            buffer.order(fileStorageHeader.byteOrder);
         }
 
         @ByteOffset long positionOffset = INVALID_OFFSET;
@@ -161,12 +163,12 @@ public final class FileStorage implements Storage
     @Override
     public @PageNumber long appendPageAligned(final ByteBuffer buffer) throws IOException
     {
-        assert (buffer.capacity() % fileDbHeader.pageSize) == 0
-                : "buffer must be of multiple of page size " + fileDbHeader.pageSize +
+        assert (buffer.capacity() % fileStorageHeader.pageSize) == 0
+                : "buffer must be of multiple of page size " + fileStorageHeader.pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
         final @ByteOffset long positionOffset = append(buffer);
-        return StorageUnits.pageNumber(positionOffset / fileDbHeader.pageSize);
+        return StorageUnits.pageNumber(positionOffset / fileStorageHeader.pageSize);
     }
 
     @Override
@@ -174,15 +176,14 @@ public final class FileStorage implements Storage
     {
         try
         {
-            fileDbHeader.updateMeta(
-                    lastPersistedOffset,
-                    StorageUnits.offset(currentAppendingChannel.position()),
-                    version);
+            final @ByteOffset long appendOffset = StorageUnits.offset(currentAppendingChannel.position());
+            fileStorageHeader.updateMeta(lastPersistedOffset, appendOffset, version);
 
             final long originalChannelPosition = currentAppendingChannel.position();
             currentAppendingChannel.position(HEADER_OFFSET);
 
-            fileDbHeader.writeTo(currentAppendingChannel);
+            //TODO: have an object that implements file header interface
+            fileStorageHeader.writeTo(currentAppendingChannel);
 
             currentAppendingChannel.position(originalChannelPosition);
         }
@@ -195,13 +196,13 @@ public final class FileStorage implements Storage
     @Override
     public @ByteOffset long getLastPersistedOffset()
     {
-        return fileDbHeader.getGlobalAppendOffset();
+        return fileStorageHeader.getGlobalAppendOffset();
     }
 
     @Override
     public @Version long getAppendVersion()
     {
-        return fileDbHeader.getAppendVersion();
+        return fileStorageHeader.getAppendVersion();
     }
 
     @Override
@@ -214,12 +215,12 @@ public final class FileStorage implements Storage
     private @ByteOffset long getBaseOffset(final @PageNumber long pageNumber)
     {
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
-        assert pageNumber <= getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileDbHeader.segmentFileSize))
+        assert pageNumber <= getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileStorageHeader.segmentFileSize))
                 : "The page number " + pageNumber + " is outside the mapped range of " +
-                getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileDbHeader.segmentFileSize));
+                getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileStorageHeader.segmentFileSize));
 
         @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
-        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
+        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * fileStorageHeader.pageSize);
 
         //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
         for (int i = 0; i < mappedBuffers.size(); i++)
@@ -240,25 +241,25 @@ public final class FileStorage implements Storage
     @Override
     public @ByteSize long getPageSize()
     {
-        return fileDbHeader.pageSize;
+        return fileStorageHeader.pageSize;
     }
 
     @Override
     public ByteOrder getOrder()
     {
-        return fileDbHeader.byteOrder;
+        return fileStorageHeader.byteOrder;
     }
 
     @Override
     public @PageNumber long getPageNumber(final @ByteOffset long offset)
     {
-        return StorageUnits.pageNumber(offset / fileDbHeader.pageSize);
+        return StorageUnits.pageNumber(offset / fileStorageHeader.pageSize);
     }
 
     @Override
     public @ByteOffset long getOffset(final @PageNumber long pageNumber)
     {
-        return StorageUnits.offset(pageNumber * fileDbHeader.pageSize);
+        return StorageUnits.offset(pageNumber * fileStorageHeader.pageSize);
     }
 
     @Override

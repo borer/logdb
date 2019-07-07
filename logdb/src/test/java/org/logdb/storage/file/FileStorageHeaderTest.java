@@ -11,13 +11,13 @@ import java.nio.channels.SeekableByteChannel;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FileDbHeaderTest
+class FileStorageHeaderTest
 {
     @Test
     void shouldBeAbleToSaveAndLoadHeader() throws IOException
     {
         final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
-        final FileDbHeader expectedHeader = FileDbHeader.newHeader(
+        final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
                 pageSizeBytes << 5);
@@ -25,7 +25,7 @@ class FileDbHeaderTest
         final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(pageSizeBytes));
         expectedHeader.writeTo(channel);
 
-        final FileDbHeader actualHeader = FileDbHeader.readFrom(channel);
+        final FileStorageHeader actualHeader = FileStorageHeader.readFrom(channel);
 
         assertEquals(expectedHeader.pageSize, actualHeader.pageSize);
         assertEquals(expectedHeader.segmentFileSize, actualHeader.segmentFileSize);
@@ -49,7 +49,7 @@ class FileDbHeaderTest
         public int read(final ByteBuffer dst)
         {
             buffer.rewind();
-            dst.put(buffer.array(), 0, FileDbHeader.HEADER_SIZE);
+            dst.put(buffer.array(), 0, FileStorageHeader.HEADER_SIZE);
             return dst.limit();
         }
 
