@@ -34,4 +34,6 @@ public interface FileHeader
             @ByteOffset long lastPersistedOffset,
             @ByteOffset long appendOffset,
             @Version long appendVersion);
+
+    void flush() throws IOException;
 }

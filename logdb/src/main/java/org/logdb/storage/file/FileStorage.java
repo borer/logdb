@@ -274,6 +274,8 @@ public final class FileStorage implements Storage
         try
         {
             currentAppendingChannel.force(false);
+            fileStorageHeader.flush();
+            newFileStorageHeader.flush();
         }
         catch (final IOException e)
         {
@@ -282,11 +284,21 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public void close() throws IOException
+    public void close() throws Exception
     {
         mappedBuffers.clear();
         currentAppendingChannel.close();
         currentAppendingFile.close();
+
+        if (fileStorageHeader instanceof FixedFileStorageHeader)
+        {
+            ((FixedFileStorageHeader) fileStorageHeader).close();
+        }
+
+        if (newFileStorageHeader instanceof FixedFileStorageHeader)
+        {
+            ((FixedFileStorageHeader) newFileStorageHeader).close();
+        }
 
         //force unmapping of the file, TODO: find another method to trigger the unmapping
         System.gc();

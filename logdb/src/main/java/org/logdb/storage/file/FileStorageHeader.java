@@ -231,6 +231,12 @@ public final class FileStorageHeader implements FileHeader
         writeBuffer.rewind();
     }
 
+    @Override
+    public void flush()
+    {
+        //No-op
+    }
+
     private @ByteSize int getHeaderSizeInPages()
     {
         return StorageUnits.size((HEADER_SIZE / pageSize) + 1);

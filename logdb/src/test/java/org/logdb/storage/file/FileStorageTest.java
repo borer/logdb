@@ -11,10 +11,7 @@ import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.support.TestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,12 +29,10 @@ import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class FileStorageTest
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileStorageTest.class);
-
     @TempDir Path tempDirectory;
 
     @Test
-    void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize() throws IOException
+    void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize() throws Exception
     {
         try (FileStorage ignored = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, 100))
         {
@@ -59,7 +54,7 @@ class FileStorageTest
     }
 
     @Test
-    void shouldPersistAndLoadLeafNode() throws IOException
+    void shouldPersistAndLoadLeafNode() throws Exception
     {
         final int numKeys = 10;
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
@@ -94,7 +89,7 @@ class FileStorageTest
     }
 
     @Test
-    void shouldPersistAndLoadLeafNonNode() throws IOException
+    void shouldPersistAndLoadLeafNonNode() throws Exception
     {
         final int numKeys = 10;
         final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
@@ -140,7 +135,7 @@ class FileStorageTest
     }
 
     @Test
-    void shouldRollOverWhenAppendingPageAlignedAndFileIsFull() throws IOException
+    void shouldRollOverWhenAppendingPageAlignedAndFileIsFull() throws Exception
     {
         final int segmentFileSize = 256;
         final int pageSizeBytes = 128;
@@ -170,7 +165,7 @@ class FileStorageTest
     }
 
     @Test
-    void shouldRollOverWhenAppendingAndFileIsFull() throws IOException
+    void shouldRollOverWhenAppendingAndFileIsFull() throws Exception
     {
         final int segmentFileSize = 256;
         final int pageSizeBytes = 128;

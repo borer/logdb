@@ -23,6 +23,7 @@ import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 public class FileStorageFactory
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorageFactory.class);
+    private static final String ROOT_INDEX_HEADER_FILENAME = "root_index_header.logdb";
 
     public static FileStorage createNew(
             final Path rootDirectory,
@@ -57,10 +58,31 @@ public class FileStorageFactory
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
             currentAppendFile.setLength(segmentFileSize);
 
-            final FileStorageHeader fileStorageHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
-            fileStorageHeader.writeToAndPageAlign(currentAppendChannel);
+            FileHeader fileHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
+            FileHeader newFileHeader = FileStorageHeader.newHeader(
+                    fileHeader.getOrder(),
+                    fileHeader.getPageSize(),
+                    fileHeader.getSegmentFileSize());
 
-            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileStorageHeader, currentAppendFile, currentAppendChannel);
+            if (fileType.equals(FileType.ROOT_INDEX))
+            {
+                final File rootIndexHeaderFile = rootDirectory.resolve(ROOT_INDEX_HEADER_FILENAME).toFile();
+                final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");
+                final FileChannel headerChannel = headerAccessFile.getChannel();
+                fileHeader = new FixedFileStorageHeader(fileHeader, headerAccessFile, headerChannel);
+                newFileHeader = new FixedFileStorageHeader(newFileHeader, headerAccessFile, headerChannel);
+            }
+
+            fileHeader.writeToAndPageAlign(currentAppendChannel);
+
+            fileStorage = createFileStorage(
+                    rootDirectory,
+                    fileAllocator,
+                    fileHeader,
+                    newFileHeader,
+                    currentAppendFile,
+                    currentAppendChannel
+            );
         }
         catch (final FileNotFoundException e)
         {
@@ -89,9 +111,29 @@ public class FileStorageFactory
             final RandomAccessFile currentAppendFile = new RandomAccessFile(lastFile.toFile(), "rw");
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
 
-            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(currentAppendChannel);
+            FileHeader fileHeader = FileStorageHeader.readFrom(currentAppendChannel);
+            FileHeader newFileHeader = FileStorageHeader.newHeader(
+                    fileHeader.getOrder(),
+                    fileHeader.getPageSize(),
+                    fileHeader.getSegmentFileSize());
 
-            fileStorage = createFileStorage(rootDirectory, fileAllocator, fileStorageHeader, currentAppendFile, currentAppendChannel);
+            if (fileType.equals(FileType.ROOT_INDEX))
+            {
+                final File rootIndexHeaderFile = rootDirectory.resolve(ROOT_INDEX_HEADER_FILENAME).toFile();
+                final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");
+                final FileChannel headerChannel = headerAccessFile.getChannel();
+                fileHeader = new FixedFileStorageHeader(fileHeader, headerAccessFile, headerChannel);
+                newFileHeader = new FixedFileStorageHeader(newFileHeader, headerAccessFile, headerChannel);
+            }
+
+            fileStorage = createFileStorage(
+                    rootDirectory,
+                    fileAllocator,
+                    fileHeader,
+                    newFileHeader,
+                    currentAppendFile,
+                    currentAppendChannel
+            );
         }
         catch (final FileNotFoundException e)
         {
@@ -114,7 +156,8 @@ public class FileStorageFactory
     private static FileStorage createFileStorage(
             final Path rootDirectory,
             final FileAllocator fileAllocator,
-            final FileStorageHeader fileStorageHeader,
+            final FileHeader fileHeader,
+            final FileHeader newFileHeader,
             final RandomAccessFile currentAppendFile,
             final FileChannel currentAppendChannel) throws IOException
     {
@@ -128,12 +171,12 @@ public class FileStorageFactory
             {
                 try (FileChannel channel = accessFile.getChannel())
                 {
-                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileStorageHeader.getOrder()));
+                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileHeader.getOrder()));
                 }
             }
         }
 
-        final @ByteOffset long appendOffset = fileStorageHeader.getLastFileAppendOffset();
+        final @ByteOffset long appendOffset = fileHeader.getLastFileAppendOffset();
         if (appendOffset != INVALID_OFFSET)
         {
             currentAppendChannel.position(appendOffset);
@@ -142,7 +185,7 @@ public class FileStorageFactory
         final @ByteOffset long globalFilePosition;
         if (appendOffset != INVALID_OFFSET && !existingFiles.isEmpty())
         {
-            final long offset = ((existingFiles.size() - 1) * fileStorageHeader.getSegmentFileSize()) + appendOffset;
+            final long offset = ((existingFiles.size() - 1) * fileHeader.getSegmentFileSize()) + appendOffset;
             globalFilePosition = StorageUnits.offset(offset);
         }
         else
@@ -150,16 +193,11 @@ public class FileStorageFactory
             globalFilePosition = StorageUnits.offset(currentAppendChannel.position());
         }
 
-        final FileStorageHeader newFileStorageHeader = FileStorageHeader.newHeader(
-                fileStorageHeader.getOrder(),
-                fileStorageHeader.getPageSize(),
-                fileStorageHeader.getSegmentFileSize());
-
         return new FileStorage(
                 rootDirectory,
                 fileAllocator,
-                fileStorageHeader,
-                newFileStorageHeader,
+                fileHeader,
+                newFileHeader,
                 currentAppendFile,
                 currentAppendChannel,
                 mappedByteBuffers,
