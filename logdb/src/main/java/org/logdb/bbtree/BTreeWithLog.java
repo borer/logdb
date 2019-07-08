@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.bit.HeapMemory;
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -14,12 +15,13 @@ public class BTreeWithLog extends BTreeAbstract
 
     public BTreeWithLog(
             final NodesManager nodesManager,
+            final RootIndex rootIndex,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
             final @PageNumber long lastRootPageNumber,
             final RootReference rootReference)
     {
-        super(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+        super(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
     }
 
     /**

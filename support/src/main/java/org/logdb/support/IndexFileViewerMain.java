@@ -181,6 +181,12 @@ public class IndexFileViewerMain
         }
 
         @Override
+        public @PageNumber long getLastPersistedPageNumber()
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
+
+        @Override
         public @Version long getAppendVersion()
         {
             throw new UnsupportedOperationException("Method not Implemented");

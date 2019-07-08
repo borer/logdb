@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -25,6 +26,7 @@ abstract class BTreeAbstract implements BTree
 
     protected final NodesManager nodesManager;
     private final TimeSource timeSource;
+    private final RootIndex rootIndex;
 
     long nodesCount;
 
@@ -32,13 +34,15 @@ abstract class BTreeAbstract implements BTree
 
     BTreeAbstract(
             final NodesManager nodesManager,
+            final RootIndex rootIndex,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
             final @PageNumber long lastRootPageNumber,
             final RootReference rootReference)
     {
         this.nodesManager = Objects.requireNonNull(nodesManager, "nodesManager must not be null");
-        this.timeSource = timeSource;
+        this.timeSource = Objects.requireNonNull(timeSource, "timeSource must not be null");
+        this.rootIndex = Objects.requireNonNull(rootIndex, "rootIndex must not be null");
         this.nextWriteVersion = nextWriteVersion;
 
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
@@ -58,6 +62,12 @@ abstract class BTreeAbstract implements BTree
             final @PageNumber long pageNumber = uncommittedRootReference.getPageNumber();
             final @Version long version = uncommittedRootReference.version;
             nodesManager.commitLastRootPage(pageNumber, version);
+
+            rootIndex.append(
+                    version,
+                    timeSource.getCurrentMillis(),
+                    StorageUnits.offset(pageNumber)); //FIX: actually pass the offset
+            rootIndex.commit();
 
             uncommittedRoot.set(null);
             committedRoot.set(pageNumber);

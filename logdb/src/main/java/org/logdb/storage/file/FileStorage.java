@@ -206,6 +206,15 @@ public final class FileStorage implements Storage
     }
 
     @Override
+    public @PageNumber long getLastPersistedPageNumber()
+    {
+        final @ByteOffset long lastGlobalPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
+        return lastGlobalPersistedOffset == StorageUnits.INVALID_OFFSET
+                ? StorageUnits.INVALID_PAGE_NUMBER
+                : getPageNumber(lastGlobalPersistedOffset);
+    }
+
+    @Override
     public @Version long getAppendVersion()
     {
         return fileStorageHeader.getAppendVersion();

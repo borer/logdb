@@ -2,6 +2,7 @@ package org.logdb.benchmark;
 
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.file.FileStorage;
@@ -25,7 +26,9 @@ import java.nio.file.Paths;
 import java.util.Random;
 
 import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
+import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestRandomKeysWritingWithLogBenchmark
 {
@@ -53,8 +56,16 @@ public class TestRandomKeysWritingWithLogBenchmark
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
+
+            final RootIndex rootIndex = createRootIndex(
+                    rootDirectory,
+                    SEGMENT_FILE_SIZE,
+                    PAGE_SIZE_BYTES,
+                    ByteOrder.LITTLE_ENDIAN);
+
             btree = new BTreeWithLog(
                     nodesManager,
+                    rootIndex,
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,
@@ -63,7 +74,7 @@ public class TestRandomKeysWritingWithLogBenchmark
         }
 
         @TearDown(Level.Trial)
-        public void doTearDown() throws IOException
+        public void doTearDown() throws Exception
         {
             btree.close();
             BenchmarkUtils.removeAllFilesFromDirectory(rootDirectory);

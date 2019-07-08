@@ -3,13 +3,21 @@ package org.logdb.integration;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.bit.DirectMemory;
 import org.logdb.logfile.LogFile;
+import org.logdb.root.index.RootIndex;
+import org.logdb.root.index.RootIndexRecord;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
+import org.logdb.storage.Version;
 import org.logdb.storage.file.FileStorage;
 import org.logdb.storage.file.FileStorageFactory;
 import org.logdb.storage.file.FileType;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
+import org.logdb.time.Milliseconds;
+import org.logdb.time.TimeUnits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +74,11 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
+        final RootIndex rootIndex = createRootIndex(path, byteOrder);
+
         return new BTreeWithLog(
                 nodesManage,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -81,8 +92,12 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final NodesManager nodesManager = new NodesManager(storage);
+
+        final RootIndex rootIndex = openRootIndex(path);
+
         return new BTreeWithLog(
                 nodesManager,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
@@ -105,8 +120,11 @@ class TestIntegrationUtils
 
         final NodesManager nodesManage = new NodesManager(storage);
 
+        final RootIndex rootIndex = createRootIndex(path, byteOrder);
+
         return new BTreeImpl(
                 nodesManage,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -118,11 +136,54 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final NodesManager nodesManager = new NodesManager(storage);
+
+        final RootIndex rootIndex = openRootIndex(path);
+
         return new BTreeImpl(
                 nodesManager,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
                 null);
+    }
+
+    private static RootIndex createRootIndex(final Path path, final ByteOrder byteOrder) throws IOException
+    {
+        final FileStorage rootIndexStorage = FileStorageFactory.createNew(
+                path,
+                FileType.ROOT_INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
+                byteOrder,
+                PAGE_SIZE_BYTES);
+
+        return new RootIndex(
+                rootIndexStorage,
+                StorageUnits.INITIAL_VERSION,
+                TimeUnits.millis(0L),
+                StorageUnits.ZERO_OFFSET);
+    }
+
+    private static RootIndex openRootIndex(final Path path)
+    {
+        final FileStorage rootIndexStorage = FileStorageFactory.openExisting(path, FileType.ROOT_INDEX);
+
+        final @ByteOffset long lastPersistedOffset = rootIndexStorage.getLastPersistedOffset();
+        final @PageNumber long lastRootPageNumber = rootIndexStorage.getPageNumber(lastPersistedOffset);
+
+        @ByteOffset long offsetInsidePage = lastPersistedOffset - rootIndexStorage.getOffset(lastRootPageNumber);
+        DirectMemory directMemory = rootIndexStorage.getUninitiatedDirectMemoryPage();
+        rootIndexStorage.mapPage(lastRootPageNumber, directMemory);
+
+        final @ByteOffset long versionOffset = RootIndexRecord.versionOffset(offsetInsidePage);
+        final @Version long version = StorageUnits.version(directMemory.getLong(versionOffset));
+
+        final @ByteOffset long timestampOffset = RootIndexRecord.timestampOffset(offsetInsidePage);
+        final @Milliseconds long timestamp = TimeUnits.millis(directMemory.getLong(timestampOffset));
+
+        final @ByteOffset long offsetOffset = RootIndexRecord.offsetOffset(offsetInsidePage);
+        final @ByteOffset long offset = StorageUnits.offset(directMemory.getLong(offsetOffset));
+
+        return new RootIndex(rootIndexStorage, version, timestamp, offset);
     }
 }

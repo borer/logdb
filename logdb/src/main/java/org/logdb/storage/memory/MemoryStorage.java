@@ -112,6 +112,12 @@ public class MemoryStorage implements Storage
     }
 
     @Override
+    public @PageNumber long getLastPersistedPageNumber()
+    {
+        return StorageUnits.pageNumber(lastPersistedOffset);
+    }
+
+    @Override
     public @Version long getAppendVersion()
     {
         return version;

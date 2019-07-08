@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreePrinter;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
@@ -17,6 +18,7 @@ import static org.logdb.bbtree.BTreeValidation.isNewTree;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.logdb.support.TestUtils.createInitialRootReference;
+import static org.logdb.support.TestUtils.createRootIndex;
 
 class MemoryStorageTest
 {
@@ -25,10 +27,12 @@ class MemoryStorageTest
     void shouldBeAbleToReadBtreeAfterCommit() throws IOException
     {
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
+        final RootIndex rootIndex = createRootIndex(PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage);
         final BTreeImpl originalBTree = new BTreeImpl(
                 nodesManager,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -50,6 +54,7 @@ class MemoryStorageTest
 
         final BTreeImpl loadedBTree = new BTreeImpl(
                 readNodesManager,
+                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 pageNumber,

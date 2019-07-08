@@ -111,19 +111,31 @@ public class FileStorageFactory
             final RandomAccessFile currentAppendFile = new RandomAccessFile(lastFile.toFile(), "rw");
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
 
-            FileHeader fileHeader = FileStorageHeader.readFrom(currentAppendChannel);
-            FileHeader newFileHeader = FileStorageHeader.newHeader(
-                    fileHeader.getOrder(),
-                    fileHeader.getPageSize(),
-                    fileHeader.getSegmentFileSize());
-
+            final FileHeader fileHeader;
+            final FileHeader newFileHeader;
             if (fileType.equals(FileType.ROOT_INDEX))
             {
                 final File rootIndexHeaderFile = rootDirectory.resolve(ROOT_INDEX_HEADER_FILENAME).toFile();
                 final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");
                 final FileChannel headerChannel = headerAccessFile.getChannel();
-                fileHeader = new FixedFileStorageHeader(fileHeader, headerAccessFile, headerChannel);
-                newFileHeader = new FixedFileStorageHeader(newFileHeader, headerAccessFile, headerChannel);
+
+                final FileStorageHeader rootIndexHeader = FileStorageHeader.readFrom(headerChannel);
+                fileHeader = new FixedFileStorageHeader(rootIndexHeader, headerAccessFile, headerChannel);
+                newFileHeader = new FixedFileStorageHeader(
+                        FileStorageHeader.newHeader(
+                                rootIndexHeader.getOrder(),
+                                rootIndexHeader.getPageSize(),
+                                rootIndexHeader.getSegmentFileSize()),
+                        headerAccessFile,
+                        headerChannel);
+            }
+            else
+            {
+                fileHeader = FileStorageHeader.readFrom(currentAppendChannel);
+                newFileHeader = FileStorageHeader.newHeader(
+                        fileHeader.getOrder(),
+                        fileHeader.getPageSize(),
+                        fileHeader.getSegmentFileSize());
             }
 
             fileStorage = createFileStorage(

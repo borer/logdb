@@ -7,7 +7,6 @@ import org.logdb.bbtree.BTreeWithLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 
@@ -77,7 +76,7 @@ class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldGetHistoricValuesFromOpenDBWithLog() throws IOException
+    void shouldGetHistoricValuesFromOpenDBWithLog() throws Exception
     {
         final long key = 123L;
         final int maxVersions = 100;
@@ -106,7 +105,7 @@ class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleToCommitMultipleTimesWithLog() throws IOException
+    void shouldBeABleToCommitMultipleTimesWithLog() throws Exception
     {
         final int numberOfPairs = 600;
 
@@ -138,7 +137,7 @@ class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleToLoadAndContinuePersistingBtreeWithLog() throws IOException
+    void shouldBeABleToLoadAndContinuePersistingBtreeWithLog() throws Exception
     {
         final int numberOfPairs = 300;
 
@@ -174,7 +173,7 @@ class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleInsertAndDeleteFromLoadedBtreeWithLog() throws IOException
+    void shouldBeABleInsertAndDeleteFromLoadedBtreeWithLog() throws Exception
     {
         final int numberOfPairsToInsert = 600;
         final int numberOfPairsToDelete = 100;
@@ -306,7 +305,7 @@ class BBTreeWithLogIntegrationTest
     }
 
     @Test
-    void shouldBeABleInsertAndDeleteAndInsertSomeMoreInBtreeWithLog() throws IOException
+    void shouldBeABleInsertAndDeleteAndInsertSomeMoreInBtreeWithLog() throws Exception
     {
         final int numberOfPairsToInsert = 600;
         final int numberOfPairsToDelete = 100;

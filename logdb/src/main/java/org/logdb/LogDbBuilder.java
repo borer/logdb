@@ -5,7 +5,11 @@ import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bbtree.RootReference;
+import org.logdb.bit.DirectMemory;
 import org.logdb.logfile.LogFile;
+import org.logdb.root.index.RootIndex;
+import org.logdb.root.index.RootIndexRecord;
+import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
@@ -13,7 +17,9 @@ import org.logdb.storage.Version;
 import org.logdb.storage.file.FileStorage;
 import org.logdb.storage.file.FileStorageFactory;
 import org.logdb.storage.file.FileType;
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
+import org.logdb.time.TimeUnits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,14 +86,53 @@ public class LogDbBuilder
         final LogFile logFile = buildLogFile(timeSource);
         LOGGER.info("Finnish constructing LogDB heap file");
 
+        LOGGER.info("Starting constructing LogDB root index file");
+        final RootIndex rootIndex = buildRootIndex();
+        LOGGER.info("Finnish constructing LogDB root index file");
+
         LOGGER.info("Starting constructing LogDB index file");
-        final BTree index = buildIndex(timeSource);
+        final BTree index = buildIndex(timeSource, rootIndex);
         LOGGER.info("Finnish constructing LogDB index file");
 
         return new LogDb(logFile, index);
     }
 
-    private BTree buildIndex(final TimeSource timeSource) throws IOException
+    private RootIndex buildRootIndex() throws IOException
+    {
+        final FileStorage logDbRootIndexFileStorage = buildFileStorage(FileType.ROOT_INDEX);
+
+        final @Version long version;
+        final @Milliseconds long timestamp;
+        final @ByteOffset long offset;
+        final @PageNumber long lastRootPageNumber = logDbRootIndexFileStorage.getLastPersistedPageNumber();
+        if (isNewTree(lastRootPageNumber))
+        {
+            version = INITIAL_VERSION;
+            timestamp = TimeUnits.millis(0L);
+            offset = StorageUnits.ZERO_OFFSET;
+        }
+        else
+        {
+            final @ByteOffset long lastPersistedOffset = logDbRootIndexFileStorage.getLastPersistedOffset();
+
+            @ByteOffset long offsetInsidePage = lastPersistedOffset - logDbRootIndexFileStorage.getOffset(lastRootPageNumber);
+            final DirectMemory directMemory = logDbRootIndexFileStorage.getUninitiatedDirectMemoryPage();
+            logDbRootIndexFileStorage.mapPage(lastRootPageNumber, directMemory);
+
+            final @ByteOffset long versionOffset = RootIndexRecord.versionOffset(offsetInsidePage);
+            version = StorageUnits.version(directMemory.getLong(versionOffset));
+
+            final @ByteOffset long timestampOffset = RootIndexRecord.timestampOffset(offsetInsidePage);
+            timestamp = TimeUnits.millis(directMemory.getLong(timestampOffset));
+
+            final @ByteOffset long offsetOffset = RootIndexRecord.offsetOffset(offsetInsidePage);
+            offset = StorageUnits.offset(directMemory.getLong(offsetOffset));
+        }
+
+        return new RootIndex(logDbRootIndexFileStorage, version, timestamp, offset);
+    }
+
+    private BTree buildIndex(final TimeSource timeSource, final RootIndex rootIndex) throws IOException
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
@@ -111,11 +156,11 @@ public class LogDbBuilder
         final BTree index;
         if (useIndexWithLog)
         {
-            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+            index = new BTreeWithLog(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
         else
         {
-            index = new BTreeImpl(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+            index = new BTreeImpl(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
 
         return index;

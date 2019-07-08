@@ -28,7 +28,7 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public void writeToAndPageAlign(SeekableByteChannel channel) throws IOException
+    public void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
     {
         headerFileChannel.position(StorageUnits.ZERO_OFFSET);
 
@@ -36,7 +36,7 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public void writeTo(SeekableByteChannel channel) throws IOException
+    public void writeTo(final SeekableByteChannel channel) throws IOException
     {
         headerFileChannel.position(StorageUnits.ZERO_OFFSET);
 

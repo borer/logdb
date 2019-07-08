@@ -7,8 +7,12 @@ import org.logdb.bbtree.IdSupplier;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bbtree.RootReference;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.root.index.RootIndex;
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
@@ -22,6 +26,16 @@ public class TestUtils
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
     public static final @Version long INITIAL_VERSION = StorageUnits.version(0);
+
+    public static RootIndex createRootIndex(final @ByteSize int pageSize)
+    {
+        final Storage rootIndexStorage = new MemoryStorage(TestUtils.BYTE_ORDER, pageSize);
+        return new RootIndex(
+                rootIndexStorage,
+                StorageUnits.INITIAL_VERSION,
+                TimeUnits.millis(0L),
+                StorageUnits.ZERO_OFFSET);
+    }
 
     public static RootReference createInitialRootReference(final NodesManager nodesManager)
     {

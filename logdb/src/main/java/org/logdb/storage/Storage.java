@@ -34,6 +34,8 @@ public interface Storage extends AutoCloseable
 
     @ByteOffset long getLastPersistedOffset();
 
+    @PageNumber long getLastPersistedPageNumber();
+
     @Version long getAppendVersion();
 
     @PageNumber long getPageNumber(@ByteOffset long offset);

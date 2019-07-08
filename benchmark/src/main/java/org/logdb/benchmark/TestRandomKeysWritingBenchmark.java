@@ -3,6 +3,7 @@ package org.logdb.benchmark;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.file.FileStorage;
@@ -26,7 +27,9 @@ import java.nio.file.Paths;
 import java.util.Random;
 
 import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
+import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 
 public class TestRandomKeysWritingBenchmark
 {
@@ -54,8 +57,16 @@ public class TestRandomKeysWritingBenchmark
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
 
             nodesManager = new NodesManager(storage);
+
+            final RootIndex rootIndex = createRootIndex(
+                    rootDirectory,
+                    SEGMENT_FILE_SIZE,
+                    PAGE_SIZE_BYTES,
+                    ByteOrder.LITTLE_ENDIAN);
+
             btree = new BTreeImpl(
                     nodesManager,
+                    rootIndex,
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,
