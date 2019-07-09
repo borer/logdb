@@ -29,7 +29,7 @@ class MemoryStorageTest
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE_BYTES);
 
-        final NodesManager nodesManager = new NodesManager(memoryStorage);
+        final NodesManager nodesManager = new NodesManager(memoryStorage, rootIndex);
         final BTreeImpl originalBTree = new BTreeImpl(
                 nodesManager,
                 rootIndex,
@@ -48,7 +48,7 @@ class MemoryStorageTest
         originalBTree.commit();
 
         //load btree from existing memory
-        final NodesManager readNodesManager = new NodesManager(memoryStorage);
+        final NodesManager readNodesManager = new NodesManager(memoryStorage, rootIndex);
         final @PageNumber long pageNumber = readNodesManager.loadLastRootPageNumber();
         assertFalse(isNewTree(pageNumber));
 

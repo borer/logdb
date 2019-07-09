@@ -42,6 +42,7 @@ public class LogFile implements AutoCloseable
 
     public byte[] read(final @ByteOffset long offset)
     {
+        //TODO: this read is currently single threaded
         return logRecordStorage.readRecordValue(offset);
     }
 

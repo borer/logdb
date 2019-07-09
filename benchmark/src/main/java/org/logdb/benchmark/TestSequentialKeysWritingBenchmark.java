@@ -4,7 +4,6 @@ import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.root.index.RootIndex;
-import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.file.FileStorage;
 import org.logdb.storage.file.FileStorageFactory;
@@ -29,11 +28,10 @@ import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
 public class TestSequentialKeysWritingBenchmark
 {
-    private static final @ByteSize long SEGMENT_FILE_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
-
     @State(Scope.Thread)
     public static class BenchmarkState
     {
@@ -55,13 +53,13 @@ public class TestSequentialKeysWritingBenchmark
                     ByteOrder.LITTLE_ENDIAN,
                     PAGE_SIZE_BYTES);
 
-            nodesManager = new NodesManager(storage);
-
             final RootIndex rootIndex = createRootIndex(
                     rootDirectory,
                     SEGMENT_FILE_SIZE,
                     PAGE_SIZE_BYTES,
                     ByteOrder.LITTLE_ENDIAN);
+
+            nodesManager = new NodesManager(storage, rootIndex);
 
             btree = new BTreeImpl(
                     nodesManager,

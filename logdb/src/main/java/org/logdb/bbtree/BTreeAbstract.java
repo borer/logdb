@@ -63,12 +63,6 @@ abstract class BTreeAbstract implements BTree
             final @Version long version = uncommittedRootReference.version;
             nodesManager.commitLastRootPage(pageNumber, version);
 
-            rootIndex.append(
-                    version,
-                    timeSource.getCurrentMillis(),
-                    StorageUnits.offset(pageNumber)); //FIX: actually pass the offset
-            rootIndex.commit();
-
             uncommittedRoot.set(null);
             committedRoot.set(pageNumber);
         }

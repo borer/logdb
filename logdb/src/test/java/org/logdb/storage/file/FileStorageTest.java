@@ -10,7 +10,10 @@ import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.root.index.RootIndex;
+import org.logdb.storage.StorageUnits;
 import org.logdb.support.TestUtils;
+import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -25,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.storage.file.FileStorageFactory.createNew;
 import static org.logdb.support.TestUtils.BYTE_ORDER;
+import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 
 class FileStorageTest
@@ -64,7 +68,13 @@ class FileStorageTest
 
         try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES))
         {
-            final NodesManager nodesManager = new NodesManager(storage);
+            final RootIndex rootIndex = new RootIndex(
+                    storage,
+                    INITIAL_VERSION,
+                    TimeUnits.millis(0),
+                    StorageUnits.INVALID_OFFSET);
+
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex);
 
             final long pageNumber = leaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
             storage.flush();
@@ -100,7 +110,13 @@ class FileStorageTest
 
         try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES))
         {
-            final NodesManager nodesManager = new NodesManager(storage);
+            final RootIndex rootIndex = new RootIndex(
+                    storage,
+                    INITIAL_VERSION,
+                    TimeUnits.millis(0),
+                    StorageUnits.INVALID_OFFSET);
+
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex);
 
             final long pageNumber = nonLeaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
             storage.flush();

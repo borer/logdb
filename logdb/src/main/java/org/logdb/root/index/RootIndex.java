@@ -1,12 +1,15 @@
 package org.logdb.root.index;
 
+import org.logdb.bit.DirectMemory;
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class RootIndex implements AutoCloseable
 {
@@ -22,10 +25,9 @@ public class RootIndex implements AutoCloseable
                      final @Milliseconds long timestamp,
                      final @ByteOffset long offset)
     {
-        this.storage = storage;
-        this.rootIndexRecord = new RootIndexRecord();
+        this.storage = Objects.requireNonNull(storage, "storage cannot be null");
+        this.rootIndexRecord = new RootIndexRecord(storage.getOrder(), version, timestamp, offset);
 
-        rootIndexRecord.set(version, timestamp, offset);
         set(version, timestamp, offset);
     }
 
@@ -63,8 +65,17 @@ public class RootIndex implements AutoCloseable
         {
             return lastOffset;
         }
+        else
+        {
+            //TODO: don't allocate direct memory allocation
+            final DirectMemory directMemory = storage.getUninitiatedDirectMemoryPage();
+            final @ByteOffset long offset = StorageUnits.offset(version * RootIndexRecord.SIZE);
+            final @PageNumber long pageNumber = storage.getPageNumber(offset);
+            storage.mapPage(pageNumber, directMemory);
 
-        return StorageUnits.ZERO_OFFSET;
+            final @ByteOffset long offsetInsidePage = offset - storage.getOffset(pageNumber);
+            return RootIndexRecord.readOffsetValue(directMemory, offsetInsidePage);
+        }
     }
 
     public @ByteOffset long getTimestampOffset(final @Milliseconds long timestamp)

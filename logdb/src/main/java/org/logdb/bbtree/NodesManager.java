@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.bit.ReadMemory;
+import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
@@ -22,6 +23,7 @@ public class NodesManager
 
     private final Storage storage;
     private final IdSupplier idSupplier;
+    private final RootIndex rootIndex;
 
     private final List<RootReference> dirtyRootNodes;
     private final Queue<BTreeNodeNonLeaf> nonLeafNodesCache;
@@ -30,9 +32,11 @@ public class NodesManager
 
     private @PageNumber long lastPersistedPageNumber;
 
-    public NodesManager(final Storage storage)
+    public NodesManager(final Storage storage, final RootIndex rootIndex)
     {
         this.storage = Objects.requireNonNull(storage, "storage cannot be null");
+        this.rootIndex = Objects.requireNonNull(rootIndex, "rootIndex cannot be null");
+
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
         this.nonLeafNodesCache = new ArrayDeque<>();
@@ -162,7 +166,15 @@ public class NodesManager
             dirtyRootNode.setPageNumber(pageNumber);
 
             lastPersistedPageNumber = pageNumber;
+
+            rootIndex.append(
+                    dirtyRootNode.version,
+                    dirtyRootNode.timestamp,
+                    storage.getOffset(pageNumber)); //FIX: actually pass the offset
         }
+
+        //TODO: make root index non-blocking
+        rootIndex.commit();
 
         storage.flush();
         dirtyRootNodes.clear();

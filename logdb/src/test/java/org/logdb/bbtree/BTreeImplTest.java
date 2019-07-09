@@ -30,7 +30,7 @@ class BTreeImplTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE);
 
-        final NodesManager nodesManager = new NodesManager(storage);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
 
         bTree = new BTreeImpl(
                 nodesManager,

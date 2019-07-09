@@ -72,9 +72,8 @@ class TestIntegrationUtils
                 byteOrder,
                 PAGE_SIZE_BYTES);
 
-        final NodesManager nodesManage = new NodesManager(storage);
-
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex);
 
         return new BTreeWithLog(
                 nodesManage,
@@ -91,9 +90,8 @@ class TestIntegrationUtils
 
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
-        final NodesManager nodesManager = new NodesManager(storage);
-
         final RootIndex rootIndex = openRootIndex(path);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
 
         return new BTreeWithLog(
                 nodesManager,
@@ -118,9 +116,8 @@ class TestIntegrationUtils
                 byteOrder,
                 PAGE_SIZE_BYTES);
 
-        final NodesManager nodesManage = new NodesManager(storage);
-
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex);
 
         return new BTreeImpl(
                 nodesManage,
@@ -135,9 +132,8 @@ class TestIntegrationUtils
     {
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
-        final NodesManager nodesManager = new NodesManager(storage);
-
         final RootIndex rootIndex = openRootIndex(path);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
 
         return new BTreeImpl(
                 nodesManager,
@@ -181,7 +177,7 @@ class TestIntegrationUtils
         final @ByteOffset long timestampOffset = RootIndexRecord.timestampOffset(offsetInsidePage);
         final @Milliseconds long timestamp = TimeUnits.millis(directMemory.getLong(timestampOffset));
 
-        final @ByteOffset long offsetOffset = RootIndexRecord.offsetOffset(offsetInsidePage);
+        final @ByteOffset long offsetOffset = RootIndexRecord.offsetValueOffset(offsetInsidePage);
         final @ByteOffset long offset = StorageUnits.offset(directMemory.getLong(offsetOffset));
 
         return new RootIndex(rootIndexStorage, version, timestamp, offset);

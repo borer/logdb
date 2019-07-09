@@ -115,18 +115,14 @@ public class LogDbBuilder
         {
             final @ByteOffset long lastPersistedOffset = logDbRootIndexFileStorage.getLastPersistedOffset();
 
-            @ByteOffset long offsetInsidePage = lastPersistedOffset - logDbRootIndexFileStorage.getOffset(lastRootPageNumber);
+            final @ByteOffset long offsetInsidePage = lastPersistedOffset - logDbRootIndexFileStorage.getOffset(lastRootPageNumber);
             final DirectMemory directMemory = logDbRootIndexFileStorage.getUninitiatedDirectMemoryPage();
             logDbRootIndexFileStorage.mapPage(lastRootPageNumber, directMemory);
 
-            final @ByteOffset long versionOffset = RootIndexRecord.versionOffset(offsetInsidePage);
-            version = StorageUnits.version(directMemory.getLong(versionOffset));
-
-            final @ByteOffset long timestampOffset = RootIndexRecord.timestampOffset(offsetInsidePage);
-            timestamp = TimeUnits.millis(directMemory.getLong(timestampOffset));
-
-            final @ByteOffset long offsetOffset = RootIndexRecord.offsetOffset(offsetInsidePage);
-            offset = StorageUnits.offset(directMemory.getLong(offsetOffset));
+            final RootIndexRecord lastRootIndexRecord = RootIndexRecord.read(directMemory, offsetInsidePage);
+            version = lastRootIndexRecord.getVersion();
+            timestamp = lastRootIndexRecord.getTimestamp();
+            offset = lastRootIndexRecord.getOffset();
         }
 
         return new RootIndex(logDbRootIndexFileStorage, version, timestamp, offset);
@@ -136,7 +132,7 @@ public class LogDbBuilder
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
-        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage);
+        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex);
 
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         final RootReference rootReference;

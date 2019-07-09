@@ -1,12 +1,16 @@
 package org.logdb.bbtree;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.root.index.RootIndex;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.TestUtils;
+import org.logdb.time.TimeUnits;
 
 import java.nio.ByteOrder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.createLeafNodeWithKeys;
 
 class BTreePrinterTest
@@ -77,7 +81,13 @@ class BTreePrinterTest
                 "\"0\"[label = \" <50> |50|  <51> |51|  <52> |52|  <53> |53|  <54> |54| \"];\n" +
                 "}\n";
 
-        final NodesManager nodesManager = new NodesManager(new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096));
+        final MemoryStorage storage = new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096);
+        final RootIndex rootIndex = new RootIndex(
+                new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096),
+                INITIAL_VERSION,
+                TimeUnits.millis(0),
+                StorageUnits.INVALID_OFFSET);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
         assertEquals(expectedDotString, BTreePrinter.print(bTreeNonLeaf, nodesManager));
     }
 }
