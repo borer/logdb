@@ -200,5 +200,11 @@ public class IndexFileViewerMain
             final @ByteOffset long pageOffset = MemoryFactory.getPageOffset(mappedByteBuffer, getOffset(pageNumber));
             memory.setBaseAddress(pageOffset);
         }
+
+        @Override
+        public void readBytes(@ByteOffset long offset, ByteBuffer buffer)
+        {
+            throw new UnsupportedOperationException("Method not Implemented");
+        }
     }
 }

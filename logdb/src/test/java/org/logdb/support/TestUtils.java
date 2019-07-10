@@ -25,11 +25,12 @@ public class TestUtils
     public static final int PAGE_SIZE_BYTES = 512;
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
+    public static final @ByteSize int MEMORY_CHUNK_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
     public static final @Version long INITIAL_VERSION = StorageUnits.version(0);
 
     public static RootIndex createRootIndex(final @ByteSize int pageSize)
     {
-        final Storage rootIndexStorage = new MemoryStorage(TestUtils.BYTE_ORDER, pageSize);
+        final Storage rootIndexStorage = new MemoryStorage(TestUtils.BYTE_ORDER, pageSize, MEMORY_CHUNK_SIZE);
         return new RootIndex(
                 rootIndexStorage,
                 StorageUnits.INITIAL_VERSION,

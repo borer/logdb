@@ -3,6 +3,9 @@ package org.logdb.storage.file;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.bit.MemoryOrder;
+import org.logdb.bit.NativeMemoryAccess;
+import org.logdb.bit.NonNativeMemoryAccess;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 import static org.logdb.storage.file.FileStorageHeader.HEADER_OFFSET;
 
 public final class FileStorage implements Storage
@@ -51,7 +55,7 @@ public final class FileStorage implements Storage
             final FileHeader newFileStorageHeader, 
             final RandomAccessFile currentAppendingFile,
             final FileChannel currentAppendingChannel,
-            final List<MappedByteBuffer> mappedBuffers,
+            final List<MappedByteBuffer> mappedBuffers, //TODO: this probably needs to be a structure of some other kind
             final @ByteOffset long globalFilePosition)
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
@@ -104,8 +108,6 @@ public final class FileStorage implements Storage
         final FileChannel channel = accessFile.getChannel();
         accessFile.setLength(fileSegmentSize);
 
-
-        //TODO: have an object that implements file header interface
         newFileStorageHeader.writeToAndPageAlign(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
@@ -227,6 +229,69 @@ public final class FileStorage implements Storage
         memory.setBaseAddress(baseOffset);
     }
 
+    @Override
+    public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
+    {
+        final @ByteSize int lengthBytes = StorageUnits.size(buffer.capacity());
+        @ByteOffset int readPosition = ZERO_OFFSET;
+
+        @PageNumber long pageNumber = getPageNumber(offset);
+        @ByteOffset long offsetInsidePage = offset - getOffset(pageNumber);
+
+        final @ByteOffset long baseOffset = getBaseOffset(pageNumber);
+
+        @ByteSize long pageLeftSpace = StorageUnits.size(pageSize - offsetInsidePage);
+        final @ByteSize long bytesToRead = StorageUnits.size(
+                Math.min(pageLeftSpace, lengthBytes));
+
+        readPosition += StorageUnits.offset(bytesToRead);
+
+        if (MemoryOrder.isNativeOrder(order))
+        {
+            NativeMemoryAccess.getBytes(
+                    baseOffset + offsetInsidePage,
+                    buffer.array(),
+                    ZERO_OFFSET,
+                    lengthBytes);
+        }
+        else
+        {
+            NonNativeMemoryAccess.getBytes(
+                    baseOffset + offsetInsidePage,
+                    buffer.array(),
+                    ZERO_OFFSET,
+                    lengthBytes);
+        }
+
+        while (readPosition < lengthBytes)
+        {
+            //continue reading the header from the beginning of the next page
+            pageNumber++;
+
+            final @ByteOffset long baseOffset2 = getBaseOffset(pageNumber);
+            final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, lengthBytes));
+
+            if (MemoryOrder.isNativeOrder(order))
+            {
+                NativeMemoryAccess.getBytes(
+                        baseOffset2,
+                        buffer.array(),
+                        readPosition,
+                        bytesToRead2);
+            }
+            else
+            {
+                NonNativeMemoryAccess.getBytes(
+                        baseOffset2,
+                        buffer.array(),
+                        readPosition,
+                        bytesToRead2);
+            }
+
+            readPosition += StorageUnits.offset(bytesToRead2);
+        }
+    }
+
     private @ByteOffset long getBaseOffset(final @PageNumber long pageNumber)
     {
         assert pageNumber >= 0 : "Page Number can only be positive. Provided " + pageNumber;
@@ -244,6 +309,8 @@ public final class FileStorage implements Storage
             final @ByteOffset long mappedBufferEndOffset = StorageUnits.offset(offsetMappedBuffer + mappedBuffer.limit());
             if (pageOffset >= offsetMappedBuffer && pageOffset < mappedBufferEndOffset)
             {
+                //TODO: getting the base address of a mapped buffer could be cached, a
+                // long with the logical start and end offset (use for binary search in previous loop)
                 return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
             }
 

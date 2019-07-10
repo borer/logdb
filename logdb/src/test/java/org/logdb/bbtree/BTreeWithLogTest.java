@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 import static org.logdb.support.TestUtils.createInitialRootReference;
 import static org.logdb.support.TestUtils.createRootIndex;
 
@@ -24,7 +25,7 @@ class BTreeWithLogTest
     @BeforeEach
     void setUp()
     {
-        final Storage treeStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
+        final Storage treeStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE);
 
         NodesManager nodesManager = new NodesManager(treeStorage, rootIndex);

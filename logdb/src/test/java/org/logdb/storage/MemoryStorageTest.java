@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.logdb.bbtree.BTreeValidation.isNewTree;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.logdb.support.TestUtils.createInitialRootReference;
 import static org.logdb.support.TestUtils.createRootIndex;
@@ -26,7 +27,7 @@ class MemoryStorageTest
     @Disabled
     void shouldBeAbleToReadBtreeAfterCommit() throws IOException
     {
-        final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES);
+        final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE_BYTES);
 
         final NodesManager nodesManager = new NodesManager(memoryStorage, rootIndex);

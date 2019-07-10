@@ -3,6 +3,9 @@ package org.logdb.storage.memory;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.bit.MemoryOrder;
+import org.logdb.bit.NativeMemoryAccess;
+import org.logdb.bit.NonNativeMemoryAccess;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -12,27 +15,43 @@ import org.logdb.storage.Version;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
+import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryStorage implements Storage
 {
-    private final ByteOrder byteOrder;
-    private final @ByteSize int pageSizeBytes;
-    private final HashMap<Long, DirectMemory> maps;
+    private final ByteOrder order;
+    private final @ByteSize int pageSize;
+    private final List<DirectMemory> bufferPool;
+    private final @ByteSize int memoryChunkSize;
 
     private @ByteOffset long allocatedMemoryOffset;
+
+    private @ByteOffset long currentMemoryChunkOffset;
+
     private @ByteOffset long lastPersistedOffset;
     private @Version long version;
 
-    public MemoryStorage(final ByteOrder byteOrder, final @ByteSize int pageSizeBytes)
+    public MemoryStorage(
+            final ByteOrder order,
+            final @ByteSize int pageSize,
+            final @ByteSize int memoryChunkSize)
     {
-        this.byteOrder = byteOrder;
-        this.pageSizeBytes = pageSizeBytes;
-        this.maps = new HashMap<>();
+        this.order = order;
+        this.pageSize = pageSize;
+        this.memoryChunkSize = memoryChunkSize;
+        this.bufferPool = new ArrayList<>();
+
+        final DirectMemory directMemory = MemoryFactory.allocateDirect(memoryChunkSize, order);
+        bufferPool.add(directMemory);
+
         this.allocatedMemoryOffset = ZERO_OFFSET;
+        this.currentMemoryChunkOffset = ZERO_OFFSET;
+
         this.lastPersistedOffset = StorageUnits.INVALID_OFFSET;
         this.version = INITIAL_VERSION;
     }
@@ -40,25 +59,25 @@ public class MemoryStorage implements Storage
     @Override
     public HeapMemory allocateHeapPage()
     {
-        return MemoryFactory.allocateHeap(pageSizeBytes, byteOrder);
+        return MemoryFactory.allocateHeap(pageSize, order);
     }
 
     @Override
     public DirectMemory getUninitiatedDirectMemoryPage()
     {
-        return MemoryFactory.getUninitiatedDirectMemory(pageSizeBytes, byteOrder);
+        return MemoryFactory.getUninitiatedDirectMemory(pageSize, order);
     }
 
     @Override
     public @ByteSize long getPageSize()
     {
-        return pageSizeBytes;
+        return pageSize;
     }
 
     @Override
     public ByteOrder getOrder()
     {
-        return byteOrder;
+        return order;
     }
 
     @Override
@@ -76,13 +95,34 @@ public class MemoryStorage implements Storage
     @Override
     public @ByteOffset long append(final ByteBuffer buffer)
     {
-        final @ByteOffset long currentOffset = this.allocatedMemoryOffset;
-        allocatedMemoryOffset += StorageUnits.offset(buffer.capacity());
+        final @ByteOffset int bufferSize = StorageUnits.offset(buffer.capacity());
+        final @ByteOffset long expectedOffset = currentMemoryChunkOffset + bufferSize;
 
-        final DirectMemory directMemory = MemoryFactory.allocateDirect(pageSizeBytes, byteOrder);
-        directMemory.putBytes(buffer.array());
+        final @ByteOffset long currentOffset;
+        if (expectedOffset > memoryChunkSize)
+        {
+            final @ByteOffset long remaining = StorageUnits.offset(memoryChunkSize - currentMemoryChunkOffset);
+            allocatedMemoryOffset += remaining;
 
-        maps.put(currentOffset, directMemory);
+            final DirectMemory directMemory = MemoryFactory.allocateDirect(memoryChunkSize, order);
+            bufferPool.add(directMemory);
+
+            currentMemoryChunkOffset = ZERO_OFFSET;
+        }
+
+        final @ByteOffset long baseOffset = getBaseOffset(allocatedMemoryOffset);
+        if (MemoryOrder.isNativeOrder(order))
+        {
+            NativeMemoryAccess.putBytes(baseOffset, buffer.array());
+        }
+        else
+        {
+            NonNativeMemoryAccess.putBytes(baseOffset, buffer.array());
+        }
+
+        currentOffset = this.allocatedMemoryOffset;
+        allocatedMemoryOffset += bufferSize;
+        currentMemoryChunkOffset += bufferSize;
 
         return currentOffset;
     }
@@ -133,14 +173,98 @@ public class MemoryStorage implements Storage
     @Override
     public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
     {
-        final DirectMemory directMemory = maps.get(pageNumber);
-        if (directMemory == null)
+        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * pageSize);
+        final @ByteOffset long baseOffset = getBaseOffset(pageOffset);
+        memory.setBaseAddress(baseOffset);
+    }
+
+    private @ByteOffset long getBaseOffset(final @ByteOffset long pageOffset)
+    {
+        assert pageOffset >= 0 : "Offset can only be positive. Provided " + pageOffset;
+        assert pageOffset <= StorageUnits.offset(bufferPool.size() * memoryChunkSize)
+                : "The offset " + pageOffset + " is outside the mapped range of " +
+                (StorageUnits.offset(bufferPool.size() * memoryChunkSize));
+
+        @ByteOffset long offsetBuffer = StorageUnits.ZERO_OFFSET;
+
+        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
+        for (int i = 0; i < bufferPool.size(); i++)
         {
-            memory.setBaseAddress(StorageUnits.offset(pageNumber));
+            final DirectMemory buffer = bufferPool.get(i);
+            final @ByteOffset long bufferEndOffset = StorageUnits.offset(offsetBuffer + buffer.getCapacity());
+            if (pageOffset >= offsetBuffer && pageOffset < bufferEndOffset)
+            {
+                final @ByteOffset long offsetInsideBuffer = StorageUnits.offset(pageOffset - offsetBuffer);
+                return StorageUnits.offset(buffer.getBaseAddress() + offsetInsideBuffer);
+            }
+
+            offsetBuffer += StorageUnits.offset(buffer.getCapacity());
+        }
+
+        return INVALID_OFFSET;
+    }
+
+    @Override
+    public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
+    {
+        final @ByteSize int lengthBytes = StorageUnits.size(buffer.capacity());
+        @ByteOffset int readPosition = ZERO_OFFSET;
+
+        @PageNumber long pageNumber = getPageNumber(offset);
+        final @ByteOffset long pageNumberOffset = getOffset(pageNumber);
+        @ByteOffset long offsetInsidePage = offset - pageNumberOffset;
+
+        final @ByteOffset long baseOffset = getBaseOffset(pageNumberOffset);
+
+        @ByteSize long pageLeftSpace = StorageUnits.size(pageSize - offsetInsidePage);
+        final @ByteSize long bytesToRead = StorageUnits.size(
+                Math.min(pageLeftSpace, lengthBytes));
+
+        readPosition += StorageUnits.offset(bytesToRead);
+
+        if (MemoryOrder.isNativeOrder(order))
+        {
+            NativeMemoryAccess.getBytes(
+                    baseOffset + offsetInsidePage,
+                    buffer.array(),
+                    ZERO_OFFSET,
+                    lengthBytes);
         }
         else
         {
-            memory.setBaseAddress(directMemory.getBaseAddress());
+            NonNativeMemoryAccess.getBytes(
+                    baseOffset + offsetInsidePage,
+                    buffer.array(),
+                    ZERO_OFFSET,
+                    lengthBytes);
+        }
+
+        while (readPosition < lengthBytes)
+        {
+            //continue reading the header from the beginning of the next page
+            pageNumber++;
+
+            final @ByteOffset long baseOffset2 = getBaseOffset(getOffset(pageNumber));
+            final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, lengthBytes));
+
+            if (MemoryOrder.isNativeOrder(order))
+            {
+                NativeMemoryAccess.getBytes(
+                        baseOffset2,
+                        buffer.array(),
+                        readPosition,
+                        bytesToRead2);
+            }
+            else
+            {
+                NonNativeMemoryAccess.getBytes(
+                        baseOffset2,
+                        buffer.array(),
+                        readPosition,
+                        bytesToRead2);
+            }
+
+            readPosition += StorageUnits.offset(bytesToRead2);
         }
     }
 }

@@ -1,14 +1,13 @@
 package org.logdb.root.index;
 
-import org.logdb.bit.DirectMemory;
 import org.logdb.storage.ByteOffset;
-import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 public class RootIndex implements AutoCloseable
@@ -67,14 +66,12 @@ public class RootIndex implements AutoCloseable
         }
         else
         {
-            //TODO: don't allocate direct memory allocation
-            final DirectMemory directMemory = storage.getUninitiatedDirectMemoryPage();
             final @ByteOffset long offset = StorageUnits.offset(version * RootIndexRecord.SIZE);
-            final @PageNumber long pageNumber = storage.getPageNumber(offset);
-            storage.mapPage(pageNumber, directMemory);
+            final ByteBuffer buffer = ByteBuffer.allocate(RootIndexRecord.SIZE);
+            buffer.order(storage.getOrder());
+            storage.readBytes(offset, buffer);
 
-            final @ByteOffset long offsetInsidePage = offset - storage.getOffset(pageNumber);
-            return RootIndexRecord.readOffsetValue(directMemory, offsetInsidePage);
+            return RootIndexRecord.readOffsetValue(buffer);
         }
     }
 

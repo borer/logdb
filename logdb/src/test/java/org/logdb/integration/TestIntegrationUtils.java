@@ -10,13 +10,11 @@ import org.logdb.root.index.RootIndexRecord;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
-import org.logdb.storage.Version;
 import org.logdb.storage.file.FileStorage;
 import org.logdb.storage.file.FileStorageFactory;
 import org.logdb.storage.file.FileType;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
-import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,15 +169,12 @@ class TestIntegrationUtils
         DirectMemory directMemory = rootIndexStorage.getUninitiatedDirectMemoryPage();
         rootIndexStorage.mapPage(lastRootPageNumber, directMemory);
 
-        final @ByteOffset long versionOffset = RootIndexRecord.versionOffset(offsetInsidePage);
-        final @Version long version = StorageUnits.version(directMemory.getLong(versionOffset));
+        final RootIndexRecord rootIndexRecord = RootIndexRecord.read(directMemory, offsetInsidePage);
 
-        final @ByteOffset long timestampOffset = RootIndexRecord.timestampOffset(offsetInsidePage);
-        final @Milliseconds long timestamp = TimeUnits.millis(directMemory.getLong(timestampOffset));
-
-        final @ByteOffset long offsetOffset = RootIndexRecord.offsetValueOffset(offsetInsidePage);
-        final @ByteOffset long offset = StorageUnits.offset(directMemory.getLong(offsetOffset));
-
-        return new RootIndex(rootIndexStorage, version, timestamp, offset);
+        return new RootIndex(
+                rootIndexStorage,
+                rootIndexRecord.getVersion(),
+                rootIndexRecord.getTimestamp(),
+                rootIndexRecord.getOffset());
     }
 }

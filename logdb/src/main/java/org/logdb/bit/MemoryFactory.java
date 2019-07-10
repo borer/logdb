@@ -11,17 +11,6 @@ import java.util.Objects;
 
 public class MemoryFactory
 {
-    public static DirectMemory mapDirect(
-            final MappedByteBuffer mappedBuffer,
-            final @ByteOffset long offset,
-            final @ByteSize int capacity,
-            final ByteOrder byteOrder)
-    {
-        Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
-
-        return getDirectMemory(getPageOffset(mappedBuffer, offset), capacity, byteOrder);
-    }
-
     public static @ByteOffset long getPageOffset(final MappedByteBuffer mappedBuffer, final @ByteOffset long offset)
     {
         Objects.requireNonNull(mappedBuffer, "buffer cannot be null");
@@ -60,6 +49,7 @@ public class MemoryFactory
     public static DirectMemory allocateDirect(final @ByteSize int capacity, final ByteOrder byteOrder)
     {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(capacity);
+        buffer.order(byteOrder);
         final @ByteOffset long baseAddress = NativeMemoryAccess.getBaseAddressForDirectBuffer(buffer);
 
         return getDirectMemory(baseAddress, capacity, byteOrder);

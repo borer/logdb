@@ -65,5 +65,14 @@ public interface Storage extends AutoCloseable
      */
     void mapPage(@PageNumber long pageNumber, DirectMemory memory);
 
+    /**
+     * Reads from offset the byte buffer amount of bytes.
+     * @param offset the logical offset in the storage to start reading
+     * @param buffer t=this buffer is going to be populated with content form the storage bytes
+     */
+    //NOTE: this potentially could solve the single threaded readers,
+    // as they just have to ask the storage for some bytes and then each one will get a copy.
+    void readBytes(@ByteOffset long offset, ByteBuffer buffer);
+
     void flush();
 }

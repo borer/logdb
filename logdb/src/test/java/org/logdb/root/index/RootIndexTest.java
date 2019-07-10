@@ -10,13 +10,14 @@ import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 
 class RootIndexTest
 {
     @Test
     void shouldBeAbleToPersistRecords() throws Exception
     {
-        final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES);
+        final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
         final @Version long version = StorageUnits.INITIAL_VERSION;
         final @Milliseconds long timestamp = TimeUnits.millis(1237123571L);
         final @ByteOffset long offset = StorageUnits.offset(12312313L);

@@ -16,6 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 import static org.logdb.support.TestUtils.createInitialRootReference;
 import static org.logdb.support.TestUtils.createRootIndex;
 
@@ -27,7 +28,7 @@ class BTreeImplTest
     @BeforeEach
     void setUp()
     {
-        final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE);
+        final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE);
 
         final NodesManager nodesManager = new NodesManager(storage, rootIndex);

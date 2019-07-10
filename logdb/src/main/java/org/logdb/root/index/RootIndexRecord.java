@@ -61,18 +61,18 @@ public class RootIndexRecord
 
     public @Version long getVersion()
     {
-        return StorageUnits.version(recordBuffer.getLong(VERSION_OFFSET));
+        return readVersion(recordBuffer);
     }
 
     public @Milliseconds long getTimestamp()
     {
-        return TimeUnits.millis(recordBuffer.getLong(TIMESTAMP_OFFSET));
+        return readTimestamp(recordBuffer);
     }
 
 
     public @ByteOffset long getOffset()
     {
-        return StorageUnits.offset(recordBuffer.getLong(OFFSET_VALUE_OFFSET));
+        return readOffsetValue(recordBuffer);
     }
 
     public ByteBuffer getBuffer()
@@ -86,10 +86,20 @@ public class RootIndexRecord
         return StorageUnits.offset(directMemory.getLong(offsetOffset));
     }
 
+    static @ByteOffset long readOffsetValue(final ByteBuffer buffer)
+    {
+        return StorageUnits.offset(buffer.getLong(OFFSET_VALUE_OFFSET));
+    }
+
     static @Milliseconds long readTimestamp(final DirectMemory directMemory, final @ByteOffset long recordOffset)
     {
         final @ByteOffset long timestampOffset = timestampOffset(recordOffset);
         return TimeUnits.millis(directMemory.getLong(timestampOffset));
+    }
+
+    static @Milliseconds long readTimestamp(final ByteBuffer buffer)
+    {
+        return TimeUnits.millis(buffer.getLong(TIMESTAMP_OFFSET));
     }
 
     static @Version long readVersion(final DirectMemory directMemory, final @ByteOffset long recordOffset)
@@ -98,17 +108,22 @@ public class RootIndexRecord
         return StorageUnits.version(directMemory.getLong(versionOffset));
     }
 
-    public static @ByteOffset long versionOffset(final @ByteOffset long baseOffset)
+    static @Version long readVersion(final ByteBuffer buffer)
+    {
+        return StorageUnits.version(buffer.getLong(VERSION_OFFSET));
+    }
+
+    private static @ByteOffset long versionOffset(final @ByteOffset long baseOffset)
     {
         return baseOffset + VERSION_OFFSET;
     }
 
-    public static @ByteOffset long timestampOffset(final @ByteOffset long baseOffset)
+    private static @ByteOffset long timestampOffset(final @ByteOffset long baseOffset)
     {
         return baseOffset + TIMESTAMP_OFFSET;
     }
 
-    public static @ByteOffset long offsetValueOffset(final @ByteOffset long baseOffset)
+    private static @ByteOffset long offsetValueOffset(final @ByteOffset long baseOffset)
     {
         return baseOffset + OFFSET_VALUE_OFFSET;
     }

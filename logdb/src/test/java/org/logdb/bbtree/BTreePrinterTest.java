@@ -11,6 +11,7 @@ import java.nio.ByteOrder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 import static org.logdb.support.TestUtils.createLeafNodeWithKeys;
 
 class BTreePrinterTest
@@ -81,9 +82,9 @@ class BTreePrinterTest
                 "\"0\"[label = \" <50> |50|  <51> |51|  <52> |52|  <53> |53|  <54> |54| \"];\n" +
                 "}\n";
 
-        final MemoryStorage storage = new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096);
+        final MemoryStorage storage = new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = new RootIndex(
-                new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096),
+                new MemoryStorage(ByteOrder.LITTLE_ENDIAN, 4096, MEMORY_CHUNK_SIZE),
                 INITIAL_VERSION,
                 TimeUnits.millis(0),
                 StorageUnits.INVALID_OFFSET);

@@ -4,7 +4,7 @@ import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import sun.misc.Unsafe;
 
-final class NativeMemoryAccess extends MemoryAccess
+public final class NativeMemoryAccess extends MemoryAccess
 {
     private NativeMemoryAccess()
     {
