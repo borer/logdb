@@ -238,7 +238,8 @@ public final class FileStorage implements Storage
         @PageNumber long pageNumber = getPageNumber(offset);
         @ByteOffset long offsetInsidePage = offset - getOffset(pageNumber);
 
-        final @ByteOffset long baseOffset = getBaseOffset(pageNumber);
+        final @ByteOffset long pageBaseOffset = getBaseOffset(pageNumber);
+        final long sourceAddress = pageBaseOffset + offsetInsidePage;
 
         @ByteSize long pageLeftSpace = StorageUnits.size(pageSize - offsetInsidePage);
         final @ByteSize long bytesToRead = StorageUnits.size(
@@ -246,49 +247,44 @@ public final class FileStorage implements Storage
 
         readPosition += StorageUnits.offset(bytesToRead);
 
-        if (MemoryOrder.isNativeOrder(order))
-        {
-            NativeMemoryAccess.getBytes(
-                    baseOffset + offsetInsidePage,
-                    buffer.array(),
-                    ZERO_OFFSET,
-                    lengthBytes);
-        }
-        else
-        {
-            NonNativeMemoryAccess.getBytes(
-                    baseOffset + offsetInsidePage,
-                    buffer.array(),
-                    ZERO_OFFSET,
-                    lengthBytes);
-        }
+        readBytesNative(sourceAddress, order, buffer, ZERO_OFFSET, bytesToRead);
 
         while (readPosition < lengthBytes)
         {
             //continue reading the header from the beginning of the next page
             pageNumber++;
 
-            final @ByteOffset long baseOffset2 = getBaseOffset(pageNumber);
+            final @ByteOffset long pageBaseOffset2 = getBaseOffset(pageNumber);
             final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, lengthBytes));
 
-            if (MemoryOrder.isNativeOrder(order))
-            {
-                NativeMemoryAccess.getBytes(
-                        baseOffset2,
-                        buffer.array(),
-                        readPosition,
-                        bytesToRead2);
-            }
-            else
-            {
-                NonNativeMemoryAccess.getBytes(
-                        baseOffset2,
-                        buffer.array(),
-                        readPosition,
-                        bytesToRead2);
-            }
+            readBytesNative(pageBaseOffset2, order, buffer, readPosition, bytesToRead2);
 
             readPosition += StorageUnits.offset(bytesToRead2);
+        }
+    }
+
+    private static void readBytesNative(
+            final long sourceAddress,
+            final ByteOrder order,
+            final ByteBuffer destinationBuffer,
+            final @ByteOffset long destinationOffset,
+            final @ByteSize long destinationLength)
+    {
+        if (MemoryOrder.isNativeOrder(order))
+        {
+            NativeMemoryAccess.getBytes(
+                    sourceAddress,
+                    destinationBuffer.array(),
+                    destinationOffset,
+                    destinationLength);
+        }
+        else
+        {
+            NonNativeMemoryAccess.getBytes(
+                    sourceAddress,
+                    destinationBuffer.array(),
+                    destinationOffset,
+                    destinationLength);
         }
     }
 
