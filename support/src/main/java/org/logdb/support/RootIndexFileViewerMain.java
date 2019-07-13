@@ -80,7 +80,7 @@ public class RootIndexFileViewerMain
 
             for (long offset = 0; offset <= lastPersistedOffset; offset += RootIndexRecord.SIZE)
             {
-                storage.readBytes(offset, rootIndexRecord.getBuffer());
+                storage.readBytes(StorageUnits.offset(offset), rootIndexRecord.getBuffer());
 
                 System.out.println(
                         String.format("page/offset %d/%d : %s",
