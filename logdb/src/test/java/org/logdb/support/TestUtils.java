@@ -15,7 +15,6 @@ import org.logdb.storage.Version;
 import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.time.TimeUnits;
 
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class TestUtils
@@ -45,15 +44,6 @@ public class TestUtils
                 TimeUnits.millis(0),
                 StorageUnits.INITIAL_VERSION,
                 null);
-    }
-
-    public static ByteBuffer createValue(final String value)
-    {
-        final ByteBuffer buffer = ByteBuffer.allocate(value.length());
-        buffer.put(value.getBytes());
-        buffer.rewind();
-
-        return buffer;
     }
 
     public static BTreeNodeNonLeaf createNonLeafNodeWithChild(final BTreeNodeHeap child)

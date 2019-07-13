@@ -1,12 +1,13 @@
-package org.logdb.storage;
+package org.logdb.storage.memory;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreePrinter;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.root.index.RootIndex;
-import org.logdb.storage.memory.MemoryStorage;
+import org.logdb.storage.PageNumber;
+import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
@@ -24,7 +25,6 @@ import static org.logdb.support.TestUtils.createRootIndex;
 class MemoryStorageTest
 {
     @Test
-    @Disabled
     void shouldBeAbleToReadBtreeAfterCommit() throws IOException
     {
         final Storage memoryStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
@@ -44,9 +44,9 @@ class MemoryStorageTest
             originalBTree.put(i, i);
         }
 
-        final String originalBtreePrint = BTreePrinter.print(originalBTree, nodesManager);
-
         originalBTree.commit();
+
+        final String originalBtreePrint = BTreePrinter.print(originalBTree, nodesManager);
 
         //load btree from existing memory
         final NodesManager readNodesManager = new NodesManager(memoryStorage, rootIndex);

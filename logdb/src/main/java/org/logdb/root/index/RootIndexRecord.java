@@ -80,7 +80,7 @@ public class RootIndexRecord
         return recordBuffer;
     }
 
-    static @ByteOffset long readOffsetValue(final DirectMemory directMemory, final @ByteOffset long recordOffset)
+    private static @ByteOffset long readOffsetValue(final DirectMemory directMemory, final @ByteOffset long recordOffset)
     {
         final @ByteOffset long offsetOffset = offsetValueOffset(recordOffset);
         return StorageUnits.offset(directMemory.getLong(offsetOffset));
@@ -91,24 +91,24 @@ public class RootIndexRecord
         return StorageUnits.offset(buffer.getLong(OFFSET_VALUE_OFFSET));
     }
 
-    static @Milliseconds long readTimestamp(final DirectMemory directMemory, final @ByteOffset long recordOffset)
+    private static @Milliseconds long readTimestamp(final DirectMemory directMemory, final @ByteOffset long recordOffset)
     {
         final @ByteOffset long timestampOffset = timestampOffset(recordOffset);
         return TimeUnits.millis(directMemory.getLong(timestampOffset));
     }
 
-    static @Milliseconds long readTimestamp(final ByteBuffer buffer)
+    private static @Milliseconds long readTimestamp(final ByteBuffer buffer)
     {
         return TimeUnits.millis(buffer.getLong(TIMESTAMP_OFFSET));
     }
 
-    static @Version long readVersion(final DirectMemory directMemory, final @ByteOffset long recordOffset)
+    private static @Version long readVersion(final DirectMemory directMemory, final @ByteOffset long recordOffset)
     {
         final @ByteOffset long versionOffset = versionOffset(recordOffset);
         return StorageUnits.version(directMemory.getLong(versionOffset));
     }
 
-    static @Version long readVersion(final ByteBuffer buffer)
+    private static @Version long readVersion(final ByteBuffer buffer)
     {
         return StorageUnits.version(buffer.getLong(VERSION_OFFSET));
     }

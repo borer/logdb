@@ -64,7 +64,7 @@ public class FileStorageFactory
                     fileHeader.getPageSize(),
                     fileHeader.getSegmentFileSize());
 
-            if (fileType.equals(FileType.ROOT_INDEX))
+            if (FileType.ROOT_INDEX == fileType)
             {
                 final File rootIndexHeaderFile = rootDirectory.resolve(ROOT_INDEX_HEADER_FILENAME).toFile();
                 final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");
@@ -113,7 +113,7 @@ public class FileStorageFactory
 
             final FileHeader fileHeader;
             final FileHeader newFileHeader;
-            if (fileType.equals(FileType.ROOT_INDEX))
+            if (FileType.ROOT_INDEX == fileType)
             {
                 final File rootIndexHeaderFile = rootDirectory.resolve(ROOT_INDEX_HEADER_FILENAME).toFile();
                 final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");

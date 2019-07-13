@@ -83,13 +83,13 @@ public class MemoryStorage implements Storage
     @Override
     public @PageNumber long getPageNumber(final @ByteOffset long offset)
     {
-        return StorageUnits.pageNumber(offset);
+        return StorageUnits.pageNumber(offset / pageSize);
     }
 
     @Override
     public @ByteOffset long getOffset(final @PageNumber long pageNumber)
     {
-        return StorageUnits.offset(pageNumber);
+        return StorageUnits.offset(pageNumber * pageSize);
     }
 
     @Override
@@ -130,7 +130,7 @@ public class MemoryStorage implements Storage
     @Override
     public @PageNumber long appendPageAligned(final ByteBuffer buffer)
     {
-        return StorageUnits.pageNumber(append(buffer));
+        return getPageNumber(append(buffer));
     }
 
     @Override
@@ -154,7 +154,7 @@ public class MemoryStorage implements Storage
     @Override
     public @PageNumber long getLastPersistedPageNumber()
     {
-        return StorageUnits.pageNumber(lastPersistedOffset);
+        return getPageNumber(lastPersistedOffset);
     }
 
     @Override
@@ -173,7 +173,7 @@ public class MemoryStorage implements Storage
     @Override
     public void mapPage(final @PageNumber long pageNumber, final DirectMemory memory)
     {
-        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * pageSize);
+        final @ByteOffset long pageOffset = getOffset(pageNumber);
         final @ByteOffset long baseOffset = getBaseOffset(pageOffset);
         memory.setBaseAddress(baseOffset);
     }
