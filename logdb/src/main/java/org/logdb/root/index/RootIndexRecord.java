@@ -25,11 +25,11 @@ public class RootIndexRecord
     private static final @ByteSize int OFFSET_VALUE_SIZE = LONG_BYTES_SIZE;
     private static final @ByteOffset int OFFSET_VALUE_OFFSET = TIMESTAMP_OFFSET + StorageUnits.offset(TIMESTAMP_SIZE);
 
-    static final @ByteSize int SIZE = VERSION_SIZE + TIMESTAMP_SIZE + OFFSET_VALUE_SIZE;
+    public static final @ByteSize int SIZE = VERSION_SIZE + TIMESTAMP_SIZE + OFFSET_VALUE_SIZE;
 
     private final ByteBuffer recordBuffer;
 
-    RootIndexRecord(final ByteOrder order,
+    public RootIndexRecord(final ByteOrder order,
                     final @Version long version,
                     final @Milliseconds long timestamp,
                     final @ByteOffset long offsetValue)
@@ -126,5 +126,15 @@ public class RootIndexRecord
     private static @ByteOffset long offsetValueOffset(final @ByteOffset long baseOffset)
     {
         return baseOffset + OFFSET_VALUE_OFFSET;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "RootIndexRecord{" +
+                " version=" + getVersion() +
+                " timestamp=" + getTimestamp() +
+                " offset=" + getOffset() +
+                '}';
     }
 }
