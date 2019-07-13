@@ -35,7 +35,6 @@ class BTreeImplTest
 
         bTree = new BTreeImpl(
                 nodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,

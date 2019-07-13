@@ -244,6 +244,12 @@ public class NodesManager
         return lastPersistedPageNumber;
     }
 
+    @PageNumber long getPageNumberForVersion(final @Version long version)
+    {
+        final @ByteOffset long versionOffset = rootIndex.getVersionOffset(version);
+        return storage.getPageNumber(versionOffset);
+    }
+
     public void close()
     {
         try

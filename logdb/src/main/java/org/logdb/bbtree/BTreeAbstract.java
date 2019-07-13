@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.root.index.RootIndex;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -10,8 +9,6 @@ import org.logdb.time.TimeSource;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.logdb.bbtree.BTreeValidation.isNewTree;
 
 abstract class BTreeAbstract implements BTree
 {
@@ -26,7 +23,6 @@ abstract class BTreeAbstract implements BTree
 
     protected final NodesManager nodesManager;
     private final TimeSource timeSource;
-    private final RootIndex rootIndex;
 
     long nodesCount;
 
@@ -34,7 +30,6 @@ abstract class BTreeAbstract implements BTree
 
     BTreeAbstract(
             final NodesManager nodesManager,
-            final RootIndex rootIndex,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
             final @PageNumber long lastRootPageNumber,
@@ -42,7 +37,6 @@ abstract class BTreeAbstract implements BTree
     {
         this.nodesManager = Objects.requireNonNull(nodesManager, "nodesManager must not be null");
         this.timeSource = Objects.requireNonNull(timeSource, "timeSource must not be null");
-        this.rootIndex = Objects.requireNonNull(rootIndex, "rootIndex must not be null");
         this.nextWriteVersion = nextWriteVersion;
 
         this.committedRoot = new AtomicReference<>(lastRootPageNumber);
@@ -204,7 +198,6 @@ abstract class BTreeAbstract implements BTree
     {
         final BTreeNode rootForVersion;
         final RootReference currentRootReference = uncommittedRoot.get();
-        final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
         if (currentRootReference != null)
         {
             final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForVersion(version);
@@ -214,44 +207,16 @@ abstract class BTreeAbstract implements BTree
             }
             else
             {
-                if (!isNewTree(committedRootPageNumber))
-                {
-                    mappedNode.initNode(committedRootPageNumber);
-                    rootForVersion = mappedNode;
-                }
-                else
-                {
-                    throw new VersionNotFoundException(version);
-                }
+                final @PageNumber long committedRootPageNumber = nodesManager.getPageNumberForVersion(version);
+                mappedNode.initNode(committedRootPageNumber);
+                rootForVersion = mappedNode;
             }
         }
         else
         {
-            if (!isNewTree(committedRootPageNumber))
-            {
-                mappedNode.initNode(committedRootPageNumber);
-
-                while (mappedNode.getVersion() > version)
-                {
-                    final @PageNumber long previousRoot = mappedNode.getPreviousRoot();
-                    if (previousRoot < 0)
-                    {
-                        throw new VersionNotFoundException(version);
-                    }
-                    mappedNode.initNode(previousRoot);
-                }
-
-                rootForVersion = mappedNode;
-            }
-            else
-            {
-                throw new VersionNotFoundException(version);
-            }
-        }
-
-        if (rootForVersion.getVersion() != version)
-        {
-            throw new VersionNotFoundException(version);
+            final @PageNumber long committedRootPageNumber = nodesManager.getPageNumberForVersion(version);
+            mappedNode.initNode(committedRootPageNumber);
+            rootForVersion = mappedNode;
         }
 
         return rootForVersion;

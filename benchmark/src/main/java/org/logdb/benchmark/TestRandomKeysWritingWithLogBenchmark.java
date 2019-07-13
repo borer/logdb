@@ -65,7 +65,6 @@ public class TestRandomKeysWritingWithLogBenchmark
 
             btree = new BTreeWithLog(
                     nodesManager,
-                    rootIndex,
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,

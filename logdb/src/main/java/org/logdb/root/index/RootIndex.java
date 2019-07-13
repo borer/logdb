@@ -1,5 +1,6 @@
 package org.logdb.root.index;
 
+import org.logdb.bbtree.VersionNotFoundException;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
@@ -60,6 +61,11 @@ public class RootIndex implements AutoCloseable
 
     public @ByteOffset long getVersionOffset(final @Version long version)
     {
+        if (version < 0 || version > lastVersion)
+        {
+            throw new VersionNotFoundException(version);
+        }
+
         if (version == lastVersion)
         {
             return lastOffset;

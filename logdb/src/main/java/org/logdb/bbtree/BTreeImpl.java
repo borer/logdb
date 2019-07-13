@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.root.index.RootIndex;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -12,13 +11,12 @@ public class BTreeImpl extends BTreeAbstract
 {
     public BTreeImpl(
             final NodesManager nodesManager,
-            final RootIndex rootIndex,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
             final @PageNumber long lastRootPageNumber,
             final RootReference rootReference)
     {
-        super(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+        super(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
     }
 
     /**
@@ -195,6 +193,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
+    //TODO: this is going to be replaced with snapshot interface
     /**
      * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param version Version that we want to scan for

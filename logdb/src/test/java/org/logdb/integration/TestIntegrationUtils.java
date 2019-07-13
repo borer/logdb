@@ -75,7 +75,6 @@ class TestIntegrationUtils
 
         return new BTreeWithLog(
                 nodesManage,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -93,7 +92,6 @@ class TestIntegrationUtils
 
         return new BTreeWithLog(
                 nodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
@@ -119,7 +117,6 @@ class TestIntegrationUtils
 
         return new BTreeImpl(
                 nodesManage,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -135,7 +132,6 @@ class TestIntegrationUtils
 
         return new BTreeImpl(
                 nodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),

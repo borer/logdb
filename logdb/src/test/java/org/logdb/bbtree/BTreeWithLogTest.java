@@ -31,7 +31,6 @@ class BTreeWithLogTest
         NodesManager nodesManager = new NodesManager(treeStorage, rootIndex);
         bTree = new BTreeWithLog(
                 nodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,

@@ -33,7 +33,6 @@ class MemoryStorageTest
         final NodesManager nodesManager = new NodesManager(memoryStorage, rootIndex);
         final BTreeImpl originalBTree = new BTreeImpl(
                 nodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
@@ -55,7 +54,6 @@ class MemoryStorageTest
 
         final BTreeImpl loadedBTree = new BTreeImpl(
                 readNodesManager,
-                rootIndex,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 pageNumber,

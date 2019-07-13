@@ -152,11 +152,11 @@ public class LogDbBuilder
         final BTree index;
         if (useIndexWithLog)
         {
-            index = new BTreeWithLog(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
         else
         {
-            index = new BTreeImpl(nodesManager, rootIndex, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+            index = new BTreeImpl(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
 
         return index;

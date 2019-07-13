@@ -63,7 +63,6 @@ public class TestSequentialKeysWritingBenchmark
 
             btree = new BTreeImpl(
                     nodesManager,
-                    rootIndex,
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,
