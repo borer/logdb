@@ -97,7 +97,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         freeSizeLeftBytes = 0;
         pageNumber = StorageUnits.INVALID_PAGE_NUMBER;
         numberOfKeys = 0;
-        numberOfValues = 0;
+        numberOfValues = getNodeType() == BtreeNodeType.NonLeaf ? 1 : 0;
         numberOfLogKeyValues = 0;
         isDirty = false;
 
