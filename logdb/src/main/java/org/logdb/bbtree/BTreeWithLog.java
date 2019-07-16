@@ -303,8 +303,8 @@ public class BTreeWithLog extends BTreeAbstract
             parent.insertChild(0, keyAt, newRoot);
             parent.setChild(1, split);
 
-            newRoot = split.getMinKey() > key ? newRoot : split;
-            putWithLogRecursive(parent, at, newRoot, key, value);
+            final BTreeNodeHeap rootToPut = split.getMinKey() > key ? newRoot : split;
+            putWithLogRecursive(parent, at, rootToPut, key, value);
 
             setNewRoot(parent);
         }
@@ -423,7 +423,6 @@ public class BTreeWithLog extends BTreeAbstract
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-
             final BTreeNode child = nodesManager.loadNode(keyIndex, parent, mappedNode);
 
             final BTreeNodeHeap childrenCopy;
