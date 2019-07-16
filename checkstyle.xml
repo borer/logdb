@@ -50,7 +50,6 @@
             <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
         </module>
         <module name="AvoidStarImport"/>
-        <module name="OneTopLevelClass"/>
         <module name="NoLineWrap"/>
         <module name="EmptyBlock">
             <property name="option" value="TEXT"/>
@@ -80,15 +79,11 @@
              value="WhitespaceAround: ''{0}'' is not preceded with whitespace."/>
         </module>
         <module name="OneStatementPerLine"/>
-        <module name="MultipleVariableDeclarations"/>
         <module name="ArrayTypeStyle"/>
         <module name="MissingSwitchDefault"/>
         <module name="FallThrough"/>
         <module name="UpperEll"/>
         <module name="ModifierOrder"/>
-        <module name="EmptyLineSeparator">
-            <property name="allowNoEmptyLineBetweenFields" value="true"/>
-        </module>
         <module name="SeparatorWrap">
             <property name="id" value="SeparatorWrapDot"/>
             <property name="tokens" value="DOT"/>
@@ -135,11 +130,6 @@
             <message key="name.invalidPattern"
              value="Parameter name ''{0}'' must match pattern ''{1}''."/>
         </module>
-        <module name="LambdaParameterName">
-            <property name="format" value="^[a-z]([a-zA-Z0-9]*)?$"/>
-            <message key="name.invalidPattern"
-                     value="Lambda parameter name ''{0}'' must match pattern ''{1}''."/>
-        </module>
         <module name="CatchParameterName">
             <property name="format" value="^[a-z]([a-zA-Z0-9]*)?$"/>
             <message key="name.invalidPattern"
@@ -176,14 +166,6 @@
              value="GenericWhitespace ''{0}'' should followed by whitespace."/>
             <message key="ws.notPreceded"
              value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
-        </module>
-        <module name="Indentation">
-            <property name="basicOffset" value="4"/>
-            <property name="braceAdjustment" value="0"/>
-            <property name="caseIndent" value="4"/>
-            <property name="throwsIndent" value="4"/>
-            <property name="lineWrappingIndentation" value="4"/>
-            <property name="arrayInitIndent" value="4"/>
         </module>
         <module name="AbbreviationAsWordInName">
             <property name="ignoreFinal" value="false"/>
@@ -228,7 +210,6 @@
             <property name="forbiddenSummaryFragments"
              value="^@return the *|^This method returns |^A [{]@code [a-zA-Z0-9]+[}]( is a )"/>
         </module>
-        <module name="JavadocParagraph"/>
         <module name="AtclauseOrder">
             <property name="tagOrder" value="@param, @return, @throws, @deprecated"/>
             <property name="target"
