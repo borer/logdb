@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import org.logdb.storage.PageNumber;
 
+//TODO: extract into a visitor pattern
 public class BTreePrinter
 {
     /**

@@ -1,5 +1,7 @@
 package org.logdb;
 
+import org.logdb.async.AsyncWriteDelegatingBTree;
+import org.logdb.async.NonDaemonThreadFactory;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
@@ -27,6 +29,7 @@ import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 import static org.logdb.bbtree.BTreeValidation.isNewTree;
 import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
@@ -41,6 +44,8 @@ public class LogDbBuilder
     private @ByteSize int pageSizeBytes;
     private TimeSource timeSource;
     private boolean useIndexWithLog;
+    private boolean asyncIndexWrite;
+    private int asyncQueueCapacity = 8192;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -78,8 +83,22 @@ public class LogDbBuilder
         return this;
     }
 
+    public LogDbBuilder asyncIndexWrite(final boolean asyncIndexWrite)
+    {
+        this.asyncIndexWrite = asyncIndexWrite;
+        return this;
+    }
+
+    public LogDbBuilder asyncQueueCapacity(final int asyncQueueCapacity)
+    {
+        this.asyncQueueCapacity = asyncQueueCapacity;
+        return this;
+    }
+
     public LogDb build() throws IOException
     {
+        validateConfig();
+
         LOGGER.info("Constructing LogDB");
 
         LOGGER.info("Starting constructing LogDB heap file");
@@ -94,7 +113,33 @@ public class LogDbBuilder
         final BTree index = buildIndex(timeSource, rootIndex);
         LOGGER.info("Finnish constructing LogDB index file");
 
-        return new LogDb(logFile, index);
+        final BTree indexToUse;
+        if (asyncIndexWrite)
+        {
+            final AsyncWriteDelegatingBTree asyncWriteDelegatingBTree = new AsyncWriteDelegatingBTree(
+                    new NonDaemonThreadFactory(),
+                    index,
+                    asyncQueueCapacity);
+            asyncWriteDelegatingBTree.start();
+
+            indexToUse = asyncWriteDelegatingBTree;
+        }
+        else
+        {
+            indexToUse = index;
+        }
+
+        return new LogDb(logFile, indexToUse);
+    }
+
+    private void validateConfig()
+    {
+        Objects.requireNonNull(rootDirectory);
+
+        if (segmentFileSize < 0 || segmentFileSize % pageSizeBytes != 0)
+        {
+            throw new RuntimeException("invalid segment size, provided " + segmentFileSize);
+        }
     }
 
     private RootIndex buildRootIndex() throws IOException
@@ -162,7 +207,7 @@ public class LogDbBuilder
         return index;
     }
 
-    private LogFile buildLogFile(TimeSource timeSource) throws IOException
+    private LogFile buildLogFile(final TimeSource timeSource) throws IOException
     {
         final FileStorage logDbFileStorage = buildFileStorage(FileType.HEAP);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage);
@@ -177,7 +222,7 @@ public class LogDbBuilder
                 : StorageUnits.version(appendVersion + 1);
     }
 
-    private FileStorage buildFileStorage(FileType fileType) throws IOException
+    private FileStorage buildFileStorage(final FileType fileType) throws IOException
     {
         final FileStorage fileStorage;
         if (!Files.exists(rootDirectory) || Files.list(rootDirectory).noneMatch(fileType))
