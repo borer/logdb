@@ -97,7 +97,7 @@ public class RootIndexRecord
         return TimeUnits.millis(directMemory.getLong(timestampOffset));
     }
 
-    private static @Milliseconds long readTimestamp(final ByteBuffer buffer)
+    static @Milliseconds long readTimestamp(final ByteBuffer buffer)
     {
         return TimeUnits.millis(buffer.getLong(TIMESTAMP_OFFSET));
     }
@@ -108,7 +108,7 @@ public class RootIndexRecord
         return StorageUnits.version(directMemory.getLong(versionOffset));
     }
 
-    private static @Version long readVersion(final ByteBuffer buffer)
+    static @Version long readVersion(final ByteBuffer buffer)
     {
         return StorageUnits.version(buffer.getLong(VERSION_OFFSET));
     }

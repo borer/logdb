@@ -1,5 +1,6 @@
 package org.logdb.root.index;
 
+import org.logdb.bbtree.SearchUtils;
 import org.logdb.bbtree.VersionNotFoundException;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
@@ -88,7 +89,27 @@ public class RootIndex implements AutoCloseable
             return lastOffset;
         }
 
-        return StorageUnits.ZERO_OFFSET;
+        final ByteBuffer buffer = ByteBuffer.allocate(RootIndexRecord.SIZE);
+        buffer.order(storage.getOrder());
+
+        final @ByteOffset long lastPersistedOffset = storage.getLastPersistedOffset();
+        final long numberOfRecords = (lastPersistedOffset / RootIndexRecord.SIZE) + 1;
+
+        final long recordIndex = SearchUtils.binarySearchLessOrEqual(timestamp, numberOfRecords, index ->
+        {
+            final @ByteOffset long offset = StorageUnits.offset(index * RootIndexRecord.SIZE);
+            storage.readBytes(offset, buffer);
+            return RootIndexRecord.readTimestamp(buffer);
+        });
+
+        if (recordIndex >= 0)
+        {
+            return RootIndexRecord.readOffsetValue(buffer);
+        }
+        else
+        {
+            throw new VersionForTimestampNotFoundException(timestamp);
+        }
     }
 
     @Override

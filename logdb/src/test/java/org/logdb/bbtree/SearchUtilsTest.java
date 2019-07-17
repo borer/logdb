@@ -18,6 +18,16 @@ public class SearchUtilsTest
     }
 
     @Test
+    void shouldPerformBinarySearchInOneElementArray()
+    {
+        long[] singleton = new long[]{0};
+        assertEquals(0, SearchUtils.binarySearch(0, singleton.length, index -> 0));
+        assertEquals(-2, SearchUtils.binarySearch(1, singleton.length, index -> 0));
+        assertEquals(-1, SearchUtils.binarySearch(-1, singleton.length, index -> 0));
+        assertEquals(-1, SearchUtils.binarySearch(-2, singleton.length, index -> 0));
+    }
+
+    @Test
     void shouldPerformBinarySearch()
     {
         assertEquals(0, SearchUtils.binarySearch(0, keys.length, keySupplier));

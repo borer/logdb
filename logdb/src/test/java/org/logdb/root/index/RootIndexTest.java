@@ -35,9 +35,25 @@ class RootIndexTest
             for (int i = 0; i < maxVersions; i++)
             {
                 assertEquals(offset + i, rootIndex.getVersionOffset(version + i));
+                assertEquals(offset + i, rootIndex.getTimestampOffset(timestamp + i));
             }
+        }
+    }
 
-            assertEquals(offset + maxVersions - 1, rootIndex.getTimestampOffset(timestamp + maxVersions - 1));
+    @Test
+    void shouldGetPreviousTimestampOffset() throws Exception
+    {
+        final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
+        final @Version long version = StorageUnits.INITIAL_VERSION;
+        final @Milliseconds long timestamp = TimeUnits.millis(0);
+        final @ByteOffset long offset = StorageUnits.INVALID_OFFSET;
+        try (RootIndex rootIndex = new RootIndex(storage, version, timestamp, offset))
+        {
+            rootIndex.append(1, 1, 1);
+            rootIndex.append(5, 5, 5);
+            rootIndex.flush(false);
+
+            assertEquals(1, rootIndex.getTimestampOffset(3));
         }
     }
 
@@ -72,6 +88,32 @@ class RootIndexTest
             {
                 assertEquals("The version 1 was not found.", e.getMessage());
             }
+        }
+    }
+
+    @Test
+    void shouldFailToFindNonExistingTimestamp() throws Exception
+    {
+        final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
+        final @Version long version = StorageUnits.INITIAL_VERSION;
+        final @Milliseconds long timestamp = TimeUnits.millis(1237123571L);
+        final @ByteOffset long offset = StorageUnits.offset(12312313L);
+        try (RootIndex rootIndex = new RootIndex(storage, version, timestamp, offset))
+        {
+            rootIndex.append(version, timestamp, offset);
+            rootIndex.flush(false);
+
+            try
+            {
+                rootIndex.getTimestampOffset(-1);
+                fail("should not execute");
+            }
+            catch (final VersionForTimestampNotFoundException e)
+            {
+                assertEquals("A version for timestamp -1 was not found.", e.getMessage());
+            }
+
+            assertEquals(offset, rootIndex.getTimestampOffset(timestamp + 1));
         }
     }
 }
