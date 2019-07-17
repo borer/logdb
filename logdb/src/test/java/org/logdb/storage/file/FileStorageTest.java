@@ -74,10 +74,10 @@ class FileStorageTest
                     TimeUnits.millis(0),
                     StorageUnits.INVALID_OFFSET);
 
-            final NodesManager nodesManager = new NodesManager(storage, rootIndex);
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
 
             final long pageNumber = leaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
-            storage.flush();
+            storage.flush(true);
 
             final DirectMemory persistedMemory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
             storage.mapPage(pageNumber, persistedMemory);
@@ -116,10 +116,10 @@ class FileStorageTest
                     TimeUnits.millis(0),
                     StorageUnits.INVALID_OFFSET);
 
-            final NodesManager nodesManager = new NodesManager(storage, rootIndex);
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
 
             final long pageNumber = nonLeaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
-            storage.flush();
+            storage.flush(true);
 
             final DirectMemory persistedMemory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
             storage.mapPage(pageNumber, persistedMemory);

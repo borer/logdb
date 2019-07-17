@@ -90,7 +90,7 @@ final class FileReaderStorage implements Storage
     }
 
     @Override
-    public void flush()
+    public void flush(final boolean flushMeta)
     {
         throw new UnsupportedOperationException("Method not Implemented");
     }

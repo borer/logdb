@@ -134,7 +134,7 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void flush()
+    public void flush(final boolean flushMeta)
     {
         //NO-OP
     }

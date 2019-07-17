@@ -43,7 +43,7 @@ class FixedFileStorageHeaderTest
                 {
 
                     fixedFileStorageHeader.writeToAndPageAlign(emptyChannel);
-                    fixedFileStorageHeader.flush();
+                    fixedFileStorageHeader.flush(true);
 
                     assertEquals(StorageUnits.ZERO_OFFSET, emptyChannel.position());
                     assertEquals(fixedFileStorageHeader.getHeaderSizeAlignedToNearestPage(), headerFileChannel.position());
@@ -70,7 +70,7 @@ class FixedFileStorageHeaderTest
                 headerFileChannel))
         {
             fixedFileStorageHeader.writeToAndPageAlign(null);
-            fixedFileStorageHeader.flush();
+            fixedFileStorageHeader.flush(true);
 
             assertEquals(fixedFileStorageHeader.getHeaderSizeAlignedToNearestPage(), headerFileChannel.position());
         }

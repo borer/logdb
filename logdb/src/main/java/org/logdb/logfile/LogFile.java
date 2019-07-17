@@ -11,17 +11,23 @@ import java.io.IOException;
 public class LogFile implements AutoCloseable
 {
     private final LogRecordStorage logRecordStorage;
+    private final boolean shouldSyncWrite;
     private final Storage storage;
     private final TimeSource timeSource;
 
     private @Version long nextWriteVersion;
 
-    public LogFile(final Storage storage, final TimeSource timeSource, final @Version long nextWriteVersion)
+    public LogFile(
+            final Storage storage,
+            final TimeSource timeSource,
+            final @Version long nextWriteVersion,
+            final boolean shouldSyncWrite)
     {
         this.storage = storage;
         this.timeSource = timeSource;
         this.nextWriteVersion = nextWriteVersion;
         this.logRecordStorage = new LogRecordStorage(storage);
+        this.shouldSyncWrite = shouldSyncWrite;
     }
 
     public @ByteOffset long put(final byte[] key, final byte[] value) throws IOException
@@ -34,7 +40,8 @@ public class LogFile implements AutoCloseable
                 timestamp);
 
         storage.commitMetadata(putRecordStartOffset, nextWriteVersion);
-        storage.flush();
+        flushStorage();
+
         nextWriteVersion++;
 
         return putRecordStartOffset;
@@ -55,7 +62,7 @@ public class LogFile implements AutoCloseable
                 timestamp);
 
         storage.commitMetadata(deleteRecordStartOffset, nextWriteVersion);
-        storage.flush();
+        flushStorage();
         nextWriteVersion++;
 
         return deleteRecordStartOffset;
@@ -65,5 +72,13 @@ public class LogFile implements AutoCloseable
     public void close() throws Exception
     {
         storage.close();
+    }
+
+    private void flushStorage()
+    {
+        if (shouldSyncWrite)
+        {
+            storage.flush(false);
+        }
     }
 }

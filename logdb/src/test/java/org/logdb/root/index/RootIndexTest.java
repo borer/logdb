@@ -29,7 +29,7 @@ class RootIndexTest
             for (int i = 0; i < maxVersions; i++)
             {
                 rootIndex.append(version + i, timestamp + i, offset + i);
-                rootIndex.commit();
+                rootIndex.flush(false);
             }
 
             for (int i = 0; i < maxVersions; i++)
@@ -51,7 +51,7 @@ class RootIndexTest
         try (RootIndex rootIndex = new RootIndex(storage, version, timestamp, offset))
         {
             rootIndex.append(version, timestamp, offset);
-            rootIndex.commit();
+            rootIndex.flush(false);
 
             try
             {

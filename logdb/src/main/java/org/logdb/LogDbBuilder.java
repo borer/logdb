@@ -46,6 +46,7 @@ public class LogDbBuilder
     private boolean useIndexWithLog;
     private boolean asyncIndexWrite;
     private int asyncQueueCapacity = 8192;
+    private boolean shouldSyncWrite = false;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -92,6 +93,12 @@ public class LogDbBuilder
     public LogDbBuilder asyncQueueCapacity(final int asyncQueueCapacity)
     {
         this.asyncQueueCapacity = asyncQueueCapacity;
+        return this;
+    }
+
+    public LogDbBuilder shouldSyncWrite(final boolean shouldSyncWrite)
+    {
+        this.shouldSyncWrite = shouldSyncWrite;
         return this;
     }
 
@@ -177,7 +184,7 @@ public class LogDbBuilder
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
-        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex);
+        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex, shouldSyncWrite);
 
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         final RootReference rootReference;
@@ -211,7 +218,7 @@ public class LogDbBuilder
     {
         final FileStorage logDbFileStorage = buildFileStorage(FileType.HEAP);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage);
-        return new LogFile(logDbFileStorage, timeSource, nextWriteVersion);
+        return new LogFile(logDbFileStorage, timeSource, nextWriteVersion, shouldSyncWrite);
     }
 
     private @Version long getNextWriteVersion(final FileStorage logDbFileStorage)

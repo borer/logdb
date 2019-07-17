@@ -61,7 +61,7 @@ public class TestRandomKeysWritingWithLogBenchmark
                     PAGE_SIZE_BYTES,
                     ByteOrder.LITTLE_ENDIAN);
 
-            nodesManager = new NodesManager(storage, rootIndex);
+            nodesManager = new NodesManager(storage, rootIndex, false);
 
             btree = new BTreeWithLog(
                     nodesManager,

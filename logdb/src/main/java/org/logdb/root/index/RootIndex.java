@@ -54,9 +54,9 @@ public class RootIndex implements AutoCloseable
         this.lastOffset = offset;
     }
 
-    public void commit()
+    public void flush(final boolean flushMeta)
     {
-        storage.flush();
+        storage.flush(flushMeta);
     }
 
     public @ByteOffset long getVersionOffset(final @Version long version)

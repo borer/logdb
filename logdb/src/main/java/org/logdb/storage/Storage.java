@@ -74,5 +74,5 @@ public interface Storage extends AutoCloseable
     // as they just have to ask the storage for some bytes and then each one will get a copy.
     void readBytes(@ByteOffset long offset, ByteBuffer buffer);
 
-    void flush();
+    void flush(boolean flushMeta);
 }

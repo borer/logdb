@@ -24,6 +24,7 @@ public class NodesManager
     private final Storage storage;
     private final IdSupplier idSupplier;
     private final RootIndex rootIndex;
+    private final boolean shouldSyncWrite;
 
     private final List<RootReference> dirtyRootNodes;
     private final Queue<BTreeNodeNonLeaf> nonLeafNodesCache;
@@ -32,10 +33,11 @@ public class NodesManager
 
     private @PageNumber long lastPersistedPageNumber;
 
-    public NodesManager(final Storage storage, final RootIndex rootIndex)
+    public NodesManager(final Storage storage, final RootIndex rootIndex, final boolean shouldSyncWrite)
     {
         this.storage = Objects.requireNonNull(storage, "storage cannot be null");
         this.rootIndex = Objects.requireNonNull(rootIndex, "rootIndex cannot be null");
+        this.shouldSyncWrite = shouldSyncWrite;
 
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
@@ -173,10 +175,12 @@ public class NodesManager
                     storage.getOffset(pageNumber)); //FIX: actually pass the offset
         }
 
-        //TODO: make root index non-blocking
-        rootIndex.commit();
+        if (shouldSyncWrite)
+        {
+            rootIndex.flush(false);
+            storage.flush(false);
+        }
 
-        storage.flush();
         dirtyRootNodes.clear();
     }
 

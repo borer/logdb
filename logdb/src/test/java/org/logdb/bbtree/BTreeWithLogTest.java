@@ -28,7 +28,7 @@ class BTreeWithLogTest
         final Storage treeStorage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE);
 
-        NodesManager nodesManager = new NodesManager(treeStorage, rootIndex);
+        NodesManager nodesManager = new NodesManager(treeStorage, rootIndex, true);
         bTree = new BTreeWithLog(
                 nodesManager,
                 new StubTimeSource(),

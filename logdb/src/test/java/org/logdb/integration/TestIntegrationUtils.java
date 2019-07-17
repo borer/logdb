@@ -45,13 +45,13 @@ class TestIntegrationUtils
                 byteOrder,
                 PAGE_SIZE_BYTES);
 
-        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion());
+        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true);
     }
 
     static LogFile readLogFile(final Path rootDirectory)
     {
         FileStorage storageLogFile = FileStorageFactory.openExisting(rootDirectory, FileType.HEAP);
-        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion());
+        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true);
     }
 
     static BTreeWithLog createNewPersistedLogBtree(final Path path) throws IOException
@@ -71,7 +71,7 @@ class TestIntegrationUtils
                 PAGE_SIZE_BYTES);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
-        final NodesManager nodesManage = new NodesManager(storage, rootIndex);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
 
         return new BTreeWithLog(
                 nodesManage,
@@ -88,7 +88,7 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final RootIndex rootIndex = openRootIndex(path);
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
 
         return new BTreeWithLog(
                 nodesManager,
@@ -113,7 +113,7 @@ class TestIntegrationUtils
                 PAGE_SIZE_BYTES);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
-        final NodesManager nodesManage = new NodesManager(storage, rootIndex);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
 
         return new BTreeImpl(
                 nodesManage,
@@ -128,7 +128,7 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
         final RootIndex rootIndex = openRootIndex(path);
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
 
         return new BTreeImpl(
                 nodesManager,

@@ -101,9 +101,9 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public void flush() throws IOException
+    public void flush(final boolean flushMeta) throws IOException
     {
-        headerFileChannel.force(false);
+        headerFileChannel.force(flushMeta);
     }
 
     @Override

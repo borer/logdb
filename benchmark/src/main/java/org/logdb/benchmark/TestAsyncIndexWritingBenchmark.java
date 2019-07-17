@@ -48,6 +48,7 @@ public class TestAsyncIndexWritingBenchmark
                     .setTimeSource(new SystemTimeSource())
                     .asyncIndexWrite(true)
                     .asyncQueueCapacity(16384)
+                    .shouldSyncWrite(false)
                     .build();
 
             key = 1L;

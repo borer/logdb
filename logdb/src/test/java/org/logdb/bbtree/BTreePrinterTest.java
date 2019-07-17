@@ -88,7 +88,7 @@ class BTreePrinterTest
                 INITIAL_VERSION,
                 TimeUnits.millis(0),
                 StorageUnits.INVALID_OFFSET);
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, false);
         assertEquals(expectedDotString, BTreePrinter.print(bTreeNonLeaf, nodesManager));
     }
 }

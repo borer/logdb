@@ -232,7 +232,7 @@ public final class FileStorageHeader implements FileHeader
     }
 
     @Override
-    public void flush()
+    public void flush(final boolean flushMeta)
     {
         //No-op
     }

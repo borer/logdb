@@ -341,13 +341,13 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public void flush()
+    public void flush(final boolean flushMeta)
     {
         try
         {
-            currentAppendingChannel.force(false);
-            fileStorageHeader.flush();
-            newFileStorageHeader.flush();
+            currentAppendingChannel.force(flushMeta);
+            fileStorageHeader.flush(flushMeta);
+            newFileStorageHeader.flush(flushMeta);
         }
         catch (final IOException e)
         {
@@ -358,6 +358,8 @@ public final class FileStorage implements Storage
     @Override
     public void close() throws Exception
     {
+        flush(true);
+
         mappedBuffers.clear();
         currentAppendingChannel.close();
         currentAppendingFile.close();
