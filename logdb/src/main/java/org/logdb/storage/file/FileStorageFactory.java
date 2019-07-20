@@ -1,5 +1,6 @@
 package org.logdb.storage.file;
 
+import org.logdb.bit.UnsafeArrayList;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
@@ -11,10 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -173,17 +172,18 @@ public class FileStorageFactory
             final RandomAccessFile currentAppendFile,
             final FileChannel currentAppendChannel) throws IOException
     {
-        final List<MappedByteBuffer> mappedByteBuffers = new ArrayList<>();
         final List<Path> existingFiles = fileAllocator.getAllFilesInOrder();
-        for (final Path filePath : existingFiles)
+        final MappedBuffer[] mappedByteBuffers = new MappedBuffer[existingFiles.size()];
+        for (int i = 0; i < existingFiles.size(); i++)
         {
+            final Path filePath = existingFiles.get(i);
             LOGGER.info("Mapping file " + filePath);
             final File file = filePath.toFile();
             try (RandomAccessFile accessFile = new RandomAccessFile(file, "r"))
             {
                 try (FileChannel channel = accessFile.getChannel())
                 {
-                    mappedByteBuffers.add(FileStorage.mapFile(channel, fileHeader.getOrder()));
+                    mappedByteBuffers[i] = FileStorage.mapFile(channel, fileHeader.getOrder());
                 }
             }
         }
@@ -205,6 +205,8 @@ public class FileStorageFactory
             globalFilePosition = StorageUnits.offset(currentAppendChannel.position());
         }
 
+        final UnsafeArrayList<MappedBuffer> mappedBuffers = new UnsafeArrayList<>(mappedByteBuffers);
+
         return new FileStorage(
                 rootDirectory,
                 fileAllocator,
@@ -212,7 +214,7 @@ public class FileStorageFactory
                 newFileHeader,
                 currentAppendFile,
                 currentAppendChannel,
-                mappedByteBuffers,
+                mappedBuffers,
                 globalFilePosition);
     }
 

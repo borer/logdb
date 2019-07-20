@@ -6,6 +6,7 @@ import org.logdb.bit.MemoryFactory;
 import org.logdb.bit.MemoryOrder;
 import org.logdb.bit.NativeMemoryAccess;
 import org.logdb.bit.NonNativeMemoryAccess;
+import org.logdb.bit.UnsafeArrayList;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -15,18 +16,15 @@ import org.logdb.storage.Version;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
-import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryStorage implements Storage
 {
     private final ByteOrder order;
     private final @ByteSize int pageSize;
-    private final List<DirectMemory> bufferPool;
+    private final UnsafeArrayList<DirectMemory> bufferPool;
     private final @ByteSize int memoryChunkSize;
 
     private @ByteOffset long allocatedMemoryOffset;
@@ -44,7 +42,7 @@ public class MemoryStorage implements Storage
         this.order = order;
         this.pageSize = pageSize;
         this.memoryChunkSize = memoryChunkSize;
-        this.bufferPool = new ArrayList<>();
+        this.bufferPool = new UnsafeArrayList<>(new DirectMemory[0]);
 
         final DirectMemory directMemory = MemoryFactory.allocateDirect(memoryChunkSize, order);
         bufferPool.add(directMemory);
@@ -185,23 +183,12 @@ public class MemoryStorage implements Storage
                 : "The offset " + pageOffset + " is outside the mapped range of " +
                 (StorageUnits.offset(bufferPool.size() * memoryChunkSize));
 
-        @ByteOffset long offsetBuffer = StorageUnits.ZERO_OFFSET;
+        final int containingBufferIndex = (int)(pageOffset / memoryChunkSize);
+        final @ByteOffset long bufferOffset = StorageUnits.offset(containingBufferIndex * memoryChunkSize);
+        final @ByteOffset long offsetInsideSegment = StorageUnits.offset(pageOffset - bufferOffset);
 
-        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
-        for (int i = 0; i < bufferPool.size(); i++)
-        {
-            final DirectMemory buffer = bufferPool.get(i);
-            final @ByteOffset long bufferEndOffset = StorageUnits.offset(offsetBuffer + buffer.getCapacity());
-            if (pageOffset >= offsetBuffer && pageOffset < bufferEndOffset)
-            {
-                final @ByteOffset long offsetInsideBuffer = StorageUnits.offset(pageOffset - offsetBuffer);
-                return StorageUnits.offset(buffer.getBaseAddress() + offsetInsideBuffer);
-            }
-
-            offsetBuffer += StorageUnits.offset(buffer.getCapacity());
-        }
-
-        return INVALID_OFFSET;
+        final DirectMemory directMemory = bufferPool.get(containingBufferIndex);
+        return StorageUnits.offset(directMemory.getBaseAddress() + offsetInsideSegment);
     }
 
     @Override

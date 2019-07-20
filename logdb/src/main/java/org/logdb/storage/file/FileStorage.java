@@ -6,6 +6,7 @@ import org.logdb.bit.MemoryFactory;
 import org.logdb.bit.MemoryOrder;
 import org.logdb.bit.NativeMemoryAccess;
 import org.logdb.bit.NonNativeMemoryAccess;
+import org.logdb.bit.UnsafeArrayList;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -23,7 +24,6 @@ import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
@@ -34,10 +34,10 @@ public final class FileStorage implements Storage
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-    private final List<MappedByteBuffer> mappedBuffers;
     private final FileHeader fileStorageHeader;
     private final FileHeader newFileStorageHeader;
     private final FileAllocator fileAllocator;
+    private final UnsafeArrayList<MappedBuffer> mappedBuffers;
 
     //cached values from the file header
     private final ByteOrder order;
@@ -55,7 +55,7 @@ public final class FileStorage implements Storage
             final FileHeader newFileStorageHeader, 
             final RandomAccessFile currentAppendingFile,
             final FileChannel currentAppendingChannel,
-            final List<MappedByteBuffer> mappedBuffers, //TODO: this probably needs to be a structure of some other kind
+            final UnsafeArrayList<MappedBuffer> mappedBuffers,
             final @ByteOffset long globalFilePosition)
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
@@ -66,7 +66,7 @@ public final class FileStorage implements Storage
         this.mappedBuffers = mappedBuffers;
         this.globalFilePosition = globalFilePosition;
         this.newFileStorageHeader = newFileStorageHeader;
-        
+
         this.order = fileStorageHeader.getOrder();
         this.fileSegmentSize = fileStorageHeader.getSegmentFileSize();
         this.pageSize = fileStorageHeader.getPageSize();
@@ -114,18 +114,18 @@ public final class FileStorage implements Storage
         currentAppendingFile = accessFile;
         currentAppendingChannel = channel;
 
-        final MappedByteBuffer mappedByteBuffer = mapFile(channel, order);
-        mappedBuffers.add(mappedByteBuffer);
+        final MappedBuffer mappedBuffer = mapFile(channel, order);
+        mappedBuffers.add(mappedBuffer);
     }
 
-    static MappedByteBuffer mapFile(final FileChannel channel, final ByteOrder byteOrder) throws IOException
+    static MappedBuffer mapFile(final FileChannel channel, final ByteOrder byteOrder) throws IOException
     {
         final @ByteSize long size = StorageUnits.size(channel.size());
-        final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, size);
+        final MappedByteBuffer mappedBuffer = channel.map(FileChannel.MapMode.READ_ONLY, ZERO_OFFSET, size);
+        mappedBuffer.order(byteOrder);
 
-        map.order(byteOrder);
-
-        return map;
+        final @ByteOffset long mappedBufferBaseAddress = MemoryFactory.getPageOffset(mappedBuffer, ZERO_OFFSET);
+        return new MappedBuffer(mappedBuffer, mappedBufferBaseAddress);
     }
 
     @Override
@@ -295,25 +295,12 @@ public final class FileStorage implements Storage
                 : "The page number " + pageNumber + " is outside the mapped range of " +
                 getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileSegmentSize));
 
-        @ByteOffset long offsetMappedBuffer = StorageUnits.ZERO_OFFSET;
-        final @ByteOffset long pageOffset = StorageUnits.offset(pageNumber * pageSize);
+        final @ByteOffset long pageOffset = getOffset(pageNumber);
+        final int containingBufferIndex = (int)(pageOffset / fileStorageHeader.getSegmentFileSize());
+        final @ByteOffset long bufferOffset = StorageUnits.offset(containingBufferIndex * fileStorageHeader.getSegmentFileSize());
+        final @ByteOffset long offsetInsideSegment = StorageUnits.offset(pageOffset - bufferOffset);
 
-        //TODO: make this search logN (use a structure of (offsetStart,buffer) and then binary search on offset)
-        for (int i = 0; i < mappedBuffers.size(); i++)
-        {
-            final MappedByteBuffer mappedBuffer = mappedBuffers.get(i);
-            final @ByteOffset long mappedBufferEndOffset = StorageUnits.offset(offsetMappedBuffer + mappedBuffer.limit());
-            if (pageOffset >= offsetMappedBuffer && pageOffset < mappedBufferEndOffset)
-            {
-                //TODO: getting the base address of a mapped buffer could be cached, a
-                // long with the logical start and end offset (use for binary search in previous loop)
-                return MemoryFactory.getPageOffset(mappedBuffer, pageOffset - offsetMappedBuffer);
-            }
-
-            offsetMappedBuffer += StorageUnits.offset(mappedBuffer.limit());
-        }
-
-        return INVALID_OFFSET;
+        return StorageUnits.offset(mappedBuffers.get(containingBufferIndex).address + offsetInsideSegment);
     }
 
     @Override
@@ -360,7 +347,7 @@ public final class FileStorage implements Storage
     {
         flush(true);
 
-        mappedBuffers.clear();
+        mappedBuffers.clean();
         currentAppendingChannel.close();
         currentAppendingFile.close();
 
