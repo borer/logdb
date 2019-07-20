@@ -255,7 +255,8 @@ public final class FileStorage implements Storage
             pageNumber++;
 
             final @ByteOffset long pageBaseOffset2 = getBaseOffset(pageNumber);
-            final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, lengthBytes));
+            final @ByteSize int leftToRead = StorageUnits.size(lengthBytes - readPosition);
+            final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, leftToRead));
 
             readBytesNative(pageBaseOffset2, order, buffer, readPosition, bytesToRead2);
 

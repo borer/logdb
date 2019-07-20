@@ -4,6 +4,7 @@ import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeNode;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,6 +131,12 @@ public class AsyncWriteDelegatingBTree implements BTree
     public long get(final long key)
     {
         return delegate.get(key);
+    }
+
+    @Override
+    public long getByTimestamp(long key, @Milliseconds long timestamp)
+    {
+        return delegate.getByTimestamp(key, timestamp);
     }
 
     @Override

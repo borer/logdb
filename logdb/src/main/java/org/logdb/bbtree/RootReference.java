@@ -63,4 +63,15 @@ public final class RootReference
         }
         return rootReference;
     }
+
+    RootReference getRootReferenceForTimestamp(final @Milliseconds long timestamp)
+    {
+        RootReference rootReference = this;
+        while (rootReference != null && rootReference.timestamp > timestamp)
+        {
+            rootReference = rootReference.previous;
+        }
+
+        return rootReference;
+    }
 }

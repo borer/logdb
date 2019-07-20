@@ -5,13 +5,16 @@ import org.logdb.time.TimeSource;
 
 public class StubTimeSource implements TimeSource
 {
-    long currentTime = 0;
+    private long currentTime = 0;
 
     @Override
     public @Milliseconds long getCurrentMillis()
     {
-        currentTime++;
+        return currentTime++;
+    }
 
+    public long getCurrentTimeWithoutIncrementing()
+    {
         return currentTime;
     }
 }

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
+import org.logdb.support.StubTimeSource;
 
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -212,6 +213,33 @@ class BBTreeIntegrationTest
                     assertEquals(key, k);
                     assertEquals(index[0], value);
                 });
+            }
+        }
+    }
+
+    @Test
+    void shouldGetHistoricValuesByTimestampFromOpenDB() throws Exception
+    {
+        final long key = 123L;
+        final int maxVersions = 100;
+
+        final StubTimeSource timeSource = new StubTimeSource();
+
+        try (final BTree originalBTree = createNewPersistedBtree(tempDirectory, timeSource))
+        {
+            for (long i = 0; i < maxVersions; i++)
+            {
+                originalBTree.put(key, i);
+            }
+
+            originalBTree.commit();
+        }
+
+        try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
+        {
+            for (int i = 0; i < timeSource.getCurrentTimeWithoutIncrementing(); i++)
+            {
+                assertEquals(i, loadedBTree.getByTimestamp(key, i));
             }
         }
     }

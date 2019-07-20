@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
 import java.util.function.BiConsumer;
@@ -150,6 +151,21 @@ public class BTreeImpl extends BTreeAbstract
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
             return cursorPosition.getNode(mappedNode).get(key);
+        }
+    }
+
+    @Override
+    public long getByTimestamp(final long key, final @Milliseconds long timestamp)
+    {
+        assert timestamp >= 0;
+
+        try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
+        {
+            final BTreeNode rootNode = getRootNodeByTimestamp(timestamp, mappedNode);
+            final CursorPosition cursorPosition = traverseDown(rootNode, key);
+            final BTreeNode node = cursorPosition.getNode(mappedNode);
+
+            return node.get(key);
         }
     }
 

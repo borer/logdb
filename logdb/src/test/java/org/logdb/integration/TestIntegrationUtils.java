@@ -15,6 +15,7 @@ import org.logdb.storage.file.FileStorageFactory;
 import org.logdb.storage.file.FileType;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
+import org.logdb.time.TimeSource;
 import org.logdb.time.TimeUnits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,10 +57,18 @@ class TestIntegrationUtils
 
     static BTreeWithLog createNewPersistedLogBtree(final Path path) throws IOException
     {
-        return createNewPersistedLogBtree(path, TestUtils.BYTE_ORDER);
+        return createNewPersistedLogBtree(path, TestUtils.BYTE_ORDER, new StubTimeSource());
     }
 
     static BTreeWithLog createNewPersistedLogBtree(final Path path, final ByteOrder byteOrder) throws IOException
+    {
+        return createNewPersistedLogBtree(path, byteOrder, new StubTimeSource());
+    }
+
+    static BTreeWithLog createNewPersistedLogBtree(
+            final Path path,
+            final ByteOrder byteOrder,
+            final TimeSource timeSource) throws IOException
     {
         LOGGER.info("Creating temporal path " + path.getFileName());
 
@@ -75,7 +84,7 @@ class TestIntegrationUtils
 
         return new BTreeWithLog(
                 nodesManage,
-                new StubTimeSource(),
+                timeSource,
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
                 createInitialRootReference(nodesManage));
@@ -98,12 +107,25 @@ class TestIntegrationUtils
                 null);
     }
 
+    static BTreeImpl createNewPersistedBtree(final Path path, final TimeSource timeSource) throws IOException
+    {
+        return createNewPersistedBtree(path, TestUtils.BYTE_ORDER, timeSource);
+    }
+
     static BTreeImpl createNewPersistedBtree(final Path path) throws IOException
     {
-        return createNewPersistedBtree(path, TestUtils.BYTE_ORDER);
+        return createNewPersistedBtree(path, TestUtils.BYTE_ORDER, new StubTimeSource());
     }
 
     static BTreeImpl createNewPersistedBtree(final Path path, final ByteOrder byteOrder) throws IOException
+    {
+        return createNewPersistedBtree(path, byteOrder, new StubTimeSource());
+    }
+
+    static BTreeImpl createNewPersistedBtree(
+            final Path path,
+            final ByteOrder byteOrder,
+            final TimeSource timeSource) throws IOException
     {
         final FileStorage storage = FileStorageFactory.createNew(
                 path,
@@ -117,13 +139,18 @@ class TestIntegrationUtils
 
         return new BTreeImpl(
                 nodesManage,
-                new StubTimeSource(),
+                timeSource,
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
                 createInitialRootReference(nodesManage));
     }
 
     static BTreeImpl loadPersistedBtree(final Path path)
+    {
+        return loadPersistedBtree(path, new StubTimeSource());
+    }
+
+    static BTreeImpl loadPersistedBtree(final Path path, final TimeSource timeSource)
     {
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
 
@@ -132,7 +159,7 @@ class TestIntegrationUtils
 
         return new BTreeImpl(
                 nodesManager,
-                new StubTimeSource(),
+                timeSource,
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
                 null);

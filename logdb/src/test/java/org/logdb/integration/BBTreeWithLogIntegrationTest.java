@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeWithLog;
+import org.logdb.support.StubTimeSource;
+import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +103,33 @@ class BBTreeWithLogIntegrationTest
             }
 
             assertEquals(KEY_NOT_FOUND_VALUE, loadedBTree.get(nonExistingKey));
+        }
+    }
+
+    @Test
+    void shouldGetHistoricValuesByTimestampFromOpenDB() throws Exception
+    {
+        final long key = 123L;
+        final int maxVersions = 100;
+
+        final StubTimeSource timeSource = new StubTimeSource();
+
+        try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory, TestUtils.BYTE_ORDER, timeSource))
+        {
+            for (long i = 0; i < maxVersions; i++)
+            {
+                originalBTree.put(key, i);
+            }
+
+            originalBTree.commit();
+        }
+
+        try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
+        {
+            for (int i = 0; i < timeSource.getCurrentTimeWithoutIncrementing(); i++)
+            {
+                assertEquals(i, loadedBTree.getByTimestamp(key, i));
+            }
         }
     }
 

@@ -71,7 +71,36 @@ public class SearchUtilsTest
         assertEquals(-4, SearchUtils.binarySearch(4, keys.length, keySupplier));
     }
 
-    static final class MyKeyIndexSupplier implements SearchUtils.KeyIndexSupplier
+    @Test
+    void shouldFindLessThanOrEqualThanTheBiggest()
+    {
+        assertEquals(3, SearchUtils.binarySearchLessOrEqual(10, keys.length, keySupplier));
+        assertEquals(3, SearchUtils.binarySearchLessOrEqual(5, keys.length, keySupplier));
+    }
+
+    @Test
+    void shouldFindLessThanOrEqualInTheMiddle()
+    {
+        assertEquals(2, SearchUtils.binarySearchLessOrEqual(3, keys.length, keySupplier));
+        assertEquals(2, SearchUtils.binarySearchLessOrEqual(4, keys.length, keySupplier));
+    }
+
+    @Test
+    void shouldFindLessThanOrEqualInTheBeggining()
+    {
+        assertEquals(0, SearchUtils.binarySearchLessOrEqual(0, keys.length, keySupplier));
+        assertEquals(1, SearchUtils.binarySearchLessOrEqual(1, keys.length, keySupplier));
+    }
+
+    @Test
+    void shouldFindLessThanOrEqualBeforeAllElements()
+    {
+        assertEquals(-1, SearchUtils.binarySearchLessOrEqual(-1, keys.length, keySupplier));
+    }
+
+    static final class MyKeyIndexSupplier implements
+            SearchUtils.KeyIndexSupplier,
+            SearchUtils.LongKeyIndexSupplier
     {
         final long[] keys;
 
@@ -84,6 +113,12 @@ public class SearchUtilsTest
         public long getKey(int index)
         {
             return keys[index];
+        }
+
+        @Override
+        public long getKey(long index)
+        {
+            return keys[(int)index];
         }
     }
 }

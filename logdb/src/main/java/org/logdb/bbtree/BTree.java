@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 
 import java.io.IOException;
 
@@ -14,6 +15,8 @@ public interface BTree extends AutoCloseable
     long get(long key, @Version long version);
 
     long get(long key);
+
+    long getByTimestamp(long key, @Milliseconds long timestamp);
 
     void commit() throws IOException;
 

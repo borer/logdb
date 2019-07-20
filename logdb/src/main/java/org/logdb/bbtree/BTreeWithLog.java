@@ -4,6 +4,7 @@ import org.logdb.bit.HeapMemory;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
@@ -471,10 +472,24 @@ public class BTreeWithLog extends BTreeAbstract
     @Override
     public long get(final long key, final @Version long version)
     {
+        assert version >= 0;
+
         try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            final BTreeNode currentNode = getRootNode(version, mappedNode);
-            return getKey(key, currentNode);
+            final BTreeNode rootNode = getRootNode(version, mappedNode);
+            return getKey(key, rootNode);
+        }
+    }
+
+    @Override
+    public long getByTimestamp(long key, @Milliseconds long timestamp)
+    {
+        assert timestamp >= 0;
+
+        try (BTreeMappedNode mappedNode = nodesManager.getOrCreateMappedNode())
+        {
+            final BTreeNode rootNode = getRootNodeByTimestamp(timestamp, mappedNode);
+            return getKey(key, rootNode);
         }
     }
 

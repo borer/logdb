@@ -222,6 +222,34 @@ abstract class BTreeAbstract implements BTree
         return rootForVersion;
     }
 
+    BTreeNode getRootNodeByTimestamp(final @Milliseconds long timestamp, final BTreeMappedNode mappedNode)
+    {
+        final BTreeNode rootForVersion;
+        final RootReference currentRootReference = uncommittedRoot.get();
+        if (currentRootReference != null)
+        {
+            final RootReference rootNodeForVersion = currentRootReference.getRootReferenceForTimestamp(timestamp);
+            if (rootNodeForVersion != null)
+            {
+                rootForVersion = rootNodeForVersion.root;
+            }
+            else
+            {
+                final @PageNumber long committedRootPageNumber = nodesManager.getPageNumberForTimestamp(timestamp);
+                mappedNode.initNode(committedRootPageNumber);
+                rootForVersion = mappedNode;
+            }
+        }
+        else
+        {
+            final @PageNumber long committedRootPageNumber = nodesManager.getPageNumberForTimestamp(timestamp);
+            mappedNode.initNode(committedRootPageNumber);
+            rootForVersion = mappedNode;
+        }
+
+        return rootForVersion;
+    }
+
     @Override
     public long getNodesCount()
     {

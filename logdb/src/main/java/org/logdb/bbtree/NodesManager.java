@@ -7,6 +7,7 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.time.Milliseconds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -252,6 +253,13 @@ public class NodesManager
     {
         final @ByteOffset long versionOffset = rootIndex.getVersionOffset(version);
         return storage.getPageNumber(versionOffset);
+    }
+
+    @PageNumber long getPageNumberForTimestamp(final @Milliseconds long timestamp)
+    {
+        final @ByteOffset long timestampOffsetOffset = rootIndex.getTimestampOffset(timestamp);
+        return storage.getPageNumber(timestampOffsetOffset);
+
     }
 
     public void close()
