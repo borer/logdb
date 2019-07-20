@@ -296,8 +296,8 @@ public final class FileStorage implements Storage
                 getPageNumber(StorageUnits.offset(mappedBuffers.size() * fileSegmentSize));
 
         final @ByteOffset long pageOffset = getOffset(pageNumber);
-        final int containingBufferIndex = (int)(pageOffset / fileStorageHeader.getSegmentFileSize());
-        final @ByteOffset long bufferOffset = StorageUnits.offset(containingBufferIndex * fileStorageHeader.getSegmentFileSize());
+        final int containingBufferIndex = (int)(pageOffset / fileSegmentSize);
+        final @ByteOffset long bufferOffset = StorageUnits.offset(containingBufferIndex * fileSegmentSize);
         final @ByteOffset long offsetInsideSegment = StorageUnits.offset(pageOffset - bufferOffset);
 
         return StorageUnits.offset(mappedBuffers.get(containingBufferIndex).address + offsetInsideSegment);
