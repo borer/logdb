@@ -67,9 +67,9 @@ public class IndexFileViewerMain
                     storage.getUninitiatedDirectMemoryPage(),
                     StorageUnits.INVALID_PAGE_NUMBER);
 
-            final @ByteOffset long fileHeaderOffsetToSkip =
+            final @ByteOffset long fileHeaderOffsetToSkip = StorageUnits.offset(
                     FileStorageHeader.getStaticHeaderSizeAlignedToNearestPage(pageSize) +
-                            (FileStorageHeader.getDynamicHeaderSizeAlignedToNearestPage(pageSize) * 2);
+                    (FileStorageHeader.getDynamicHeaderSizeAlignedToNearestPage(pageSize) * 2));
             final @PageNumber long headerPagesToSkip = StorageUnits.pageNumber(fileHeaderOffsetToSkip / pageSize);
             final @PageNumber long lastPersistedPageNumber = StorageUnits.pageNumber(fileStorageHeader.getLastFileAppendOffset() / pageSize);
 
