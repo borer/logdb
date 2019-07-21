@@ -194,8 +194,8 @@ public class MemoryStorage implements Storage
     @Override
     public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
     {
-        final @ByteSize int lengthBytes = StorageUnits.size(buffer.capacity());
-        @ByteOffset int readPosition = ZERO_OFFSET;
+        final @ByteSize long lengthBytes = StorageUnits.size(buffer.capacity());
+        @ByteOffset long readPosition = ZERO_OFFSET;
 
         @PageNumber long pageNumber = getPageNumber(offset);
         final @ByteOffset long pageNumberOffset = getOffset(pageNumber);

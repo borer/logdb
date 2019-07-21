@@ -149,7 +149,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     public boolean shouldSplit()
     {
         final long freeSpaceWithoutConsideringLogBuffer =
-                freeSizeLeftBytes + (numberOfLogKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
+                freeSizeLeftBytes + (numberOfLogKeyValues * (long)(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
         return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
     }

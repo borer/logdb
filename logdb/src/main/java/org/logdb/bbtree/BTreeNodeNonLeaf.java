@@ -136,9 +136,10 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     private void removeChildReference(final int index)
     {
         final int oldChildrenSize = children.length;
-        final BTreeNodeHeap[] newChildren = new BTreeNodeHeap[oldChildrenSize - 1];
-        assert newChildren.length >= 0
-                : String.format("children size after removing index %d was %d", index, newChildren.length);
+        final int newChildrenSize = oldChildrenSize - 1;
+        assert newChildrenSize >= 0
+                : String.format("children size after removing index %d was %d", index, newChildrenSize);
+        final BTreeNodeHeap[] newChildren = new BTreeNodeHeap[newChildrenSize];
         copyExcept(children, newChildren, oldChildrenSize, index);
         children = newChildren;
     }

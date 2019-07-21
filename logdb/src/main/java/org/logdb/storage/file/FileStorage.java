@@ -227,8 +227,8 @@ public final class FileStorage implements Storage
     @Override
     public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
     {
-        final @ByteSize int lengthBytes = StorageUnits.size(buffer.capacity());
-        @ByteOffset int readPosition = ZERO_OFFSET;
+        final @ByteSize long lengthBytes = StorageUnits.size(buffer.capacity());
+        @ByteOffset long readPosition = ZERO_OFFSET;
 
         @PageNumber long pageNumber = getPageNumber(offset);
         @ByteOffset long offsetInsidePage = offset - getOffset(pageNumber);
@@ -250,7 +250,7 @@ public final class FileStorage implements Storage
             pageNumber++;
 
             final @ByteOffset long pageBaseOffset2 = getBaseOffset(pageNumber);
-            final @ByteSize int leftToRead = StorageUnits.size(lengthBytes - readPosition);
+            final @ByteSize long leftToRead = StorageUnits.size(lengthBytes - readPosition);
             final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, leftToRead));
 
             readBytesNative(pageBaseOffset2, order, buffer, readPosition, bytesToRead2);

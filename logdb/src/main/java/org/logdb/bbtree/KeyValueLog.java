@@ -33,7 +33,8 @@ final class KeyValueLog
 
     static @ByteOffset long getLogKeyIndexOffset(final @ByteSize long pageSize, final int index)
     {
-        return StorageUnits.offset(pageSize - ((index + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE)));
+        final @ByteSize long keyValuePairSize = StorageUnits.size(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        return StorageUnits.offset(pageSize - ((index + 1) * keyValuePairSize));
     }
 
     static @ByteOffset long getLogValueIndexOffset(final @ByteSize long pageSize, final int index)
