@@ -12,7 +12,7 @@ public class ChecksumUtil
     private final CRC32 checksumer = new CRC32();
     private byte[] longToBytesBuffer = new byte[Long.BYTES];
 
-    public int calculateSingleChecksum(final byte[] buffer, final int offset, final int length)
+    public int calculateSingleChecksum(final byte[] buffer, final @ByteOffset int offset, final @ByteSize int length)
     {
         checksumer.reset();
         checksumer.update(buffer, offset, length);

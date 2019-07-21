@@ -72,7 +72,7 @@ public class FileStorageFactory
                 newFileHeader = new FixedFileStorageHeader(newFileHeader, headerAccessFile, headerChannel);
             }
 
-            fileHeader.writeToAndPageAlign(currentAppendChannel);
+            fileHeader.writeHeadersAndAlign(currentAppendChannel);
 
             fileStorage = createFileStorage(
                     rootDirectory,

@@ -3,7 +3,6 @@ package org.logdb.support;
 import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
-import org.logdb.storage.StorageUnits;
 import org.logdb.storage.file.FileStorageHeader;
 
 import java.io.File;
@@ -54,7 +53,9 @@ public class LogFileViewerMain
 
             headerBuffer.order(fileByteOrder);
 
-            final @ByteOffset long fileHeaderOffsetToSkip = StorageUnits.offset(pageSize);
+            final @ByteOffset long fileHeaderOffsetToSkip =
+                    FileStorageHeader.getStaticHeaderSizeAlignedToNearestPage(pageSize) +
+                    (FileStorageHeader.getDynamicHeaderSizeAlignedToNearestPage(pageSize) * 2);
             fileChannel.position(fileHeaderOffsetToSkip);
 
             long lastRecordSize = 0;

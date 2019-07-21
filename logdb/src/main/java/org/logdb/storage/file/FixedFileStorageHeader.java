@@ -2,7 +2,6 @@ package org.logdb.storage.file;
 
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
-import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 
 import java.io.IOException;
@@ -28,25 +27,21 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
+    public void writeHeadersAndAlign(final SeekableByteChannel channel) throws IOException
     {
-        headerFileChannel.position(StorageUnits.ZERO_OFFSET);
-
-        delegate.writeToAndPageAlign(headerFileChannel);
+        delegate.writeHeadersAndAlign(headerFileChannel);
     }
 
     @Override
-    public void writeTo(final SeekableByteChannel channel) throws IOException
+    public void writeDynamicHeaderTo(final SeekableByteChannel channel) throws IOException
     {
-        headerFileChannel.position(StorageUnits.ZERO_OFFSET);
-
-        delegate.writeTo(headerFileChannel);
+        delegate.writeDynamicHeaderTo(headerFileChannel);
     }
 
     @Override
-    public @ByteSize long getHeaderSizeAlignedToNearestPage()
+    public void writeStaticHeaderTo(SeekableByteChannel channel) throws IOException
     {
-        return delegate.getHeaderSizeAlignedToNearestPage();
+        delegate.writeStaticHeaderTo(headerFileChannel);
     }
 
     @Override

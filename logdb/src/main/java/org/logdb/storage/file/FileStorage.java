@@ -28,7 +28,6 @@ import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.INVALID_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
-import static org.logdb.storage.file.FileStorageHeader.HEADER_OFFSET;
 
 public final class FileStorage implements Storage
 {
@@ -108,7 +107,7 @@ public final class FileStorage implements Storage
         final FileChannel channel = accessFile.getChannel();
         accessFile.setLength(fileSegmentSize);
 
-        newFileStorageHeader.writeToAndPageAlign(channel);
+        newFileStorageHeader.writeHeadersAndAlign(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
         currentAppendingFile = accessFile;
@@ -187,12 +186,8 @@ public final class FileStorage implements Storage
             final @ByteOffset long appendOffset = StorageUnits.offset(currentAppendingChannel.position());
             fileStorageHeader.updateMeta(lastPersistedOffset, appendOffset, version);
 
-            final long originalChannelPosition = currentAppendingChannel.position();
-            currentAppendingChannel.position(HEADER_OFFSET);
-
-            //TODO: have an object that implements file header interface
-            fileStorageHeader.writeTo(currentAppendingChannel);
-
+            final @ByteOffset long originalChannelPosition = StorageUnits.offset(currentAppendingChannel.position());
+            fileStorageHeader.writeDynamicHeaderTo(currentAppendingChannel);
             currentAppendingChannel.position(originalChannelPosition);
         }
         catch (final IOException e)

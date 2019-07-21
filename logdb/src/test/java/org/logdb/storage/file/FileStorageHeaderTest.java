@@ -22,8 +22,10 @@ class FileStorageHeaderTest
                 pageSizeBytes,
                 pageSizeBytes << 5);
 
-        final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(ByteBuffer.allocate(pageSizeBytes));
-        expectedHeader.writeTo(channel);
+        final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(
+                ByteBuffer.allocate(pageSizeBytes * 3));
+        expectedHeader.updateMeta(StorageUnits.ZERO_OFFSET, StorageUnits.ZERO_OFFSET, StorageUnits.INITIAL_VERSION);
+        expectedHeader.writeHeadersAndAlign(channel);
 
         final FileStorageHeader actualHeader = FileStorageHeader.readFrom(channel);
 
@@ -39,17 +41,20 @@ class FileStorageHeaderTest
     private static class ByteBufferSeekableByteChannel implements SeekableByteChannel
     {
         private final ByteBuffer buffer;
+        private int position;
 
         private ByteBufferSeekableByteChannel(final ByteBuffer buffer)
         {
             this.buffer = buffer;
+            this.position = 0;
         }
 
         @Override
         public int read(final ByteBuffer dst)
         {
             buffer.rewind();
-            dst.put(buffer.array(), 0, FileStorageHeader.HEADER_SIZE);
+            dst.put(buffer.array(), position, dst.capacity());
+            position += dst.capacity();
             return dst.limit();
         }
 

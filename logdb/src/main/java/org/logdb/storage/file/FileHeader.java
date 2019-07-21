@@ -10,11 +10,11 @@ import java.nio.channels.SeekableByteChannel;
 
 public interface FileHeader
 {
-    void writeToAndPageAlign(SeekableByteChannel channel) throws IOException;
+    void writeHeadersAndAlign(SeekableByteChannel channel) throws IOException;
 
-    void writeTo(SeekableByteChannel channel) throws IOException;
+    void writeStaticHeaderTo(SeekableByteChannel channel) throws IOException;
 
-    @ByteSize long getHeaderSizeAlignedToNearestPage();
+    void writeDynamicHeaderTo(SeekableByteChannel channel) throws IOException;
 
     @ByteSize long getSegmentFileSize();
 

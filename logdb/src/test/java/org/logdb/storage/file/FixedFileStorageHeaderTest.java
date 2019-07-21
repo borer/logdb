@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FixedFileStorageHeaderTest
 {
-    public static final String FIXED_HEADER_LOGINDEX = "fixed_header.logindex";
+    private static final String FIXED_HEADER_LOGINDEX = "fixed_header.logindex";
     @TempDir
     Path tempDirectory;
 
@@ -42,11 +42,11 @@ class FixedFileStorageHeaderTest
                         headerFileChannel))
                 {
 
-                    fixedFileStorageHeader.writeToAndPageAlign(emptyChannel);
+                    fixedFileStorageHeader.writeHeadersAndAlign(emptyChannel);
                     fixedFileStorageHeader.flush(true);
 
                     assertEquals(StorageUnits.ZERO_OFFSET, emptyChannel.position());
-                    assertEquals(fixedFileStorageHeader.getHeaderSizeAlignedToNearestPage(), headerFileChannel.position());
+                    assertEquals(pageSizeBytes * 3, headerFileChannel.position());
                 }
             }
         }
@@ -69,12 +69,11 @@ class FixedFileStorageHeaderTest
                 headerRandomAccessFile,
                 headerFileChannel))
         {
-            fixedFileStorageHeader.writeToAndPageAlign(null);
+            fixedFileStorageHeader.writeHeadersAndAlign(null);
             fixedFileStorageHeader.flush(true);
 
-            assertEquals(fixedFileStorageHeader.getHeaderSizeAlignedToNearestPage(), headerFileChannel.position());
+            assertEquals(pageSizeBytes * 3, headerFileChannel.position());
         }
-
 
         final RandomAccessFile headerRandomAccessFile2 = new RandomAccessFile(headerFile, "rw");
         final FileChannel headerFileChannel2 = headerRandomAccessFile2.getChannel();

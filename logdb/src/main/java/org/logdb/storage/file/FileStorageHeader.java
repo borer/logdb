@@ -1,8 +1,10 @@
 package org.logdb.storage.file;
 
+import org.logdb.bit.ChecksumUtil;
 import org.logdb.bit.MemoryOrder;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 
@@ -17,10 +19,15 @@ import static org.logdb.storage.StorageUnits.BYTE_SIZE;
 import static org.logdb.storage.StorageUnits.INITIAL_VERSION;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public final class FileStorageHeader implements FileHeader
 {
+    private static final int INVALID_CHECKSUM = 0;
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+
+    /////Static Header
+    static final @ByteOffset long STATIC_HEADER_OFFSET = StorageUnits.ZERO_OFFSET;
 
     private static final byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDb
     private static final @ByteOffset int BYTE_ORDER_OFFSET = StorageUnits.offset(LOG_DB_MAGIC_STRING.length); // size 7
@@ -35,7 +42,16 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
     private static final @ByteSize int SEGMENT_FILE_SIZE_BYTES = LONG_BYTES_SIZE;
 
-    private static final @ByteOffset int APPEND_VERSION_OFFSET = StorageUnits.offset(SEGMENT_FILE_SIZE_OFFSET + SEGMENT_FILE_SIZE_BYTES);
+    static final @ByteSize int STATIC_HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
+            BYTE_ORDER_SIZE +
+            LOG_DB_VERSION_SIZE +
+            PAGE_SIZE_BYTES +
+            SEGMENT_FILE_SIZE_BYTES;
+
+    /////End Static Header
+    /////Dynamic Header
+
+    private static final @ByteOffset int APPEND_VERSION_OFFSET = ZERO_OFFSET;
     private static final @ByteSize int APPEND_VERSION_SIZE = LONG_BYTES_SIZE;
 
     private static final @ByteOffset int GLOBAL_APPEND_OFFSET = StorageUnits.offset(APPEND_VERSION_OFFSET + APPEND_VERSION_SIZE);
@@ -44,26 +60,29 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int LAST_FILE_APPEND_OFFSET = StorageUnits.offset(GLOBAL_APPEND_OFFSET + GLOBAL_APPEND_SIZE);
     private static final @ByteSize int LAST_FILE_APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
 
-    static final @ByteOffset long HEADER_OFFSET = StorageUnits.ZERO_OFFSET;
-    static final @ByteSize int HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
-            BYTE_ORDER_SIZE +
-            LOG_DB_VERSION_SIZE +
-            PAGE_SIZE_BYTES +
-            SEGMENT_FILE_SIZE_BYTES +
-            APPEND_VERSION_SIZE +
-            GLOBAL_APPEND_SIZE +
-            LAST_FILE_APPEND_OFFSET_SIZE;
+    private static final @ByteOffset int CHECKSUM_OFFSET = StorageUnits.offset(LAST_FILE_APPEND_OFFSET + LAST_FILE_APPEND_OFFSET_SIZE);
+    private static final @ByteSize int CHECKSUM_SIZE = INT_BYTES_SIZE;
 
-    private final ByteBuffer writeBuffer;
+    static final @ByteSize int DYNAMIC_HEADER_SIZE = APPEND_VERSION_SIZE + GLOBAL_APPEND_SIZE + LAST_FILE_APPEND_OFFSET_SIZE + CHECKSUM_SIZE;
+
+    ////End Dynamic Header
+
+
+    private final ByteBuffer staticWriteBuffer;
+    private final ByteBuffer dynamicWriteBuffer;
 
     private @Version long appendVersion;
     private @ByteOffset long globalAppendOffset;
     private @ByteOffset long lastFileAppendOffset;
+    private int checksum;
+    private HeaderNumber headerNumber;
 
     private final @ByteSize long segmentFileSize; //must be multiple of pageSize
     private final ByteOrder byteOrder;
     private final @ByteSize int pageSize; // Must be a power of two
     private final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
+
+    private ChecksumUtil checksumUtil;
 
     private FileStorageHeader(
             final ByteOrder byteOrder,
@@ -72,9 +91,12 @@ public final class FileStorageHeader implements FileHeader
             final @ByteSize long segmentFileSize,
             final @ByteOffset long globalAppendOffset,
             final @ByteOffset long lastFileAppendOffset,
-            final @Version int logDbVersion)
+            final @Version int logDbVersion,
+            final int checksum,
+            final HeaderNumber headerNumber)
     {
         this.logDbVersion = logDbVersion;
+        this.headerNumber = headerNumber;
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
         assert segmentFileSize % pageSize == 0 : "segmentFileSize must be multiple of pageSize";
 
@@ -84,8 +106,14 @@ public final class FileStorageHeader implements FileHeader
         this.segmentFileSize = segmentFileSize;
         this.globalAppendOffset = globalAppendOffset;
         this.lastFileAppendOffset = lastFileAppendOffset;
-        this.writeBuffer = ByteBuffer.allocate(HEADER_SIZE); // appendVersion, globalAppendOffset and lastFileAppendOffset
-        this.writeBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
+        this.checksum = checksum;
+        this.staticWriteBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE); // appendVersion, globalAppendOffset and lastFileAppendOffset
+        this.staticWriteBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
+
+        this.dynamicWriteBuffer = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        this.dynamicWriteBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
+
+        this.checksumUtil = new ChecksumUtil();
     }
 
     static FileStorageHeader newHeader(
@@ -100,33 +128,61 @@ public final class FileStorageHeader implements FileHeader
                 segmentFileSize,
                 StorageUnits.INVALID_OFFSET,
                 StorageUnits.INVALID_OFFSET,
-                LOG_DB_VERSION);
+                LOG_DB_VERSION,
+                INVALID_CHECKSUM,
+                HeaderNumber.HEADER2);
     }
 
     public static FileStorageHeader readFrom(final SeekableByteChannel channel) throws IOException
     {
-        final ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
-        FileUtils.readFully(channel, buffer);
-        buffer.order(DEFAULT_HEADER_BYTE_ORDER);
-        buffer.rewind();
+        channel.position(STATIC_HEADER_OFFSET);
+
+        //Read static header
+        final ByteBuffer staticHeaderBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE);
+        FileUtils.readFully(channel, staticHeaderBuffer);
+        staticHeaderBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
+        staticHeaderBuffer.rewind();
 
         final byte[] magicString = new byte[LOG_DB_MAGIC_STRING.length];
-        buffer.get(magicString);
+        staticHeaderBuffer.get(magicString);
 
         if (!Arrays.equals(LOG_DB_MAGIC_STRING, magicString))
         {
             throw new RuntimeException("DB file is not valid");
         }
 
-        final ByteOrder byteOrder = getByteOrder(buffer.get(BYTE_ORDER_OFFSET));
-        final @Version int logDbVersion = StorageUnits.version(getIntegerInCorrectByteOrder(buffer.getInt(LOG_DB_VERSION_OFFSET)));
+        final ByteOrder byteOrder = getByteOrder(staticHeaderBuffer.get(BYTE_ORDER_OFFSET));
+        final @Version int logDbVersion = StorageUnits.version(getIntegerInCorrectByteOrder(staticHeaderBuffer.getInt(LOG_DB_VERSION_OFFSET)));
         final @ByteSize int pageSize =
-                StorageUnits.size(getIntegerInCorrectByteOrder(buffer.getInt(PAGE_SIZE_OFFSET)));
+                StorageUnits.size(getIntegerInCorrectByteOrder(staticHeaderBuffer.getInt(PAGE_SIZE_OFFSET)));
         final @ByteSize long segmentFileSize =
-                StorageUnits.size(getLongInCorrectByteOrder(buffer.getLong(SEGMENT_FILE_SIZE_OFFSET)));
+                StorageUnits.size(getLongInCorrectByteOrder(staticHeaderBuffer.getLong(SEGMENT_FILE_SIZE_OFFSET)));
+
+        final @ByteSize long staticHeaderSize = getStaticHeaderSizeAlignedToNearestPage(pageSize);
+        final @ByteSize long dynamicHeaderSizeInPages = getDynamicHeaderSizeAlignedToNearestPage(pageSize);
+        channel.position(staticHeaderSize);
+
+        //Read first dynamic header
+        final ByteBuffer dynamicBuffer1 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        FileUtils.readFully(channel, dynamicBuffer1);
+        dynamicBuffer1.order(DEFAULT_HEADER_BYTE_ORDER);
+        dynamicBuffer1.rewind();
+
+        channel.position(staticHeaderSize + dynamicHeaderSizeInPages);
+
+        //Read second dynamic header
+        final ByteBuffer dynamicBuffer2 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        FileUtils.readFully(channel, dynamicBuffer2);
+        dynamicBuffer2.order(DEFAULT_HEADER_BYTE_ORDER);
+        dynamicBuffer2.rewind();
+
+        final HeaderNumber headerNumber = chooseLatestValidDynamicHeader(dynamicBuffer1, dynamicBuffer2);
+        final ByteBuffer buffer = HeaderNumber.HEADER1 == headerNumber ? dynamicBuffer1 : dynamicBuffer2;
+
         final @Version long appendVersion = StorageUnits.version(getLongInCorrectByteOrder(buffer.getLong(APPEND_VERSION_OFFSET)));
         final @ByteOffset long lastPersistedOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(GLOBAL_APPEND_OFFSET)));
         final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_FILE_APPEND_OFFSET)));
+        final int checksum = getIntegerInCorrectByteOrder(buffer.getInt(CHECKSUM_OFFSET));
 
         final FileStorageHeader fileStorageHeader = new FileStorageHeader(
                 byteOrder,
@@ -135,41 +191,96 @@ public final class FileStorageHeader implements FileHeader
                 segmentFileSize,
                 lastPersistedOffset,
                 appendOffset,
-                logDbVersion);
+                logDbVersion,
+                checksum,
+                headerNumber);
 
-        channel.position(fileStorageHeader.getHeaderSizeAlignedToNearestPage());
+        channel.position(staticHeaderSize + (dynamicHeaderSizeInPages * 2));
 
         return fileStorageHeader;
     }
 
-    @Override
-    public void writeToAndPageAlign(final SeekableByteChannel channel) throws IOException
+    private static HeaderNumber chooseLatestValidDynamicHeader(
+            final ByteBuffer buffer1,
+            final ByteBuffer buffer2)
     {
-        writeTo(channel);
-        channel.position(getHeaderSizeAlignedToNearestPage());
+        final boolean isHeader1Valid = isDynamicHeaderValid(buffer1);
+        final boolean isHeader2Valid = isDynamicHeaderValid(buffer2);
+
+        if (!isHeader1Valid && isHeader2Valid)
+        {
+            return HeaderNumber.HEADER2;
+        }
+        else if (isHeader1Valid && !isHeader2Valid)
+        {
+            return HeaderNumber.HEADER1;
+        }
+        else
+        {
+            final @Version long appendVersion1 = StorageUnits.version(getLongInCorrectByteOrder(buffer1.getLong(APPEND_VERSION_OFFSET)));
+            final @Version long appendVersion2 = StorageUnits.version(getLongInCorrectByteOrder(buffer2.getLong(APPEND_VERSION_OFFSET)));
+
+            if (appendVersion1 > appendVersion2)
+            {
+                return HeaderNumber.HEADER1;
+            }
+            else
+            {
+                return HeaderNumber.HEADER2;
+            }
+        }
+    }
+
+    private static boolean isDynamicHeaderValid(final ByteBuffer buffer)
+    {
+        final ChecksumUtil checksumUtil = new ChecksumUtil();
+        final int storedChecksum = getIntegerInCorrectByteOrder(buffer.getInt(CHECKSUM_OFFSET));
+        final int calculatedChecksum = checksumUtil.calculateSingleChecksum(buffer.array(), ZERO_OFFSET, DYNAMIC_HEADER_SIZE - CHECKSUM_SIZE);
+        return storedChecksum == calculatedChecksum;
     }
 
     @Override
-    public void writeTo(final SeekableByteChannel channel) throws IOException
+    public void writeHeadersAndAlign(final SeekableByteChannel channel) throws IOException
     {
-        writeBuffer.put(LOG_DB_MAGIC_STRING);
-        writeBuffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
-        writeBuffer.putInt(LOG_DB_VERSION_OFFSET, getIntegerInCorrectByteOrder(logDbVersion));
-        writeBuffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
-        writeBuffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
-        writeBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
-        writeBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffset));
-        writeBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(lastFileAppendOffset));
-
-        writeBuffer.rewind();
-
-        FileUtils.writeFully(channel, writeBuffer);
+        writeStaticHeaderTo(channel);
+        writeDynamicHeaderTo(channel);
+        final @ByteSize long staticHeaderSizeAlignedToNearestPage = getStaticHeaderSizeAlignedToNearestPage(pageSize);
+        final @ByteSize long dynamicHeaderSizeAlignedToNearestPage = getDynamicHeaderSizeAlignedToNearestPage(pageSize);
+        channel.position(staticHeaderSizeAlignedToNearestPage + (dynamicHeaderSizeAlignedToNearestPage * 2));
     }
 
     @Override
-    public @ByteSize long getHeaderSizeAlignedToNearestPage()
+    public void writeStaticHeaderTo(SeekableByteChannel channel) throws IOException
     {
-        return StorageUnits.size(getHeaderSizeInPages() * pageSize);
+        staticWriteBuffer.put(LOG_DB_MAGIC_STRING);
+        staticWriteBuffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
+        staticWriteBuffer.putInt(LOG_DB_VERSION_OFFSET, getIntegerInCorrectByteOrder(logDbVersion));
+        staticWriteBuffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
+        staticWriteBuffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
+
+        staticWriteBuffer.rewind();
+
+        channel.position(STATIC_HEADER_OFFSET);
+
+        FileUtils.writeFully(channel, staticWriteBuffer);
+    }
+
+    @Override
+    public void writeDynamicHeaderTo(final SeekableByteChannel channel) throws IOException
+    {
+        dynamicWriteBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
+        dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffset));
+        dynamicWriteBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(lastFileAppendOffset));
+        dynamicWriteBuffer.putInt(CHECKSUM_OFFSET, getIntegerInCorrectByteOrder(checksum));
+
+        dynamicWriteBuffer.rewind();
+
+        final @ByteOffset long headerOffset = HeaderNumber.getOffset(headerNumber, pageSize);
+        headerNumber = HeaderNumber.getNext(headerNumber);
+
+        channel.position(headerOffset);
+
+        FileUtils.writeFully(channel, dynamicWriteBuffer);
     }
 
     @Override
@@ -224,11 +335,15 @@ public final class FileStorageHeader implements FileHeader
         this.lastFileAppendOffset = appendOffset;
         this.appendVersion = appendVersion;
 
-        writeBuffer.rewind();
-        writeBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
-        writeBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
-        writeBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
-        writeBuffer.rewind();
+        dynamicWriteBuffer.rewind();
+        dynamicWriteBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
+        dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
+        dynamicWriteBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
+
+        final @ByteSize int length = StorageUnits.size(DYNAMIC_HEADER_SIZE - CHECKSUM_SIZE);
+        this.checksum = checksumUtil.calculateSingleChecksum(dynamicWriteBuffer.array(), ZERO_OFFSET, length);
+        dynamicWriteBuffer.putInt(CHECKSUM_OFFSET, getIntegerInCorrectByteOrder(checksum));
+        dynamicWriteBuffer.rewind();
     }
 
     @Override
@@ -237,9 +352,16 @@ public final class FileStorageHeader implements FileHeader
         //No-op
     }
 
-    private @ByteSize int getHeaderSizeInPages()
+    public static @ByteSize long getStaticHeaderSizeAlignedToNearestPage(final @ByteSize int pageSize)
     {
-        return StorageUnits.size((HEADER_SIZE / pageSize) + 1);
+        final @PageNumber long pageNumbers = StorageUnits.pageNumber((STATIC_HEADER_SIZE / pageSize) + 1);
+        return StorageUnits.size(pageNumbers * pageSize);
+    }
+
+    public static @ByteSize long getDynamicHeaderSizeAlignedToNearestPage(final @ByteSize int pageSize)
+    {
+        final @PageNumber long pageNumbers = StorageUnits.pageNumber((DYNAMIC_HEADER_SIZE / pageSize) + 1);
+        return StorageUnits.size(pageNumbers * pageSize);
     }
 
     private static long getLongInCorrectByteOrder(final long value)
@@ -266,14 +388,37 @@ public final class FileStorageHeader implements FileHeader
     public String toString()
     {
         return "FileStorageHeader{" +
-                "writeBuffer=" + writeBuffer +
+                "staticWriteBuffer=" + staticWriteBuffer +
+                ", dynamicWriteBuffer=" + dynamicWriteBuffer +
                 ", appendVersion=" + appendVersion +
                 ", globalAppendOffset=" + globalAppendOffset +
                 ", lastFileAppendOffset=" + lastFileAppendOffset +
+                ", checksum=" + checksum +
+                ", headerNumber=" + headerNumber +
                 ", segmentFileSize=" + segmentFileSize +
                 ", byteOrder=" + byteOrder +
                 ", pageSize=" + pageSize +
                 ", logDbVersion=" + logDbVersion +
+                ", checksumUtil=" + checksumUtil +
                 '}';
+    }
+
+    private enum HeaderNumber
+    {
+        HEADER1,
+        HEADER2;
+
+        private static HeaderNumber getNext(final HeaderNumber current)
+        {
+            return HeaderNumber.HEADER1 == current ? HeaderNumber.HEADER2 : HeaderNumber.HEADER1;
+        }
+
+        private static @ByteOffset long getOffset(final HeaderNumber current, final @ByteSize int pageSize)
+        {
+            final @ByteOffset long dynamicHeaderOffset = HeaderNumber.HEADER1 == current
+                    ? ZERO_OFFSET
+                    : StorageUnits.offset(getDynamicHeaderSizeAlignedToNearestPage(pageSize));
+            return StorageUnits.offset(getStaticHeaderSizeAlignedToNearestPage(pageSize) + dynamicHeaderOffset);
+        }
     }
 }

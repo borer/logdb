@@ -153,7 +153,7 @@ class FileStorageTest
     @Test
     void shouldRollOverWhenAppendingPageAlignedAndFileIsFull() throws Exception
     {
-        final int segmentFileSize = 256;
+        final int segmentFileSize = 512;
         final int pageSizeBytes = 128;
 
         final byte[] record = new byte[pageSizeBytes];
@@ -183,7 +183,7 @@ class FileStorageTest
     @Test
     void shouldRollOverWhenAppendingAndFileIsFull() throws Exception
     {
-        final int segmentFileSize = 256;
+        final int segmentFileSize = 512;
         final int pageSizeBytes = 128;
 
         final byte[] record = new byte[pageSizeBytes];

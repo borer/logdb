@@ -82,7 +82,7 @@ class LogFileIntegrationTest
             assertArrayEquals(valueBytes, readValue);
 
             assertExceptionWithMessage(
-                    "offset 550 refers to a delete record",
+                    "offset 1574 refers to a delete record",
                     () -> logFile.read(removeOffset));
         }
     }
