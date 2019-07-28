@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class NodesManager
 {
@@ -44,7 +45,7 @@ public class NodesManager
         this.dirtyRootNodes = new ArrayList<>();
         this.nonLeafNodesCache = new ArrayDeque<>();
         this.leafNodesCache = new ArrayDeque<>();
-        this.mappedNodes = new ArrayDeque<>();
+        this.mappedNodes = new ConcurrentLinkedQueue<>();
         this.lastPersistedPageNumber = StorageUnits.INVALID_PAGE_NUMBER;
     }
 
