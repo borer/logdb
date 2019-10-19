@@ -2,9 +2,6 @@ package org.logdb.bbtree;
 
 public final class SearchUtils
 {
-
-    public static final int NOT_FOUND = -1;
-
     private SearchUtils()
     {
     }
@@ -106,13 +103,13 @@ public final class SearchUtils
 
         if (index < 0)
         {
-            return NOT_FOUND;
+            return InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
         }
 
         final long existingKey = keyIndexSupplier.getKey(index);
         final int compare = Long.compare(key, existingKey);
 
-        return compare > 0 ? index : NOT_FOUND;
+        return compare > 0 ? index : InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
     }
 
     interface KeyIndexSupplier
