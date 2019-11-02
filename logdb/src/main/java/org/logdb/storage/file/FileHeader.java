@@ -26,13 +26,13 @@ public interface FileHeader
 
     @ByteOffset long getGlobalAppendOffset();
 
-    @ByteOffset long getLastFileAppendOffset();
+    @ByteOffset long getCurrentFileAppendOffset();
 
     @Version long getAppendVersion();
 
     void updateMeta(
-            @ByteOffset long lastPersistedOffset,
-            @ByteOffset long appendOffset,
+            @ByteOffset long globalAppendOffsetOffset,
+            @ByteOffset long currentFileAppendOffset,
             @Version long appendVersion);
 
     void flush(boolean flushMeta) throws IOException;

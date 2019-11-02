@@ -183,7 +183,7 @@ public class LogDbBuilder
     private BTree buildIndex(final TimeSource timeSource, final RootIndex rootIndex) throws IOException
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
-        final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage);
+        final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage.getAppendVersion());
         final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex, shouldSyncWrite);
 
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
@@ -217,16 +217,13 @@ public class LogDbBuilder
     private LogFile buildLogFile(final TimeSource timeSource) throws IOException
     {
         final FileStorage logDbFileStorage = buildFileStorage(FileType.HEAP);
-        final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage);
+        final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage.getAppendVersion());
         return new LogFile(logDbFileStorage, timeSource, nextWriteVersion, shouldSyncWrite);
     }
 
-    private @Version long getNextWriteVersion(final FileStorage logDbFileStorage)
+    private @Version long getNextWriteVersion(final @Version long appendVersion)
     {
-        final @Version long appendVersion = logDbFileStorage.getAppendVersion();
-        return appendVersion == INITIAL_VERSION
-                ? INITIAL_VERSION
-                : StorageUnits.version(appendVersion + 1);
+        return appendVersion == INITIAL_VERSION ? INITIAL_VERSION : StorageUnits.version(appendVersion + 1);
     }
 
     private FileStorage buildFileStorage(final FileType fileType) throws IOException

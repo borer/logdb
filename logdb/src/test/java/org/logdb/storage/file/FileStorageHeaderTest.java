@@ -35,7 +35,7 @@ class FileStorageHeaderTest
         assertEquals(expectedHeader.getDbVersion(), actualHeader.getDbVersion());
         assertEquals(expectedHeader.getAppendVersion(), actualHeader.getAppendVersion());
         assertEquals(expectedHeader.getGlobalAppendOffset(), actualHeader.getGlobalAppendOffset());
-        assertEquals(expectedHeader.getLastFileAppendOffset(), actualHeader.getLastFileAppendOffset());
+        assertEquals(expectedHeader.getCurrentFileAppendOffset(), actualHeader.getCurrentFileAppendOffset());
     }
 
     private static class ByteBufferSeekableByteChannel implements SeekableByteChannel

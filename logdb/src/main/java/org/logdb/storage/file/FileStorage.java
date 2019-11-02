@@ -80,7 +80,6 @@ public final class FileStorage implements Storage
             final boolean shouldRollFile = expectedFileSize > fileSegmentSize;
             if (shouldRollFile)
             {
-
                 final @ByteOffset long spaceLeftInCurrentSegmentFile =
                         StorageUnits.offset(fileSegmentSize - originalChannelPosition);
                 globalFilePosition += spaceLeftInCurrentSegmentFile;
@@ -183,8 +182,8 @@ public final class FileStorage implements Storage
     {
         try
         {
-            final @ByteOffset long appendOffset = StorageUnits.offset(currentAppendingChannel.position());
-            fileStorageHeader.updateMeta(lastPersistedOffset, appendOffset, version);
+            final @ByteOffset long currentFileAppendOffset = StorageUnits.offset(currentAppendingChannel.position());
+            fileStorageHeader.updateMeta(lastPersistedOffset, currentFileAppendOffset, version);
 
             final @ByteOffset long originalChannelPosition = StorageUnits.offset(currentAppendingChannel.position());
             fileStorageHeader.writeDynamicHeaderTo(currentAppendingChannel);

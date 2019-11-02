@@ -75,9 +75,9 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public @ByteOffset long getLastFileAppendOffset()
+    public @ByteOffset long getCurrentFileAppendOffset()
     {
-        return delegate.getLastFileAppendOffset();
+        return delegate.getCurrentFileAppendOffset();
     }
 
     @Override
@@ -88,11 +88,11 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
 
     @Override
     public void updateMeta(
-            final @ByteOffset long lastPersistedOffset,
-            final @ByteOffset long appendOffset,
+            final @ByteOffset long globalAppendOffsetOffset,
+            final @ByteOffset long currentFileAppendOffset,
             final @Version long appendVersion)
     {
-        delegate.updateMeta(lastPersistedOffset, appendOffset, appendVersion);
+        delegate.updateMeta(globalAppendOffsetOffset, currentFileAppendOffset, appendVersion);
     }
 
     @Override

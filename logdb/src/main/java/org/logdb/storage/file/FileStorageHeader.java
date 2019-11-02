@@ -57,13 +57,13 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int GLOBAL_APPEND_OFFSET = StorageUnits.offset(APPEND_VERSION_OFFSET + APPEND_VERSION_SIZE);
     private static final @ByteSize int GLOBAL_APPEND_SIZE = LONG_BYTES_SIZE;
 
-    private static final @ByteOffset int LAST_FILE_APPEND_OFFSET = StorageUnits.offset(GLOBAL_APPEND_OFFSET + GLOBAL_APPEND_SIZE);
-    private static final @ByteSize int LAST_FILE_APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
+    private static final @ByteOffset int CURRENT_FILE_APPEND_OFFSET = StorageUnits.offset(GLOBAL_APPEND_OFFSET + GLOBAL_APPEND_SIZE);
+    private static final @ByteSize int CURRENT_FILE_APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
 
-    private static final @ByteOffset int CHECKSUM_OFFSET = StorageUnits.offset(LAST_FILE_APPEND_OFFSET + LAST_FILE_APPEND_OFFSET_SIZE);
+    private static final @ByteOffset int CHECKSUM_OFFSET = StorageUnits.offset(CURRENT_FILE_APPEND_OFFSET + CURRENT_FILE_APPEND_OFFSET_SIZE);
     private static final @ByteSize int CHECKSUM_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteSize int DYNAMIC_HEADER_SIZE = APPEND_VERSION_SIZE + GLOBAL_APPEND_SIZE + LAST_FILE_APPEND_OFFSET_SIZE + CHECKSUM_SIZE;
+    static final @ByteSize int DYNAMIC_HEADER_SIZE = APPEND_VERSION_SIZE + GLOBAL_APPEND_SIZE + CURRENT_FILE_APPEND_OFFSET_SIZE + CHECKSUM_SIZE;
 
     ////End Dynamic Header
 
@@ -73,7 +73,7 @@ public final class FileStorageHeader implements FileHeader
 
     private @Version long appendVersion;
     private @ByteOffset long globalAppendOffset;
-    private @ByteOffset long lastFileAppendOffset;
+    private @ByteOffset long currentFileAppendOffset;
     private int checksum;
     private HeaderNumber headerNumber;
 
@@ -90,7 +90,7 @@ public final class FileStorageHeader implements FileHeader
             final @ByteSize int pageSize,
             final @ByteSize long segmentFileSize,
             final @ByteOffset long globalAppendOffset,
-            final @ByteOffset long lastFileAppendOffset,
+            final @ByteOffset long currentFileAppendOffset,
             final @Version int logDbVersion,
             final int checksum,
             final HeaderNumber headerNumber)
@@ -105,9 +105,9 @@ public final class FileStorageHeader implements FileHeader
         this.pageSize = pageSize;
         this.segmentFileSize = segmentFileSize;
         this.globalAppendOffset = globalAppendOffset;
-        this.lastFileAppendOffset = lastFileAppendOffset;
+        this.currentFileAppendOffset = currentFileAppendOffset;
         this.checksum = checksum;
-        this.staticWriteBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE); // appendVersion, globalAppendOffset and lastFileAppendOffset
+        this.staticWriteBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE); // appendVersion, globalAppendOffset and currentFileAppendOffset
         this.staticWriteBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
 
         this.dynamicWriteBuffer = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
@@ -181,7 +181,7 @@ public final class FileStorageHeader implements FileHeader
 
         final @Version long appendVersion = StorageUnits.version(getLongInCorrectByteOrder(buffer.getLong(APPEND_VERSION_OFFSET)));
         final @ByteOffset long lastPersistedOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(GLOBAL_APPEND_OFFSET)));
-        final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(LAST_FILE_APPEND_OFFSET)));
+        final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(CURRENT_FILE_APPEND_OFFSET)));
         final int checksum = getIntegerInCorrectByteOrder(buffer.getInt(CHECKSUM_OFFSET));
 
         final FileStorageHeader fileStorageHeader = new FileStorageHeader(
@@ -270,7 +270,7 @@ public final class FileStorageHeader implements FileHeader
     {
         dynamicWriteBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
         dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffset));
-        dynamicWriteBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(lastFileAppendOffset));
+        dynamicWriteBuffer.putLong(CURRENT_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(currentFileAppendOffset));
         dynamicWriteBuffer.putInt(CHECKSUM_OFFSET, getIntegerInCorrectByteOrder(checksum));
 
         dynamicWriteBuffer.rewind();
@@ -314,9 +314,9 @@ public final class FileStorageHeader implements FileHeader
     }
 
     @Override
-    public @ByteOffset long getLastFileAppendOffset()
+    public @ByteOffset long getCurrentFileAppendOffset()
     {
-        return lastFileAppendOffset;
+        return currentFileAppendOffset;
     }
 
     @Override
@@ -327,18 +327,18 @@ public final class FileStorageHeader implements FileHeader
 
     @Override
     public void updateMeta(
-            final @ByteOffset long lastPersistedOffset,
-            final @ByteOffset long appendOffset,
+            final @ByteOffset long globalAppendOffsetOffset,
+            final @ByteOffset long currentFileAppendOffset,
             final @Version long appendVersion)
     {
-        this.globalAppendOffset = lastPersistedOffset;
-        this.lastFileAppendOffset = appendOffset;
+        this.globalAppendOffset = globalAppendOffsetOffset;
+        this.currentFileAppendOffset = currentFileAppendOffset;
         this.appendVersion = appendVersion;
 
         dynamicWriteBuffer.rewind();
         dynamicWriteBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
-        dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(lastPersistedOffset));
-        dynamicWriteBuffer.putLong(LAST_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(appendOffset));
+        dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffsetOffset));
+        dynamicWriteBuffer.putLong(CURRENT_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(currentFileAppendOffset));
 
         final @ByteSize int length = StorageUnits.size(DYNAMIC_HEADER_SIZE - CHECKSUM_SIZE);
         this.checksum = checksumUtil.calculateSingleChecksum(dynamicWriteBuffer.array(), ZERO_OFFSET, length);
@@ -392,7 +392,7 @@ public final class FileStorageHeader implements FileHeader
                 ", dynamicWriteBuffer=" + dynamicWriteBuffer +
                 ", appendVersion=" + appendVersion +
                 ", globalAppendOffset=" + globalAppendOffset +
-                ", lastFileAppendOffset=" + lastFileAppendOffset +
+                ", currentFileAppendOffset=" + currentFileAppendOffset +
                 ", checksum=" + checksum +
                 ", headerNumber=" + headerNumber +
                 ", segmentFileSize=" + segmentFileSize +

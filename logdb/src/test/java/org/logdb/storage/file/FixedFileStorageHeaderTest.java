@@ -90,7 +90,7 @@ class FixedFileStorageHeaderTest
             assertEquals(actualHeader.getDbVersion(), fixedFileStorageHeader.getDbVersion());
             assertEquals(actualHeader.getAppendVersion(), fixedFileStorageHeader.getAppendVersion());
             assertEquals(actualHeader.getGlobalAppendOffset(), fixedFileStorageHeader.getGlobalAppendOffset());
-            assertEquals(actualHeader.getLastFileAppendOffset(), fixedFileStorageHeader.getLastFileAppendOffset());
+            assertEquals(actualHeader.getCurrentFileAppendOffset(), fixedFileStorageHeader.getCurrentFileAppendOffset());
         }
     }
 }

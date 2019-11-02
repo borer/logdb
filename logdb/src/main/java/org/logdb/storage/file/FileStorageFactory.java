@@ -188,7 +188,7 @@ public class FileStorageFactory
             }
         }
 
-        final @ByteOffset long appendOffset = fileHeader.getLastFileAppendOffset();
+        final @ByteOffset long appendOffset = fileHeader.getCurrentFileAppendOffset();
         if (appendOffset != INVALID_OFFSET)
         {
             currentAppendChannel.position(appendOffset);
