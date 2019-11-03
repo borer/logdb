@@ -23,7 +23,7 @@ import static org.logdb.benchmark.DefaultBenchmarkConfig.BYTE_ORDER;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
-public class TestRandomAsyncWritingBenchmark
+public class TestRandomSyncWritingBenchmark
 {
     @State(Scope.Benchmark)
     public static class BenchmarkState
@@ -47,9 +47,9 @@ public class TestRandomAsyncWritingBenchmark
                     .setSegmentFileSize(SEGMENT_FILE_SIZE)
                     .useIndexWithLog(true)
                     .setTimeSource(new SystemTimeSource())
-                    .asyncIndexWrite(true)
+                    .asyncIndexWrite(false)
                     .asyncQueueCapacity(16384)
-                    .shouldSyncWrite(false)
+                    .shouldSyncWrite(true)
                     .build();
 
             valueBuffer = new byte[Long.BYTES];
