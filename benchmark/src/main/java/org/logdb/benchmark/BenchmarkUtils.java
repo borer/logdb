@@ -50,7 +50,7 @@ class BenchmarkUtils
     {
         Files.list(rootDirectory).forEach(file ->
         {
-            if (Files.isDirectory(file))
+            if (Files.isRegularFile(file))
             {
                 try
                 {
