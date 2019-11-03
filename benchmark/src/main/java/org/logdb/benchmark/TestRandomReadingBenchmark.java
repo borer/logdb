@@ -53,7 +53,6 @@ public class TestRandomReadingBenchmark
                     .useIndexWithLog(true)
                     .setTimeSource(new SystemTimeSource())
                     .asyncIndexWrite(false)
-                    .asyncQueueCapacity(16384)
                     .shouldSyncWrite(false)
                     .build();
 

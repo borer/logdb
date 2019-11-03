@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -43,8 +42,8 @@ public class NodesManager
 
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
-        this.nonLeafNodesCache = new ArrayDeque<>();
-        this.leafNodesCache = new ArrayDeque<>();
+        this.nonLeafNodesCache = new ConcurrentLinkedQueue<>();
+        this.leafNodesCache = new ConcurrentLinkedQueue<>();
         this.mappedNodes = new ConcurrentLinkedQueue<>();
         this.lastPersistedPageNumber = StorageUnits.INVALID_PAGE_NUMBER;
     }
@@ -61,18 +60,18 @@ public class NodesManager
 
     BTreeMappedNode getOrCreateMappedNode()
     {
-        if (!mappedNodes.isEmpty())
+        BTreeMappedNode mappedNode = mappedNodes.poll();
+
+        if (mappedNode == null)
         {
-            return mappedNodes.poll();
-        }
-        else
-        {
-            return new BTreeMappedNode(
+            mappedNode = new BTreeMappedNode(
                     this::returnMappedNode,
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
                     StorageUnits.pageNumber(0));
         }
+
+        return mappedNode;
     }
 
     private void returnMappedNode(final BTreeMappedNode mappedNode)
