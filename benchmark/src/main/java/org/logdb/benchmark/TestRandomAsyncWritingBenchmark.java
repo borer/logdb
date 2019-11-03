@@ -17,21 +17,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Random;
 
 import static org.logdb.benchmark.DefaultBenchmarkConfig.BYTE_ORDER;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
-public class TestAsyncIndexWritingBenchmark
+public class TestRandomAsyncWritingBenchmark
 {
     @State(Scope.Benchmark)
     public static class BenchmarkState
     {
-        private long key;
-        private long value;
-        private byte[] valueBuffer;
+        static final int NUMBER_OF_PAIRS = 1_000_000;
         private Path rootDirectory;
         private LogDb logDb;
+        private Random random;
+        private byte[] valueBuffer;
 
         @Setup(Level.Trial)
         public void doSetup() throws IOException
@@ -48,12 +49,11 @@ public class TestAsyncIndexWritingBenchmark
                     .setTimeSource(new SystemTimeSource())
                     .asyncIndexWrite(true)
                     .asyncQueueCapacity(16384)
-                    .shouldSyncWrite(false)
+                    .shouldSyncWrite(true)
                     .build();
 
-            key = 1L;
-            value = 1L;
             valueBuffer = new byte[Long.BYTES];
+            random = new Random();
         }
 
         @TearDown(Level.Trial)
@@ -63,18 +63,7 @@ public class TestAsyncIndexWritingBenchmark
             BenchmarkUtils.removeAllFilesFromDirectory(rootDirectory);
         }
 
-        void insert() throws IOException
-        {
-            longToBytes(value, valueBuffer);
-
-            logDb.put(key, valueBuffer);
-
-            ++key;
-            ++value;
-
-        }
-
-        void longToBytes(final long value, final byte[] bytes)
+        private void longToBytes(final long value, final byte[] bytes)
         {
             bytes[0] = (byte) value;
             bytes[1] = (byte) (value >> 8);
@@ -86,10 +75,13 @@ public class TestAsyncIndexWritingBenchmark
             bytes[7] = (byte) (value >> 56);
         }
 
-        void commit()
+        void insertRandom()
         {
+            final int randomNumber = random.nextInt(NUMBER_OF_PAIRS);
+            longToBytes(randomNumber, valueBuffer);
             try
             {
+                logDb.put(randomNumber, valueBuffer);
                 logDb.commitIndex();
             }
             catch (IOException e)
@@ -102,9 +94,8 @@ public class TestAsyncIndexWritingBenchmark
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     @Threads(1)
-    public void testBench(final BenchmarkState benchmarkState) throws IOException
+    public void testBench(final BenchmarkState benchmarkState)
     {
-        benchmarkState.insert();
-        benchmarkState.commit();
+        benchmarkState.insertRandom();
     }
 }

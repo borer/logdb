@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 
+import static java.lang.System.exit;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.BYTE_ORDER;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
@@ -51,7 +52,7 @@ public class TestRandomReadingBenchmark
                     .setSegmentFileSize(SEGMENT_FILE_SIZE)
                     .useIndexWithLog(true)
                     .setTimeSource(new SystemTimeSource())
-                    .asyncIndexWrite(true)
+                    .asyncIndexWrite(false)
                     .asyncQueueCapacity(16384)
                     .shouldSyncWrite(false)
                     .build();
@@ -72,6 +73,7 @@ public class TestRandomReadingBenchmark
                 }
             }
 
+            commit();
             LOGGER.info("===================Database Created");
             LOGGER.info("===================Starting Benchmark");
         }
@@ -143,6 +145,15 @@ public class TestRandomReadingBenchmark
     @Threads(5)
     public void testBench(final BenchmarkState benchmarkState, final Blackhole blackhole)
     {
-        blackhole.consume(benchmarkState.getValue(benchmarkState.getRandomKey()));
+        final long randomKey = benchmarkState.getRandomKey();
+        try
+        {
+            blackhole.consume(benchmarkState.getValue(randomKey));
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("unable to read " + randomKey, e);
+            exit(-1);
+        }
     }
 }

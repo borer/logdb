@@ -30,10 +30,8 @@ import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
-public class TestRandomKeysWritingWithLogBenchmark
+public class TestBTreeWithLogRandomKeysWritingBenchmark
 {
-
-
     @State(Scope.Thread)
     public static class BenchmarkState
     {
