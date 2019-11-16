@@ -285,27 +285,4 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     {
         return (HeapMemory)buffer;
     }
-
-    @Override
-    public String toString()
-    {
-        final StringBuilder contentBuilder = new StringBuilder(super.toString());
-
-        if (numberOfLogKeyValues > 0)
-        {
-            contentBuilder.append(" log KV : ");
-            for (int i = 0; i < numberOfLogKeyValues; i++)
-            {
-                contentBuilder.append(getLogKey(i));
-                contentBuilder.append("-");
-                contentBuilder.append(getLogValue(i));
-                if (i + 1 != numberOfLogKeyValues)
-                {
-                    contentBuilder.append(",");
-                }
-            }
-        }
-
-        return contentBuilder.toString();
-    }
 }

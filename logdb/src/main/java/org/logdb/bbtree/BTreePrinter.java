@@ -103,11 +103,11 @@ public class BTreePrinter
             {
                 if (i + 1 < node.numberOfLogKeyValues)
                 {
-                    printer.append(String.format(" %s-%s | ", node.getLogKey(i), node.getLogValue(i)));
+                    printer.append(String.format(" %s-%s | ", node.getLogKey(i), node.getLogValueAtIndex(i)));
                 }
                 else
                 {
-                    printer.append(String.format(" %s-%s ", node.getLogKey(i), node.getLogValue(i)));
+                    printer.append(String.format(" %s-%s ", node.getLogKey(i), node.getLogValueAtIndex(i)));
                 }
             }
             printer.append("}}|");

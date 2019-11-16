@@ -9,6 +9,8 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 
+import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+
 public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements BTreeLogNode
 {
     int numberOfLogKeyValues;
@@ -105,7 +107,28 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public long getLogValue(final int index)
+    public boolean hasKeyLog(long key)
+    {
+        final int logIndex = binarySearchInLog(key);
+        return logIndex >= 0;
+    }
+
+    @Override
+    public long getLogValue(final long key)
+    {
+        final int logIndex = binarySearchInLog(key);
+        if (logIndex >= 0)
+        {
+            return getLogValueAtIndex(logIndex);
+        }
+        else
+        {
+            return KEY_NOT_FOUND_VALUE;
+        }
+    }
+
+    @Override
+    public long getLogValueAtIndex(final int index)
     {
         return keyValueLog.getValue(index);
     }
@@ -115,8 +138,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         return keyValueLog.getKey(index);
     }
 
-    @Override
-    public int binarySearchInLog(final long key)
+    int binarySearchInLog(final long key)
     {
         return SearchUtils.binarySearch(key, numberOfLogKeyValues, this::getLogKey);
     }
@@ -161,7 +183,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public void removeLogWithKey(final long key)
+    public void removeLog(final long key)
     {
         final int index = binarySearchInLog(key);
         if (index >= 0)
@@ -225,7 +247,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
             {
                 contentBuilder.append(getLogKey(i));
                 contentBuilder.append("-");
-                contentBuilder.append(getLogValue(i));
+                contentBuilder.append(getLogValueAtIndex(i));
                 if (i + 1 != numberOfLogKeyValues)
                 {
                     contentBuilder.append(",");

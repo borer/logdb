@@ -50,4 +50,28 @@ class KeyValueLog
     {
         return StorageUnits.offset(getLogKeyIndexOffset(index) + BTreeNodePage.KEY_SIZE);
     }
+
+    @Override
+    public String toString()
+    {
+        final StringBuilder contentBuilder = new StringBuilder();
+
+        final long numberOfPairs = getNumberOfPairs();
+        if (numberOfPairs > 0)
+        {
+            contentBuilder.append("KeyValueLog : ");
+            for (int i = 0; i < numberOfPairs; i++)
+            {
+                contentBuilder.append(getKey(i));
+                contentBuilder.append("-");
+                contentBuilder.append(getValue(i));
+                if (i + 1 != numberOfPairs)
+                {
+                    contentBuilder.append(",");
+                }
+            }
+        }
+
+        return contentBuilder.toString();
+    }
 }

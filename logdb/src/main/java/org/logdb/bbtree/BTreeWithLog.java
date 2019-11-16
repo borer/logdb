@@ -93,7 +93,7 @@ public class BTreeWithLog extends BTreeAbstract
                 removeWithLogRecursiveAndRebalanceParent(parent, nodeIndexInParent, nonLeaf, key, keyIndex, childrenCopy);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
-                nonLeaf.removeLogWithKey(key);
+                nonLeaf.removeLog(key);
 
                 spillLogForRemove(parent, nodeIndexInParent, nonLeaf);
             }
@@ -199,7 +199,7 @@ public class BTreeWithLog extends BTreeAbstract
                     final BTreeNodeHeap parentCopy = nodesManager.copyNode(parent, newVersion);
                     index = parentCursor.index;
                     parentCopy.remove(index);
-                    ((BTreeLogNode) parentCopy).removeLogWithKey(key);
+                    ((BTreeLogNode) parentCopy).removeLog(key);
 
                     newRoot = parentCopy;
 
@@ -221,26 +221,26 @@ public class BTreeWithLog extends BTreeAbstract
                 final BTreeNode parentNode = parentCursor.getNode(mappedNode);
                 if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
                 {
-                    final int logIndex = ((BTreeLogNode) parentNode).binarySearchInLog(key);
+                    final boolean hasLogValue = ((BTreeLogNode) parentNode).hasKeyLog(key);
                     if (wasFound)
                     {
                         final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
                         copyParent.setChild(index, (BTreeNodeHeap) newRoot);
 
-                        if (logIndex >= 0)
+                        if (hasLogValue)
                         {
-                            ((BTreeLogNode) copyParent).removeLogAtIndex(logIndex);
+                            ((BTreeLogNode) copyParent).removeLog(key);
                         }
 
                         newRoot = copyParent;
                     }
                     else
                     {
-                        if (logIndex >= 0) //found in current node
+                        if (hasLogValue) //found in current node
                         {
                             wasFound = true;
                             final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
-                            ((BTreeLogNode) copyParent).removeLogAtIndex(logIndex);
+                            ((BTreeLogNode) copyParent).removeLog(key);
 
                             newRoot = copyParent;
                         }
@@ -335,7 +335,7 @@ public class BTreeWithLog extends BTreeAbstract
                 putWithLogRecursiveInChildAndSplitIfRequired(currentNonLeaf, key, value);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
-                currentNonLeaf.removeLogWithKey(key);
+                currentNonLeaf.removeLog(key);
 
                 spillLogForPut(parent, nodeIndexInParent, currentNonLeaf);
             }
@@ -497,10 +497,9 @@ public class BTreeWithLog extends BTreeAbstract
                 final BTreeLogNode bTreeLogNode = (BTreeLogNode) currentNode;
                 if (bTreeLogNode.getLogKeyValuesCount() > 0)
                 {
-                    final int logIndex = bTreeLogNode.binarySearchInLog(key);
-                    if (logIndex >= 0)
+                    if (bTreeLogNode.hasKeyLog(key))
                     {
-                        final long logValue = bTreeLogNode.getLogValue(logIndex);
+                        final long logValue = bTreeLogNode.getLogValue(key);
                         if (logValue != LOG_VALUE_TO_REMOVE_SENTINEL)
                         {
                             return logValue;
