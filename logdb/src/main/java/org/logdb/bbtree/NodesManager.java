@@ -1,6 +1,6 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.ReadMemory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.PageNumber;
@@ -213,8 +213,8 @@ public class NodesManager
 
     private @PageNumber long commitNodeToStorage(final BTreeNodeHeap node) throws IOException
     {
-        final ReadMemory buffer = node.getBuffer();
-        return storage.appendPageAligned(buffer.getSupportByteBufferIfAny());
+        final HeapMemory buffer = node.getBuffer();
+        return storage.appendPageAligned(buffer.getSupportByteBuffer());
     }
 
     BTreeNode loadNode(final int index, final BTreeNode parentNode, final BTreeMappedNode mappedNode)

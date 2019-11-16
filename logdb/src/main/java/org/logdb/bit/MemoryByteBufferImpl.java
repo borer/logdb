@@ -23,9 +23,15 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
-    public ByteBuffer getSupportByteBufferIfAny()
+    public ByteBuffer getSupportByteBuffer()
     {
         return buffer;
+    }
+
+    @Override
+    public byte[] getArray()
+    {
+        return buffer.array();
     }
 
     @Override

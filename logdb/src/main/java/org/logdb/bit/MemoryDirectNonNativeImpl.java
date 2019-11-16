@@ -4,7 +4,6 @@ import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import static org.logdb.storage.StorageUnits.BYTE_OFFSET;
@@ -34,12 +33,6 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
         this.baseAddress = baseAddress;
         this.capacity = capacity;
         this.position = ZERO_OFFSET;
-    }
-
-    @Override
-    public ByteBuffer getSupportByteBufferIfAny()
-    {
-        return null;
     }
 
     @Override

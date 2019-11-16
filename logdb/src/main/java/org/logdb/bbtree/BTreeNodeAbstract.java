@@ -13,8 +13,6 @@ import org.logdb.time.TimeUnits;
 
 import java.util.Objects;
 
-import static org.logdb.bbtree.KeyValueLog.getLogKeyIndexOffset;
-
 abstract class BTreeNodeAbstract implements BTreeNode
 {
     long freeSizeLeftBytes;
@@ -99,7 +97,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         buffer.putByte(BTreeNodePage.PAGE_TYPE_OFFSET, type.getType());
     }
 
-    void setRootFlag(final boolean isRoot)
+    private void setRootFlag(final boolean isRoot)
     {
         buffer.putByte(BTreeNodePage.PAGE_IS_ROOT_OFFSET, (byte) (isRoot ? 1 : 0));
     }
@@ -131,7 +129,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return StorageUnits.version(buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET));
     }
 
-    void setPreviousRoot(final @PageNumber long previousRootPageNumber)
+    private void setPreviousRoot(final @PageNumber long previousRootPageNumber)
     {
         buffer.putLong(BTreeNodePage.PAGE_PREV_OFFSET, previousRootPageNumber);
     }
@@ -179,11 +177,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private static @ByteOffset long getValueIndexOffsetNew(final int index)
     {
         return StorageUnits.offset(getKeyIndexOffset(index) + BTreeNodePage.KEY_SIZE);
-    }
-
-    long getLogKey(final int index)
-    {
-        return buffer.getLong(getLogKeyIndexOffset(buffer.getCapacity(), index));
     }
 
     void insertKeyAndValue(final int index, final long key, final long value)
@@ -282,7 +275,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
-    abstract long calculateFreeSpaceLeft(final long pageSize);
+    abstract long calculateFreeSpaceLeft(long pageSize);
 
     void setDirty()
     {

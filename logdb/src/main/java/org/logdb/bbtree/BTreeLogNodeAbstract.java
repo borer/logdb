@@ -9,14 +9,13 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 
-import static org.logdb.bbtree.KeyValueLog.getLogKeyIndexOffset;
-import static org.logdb.bbtree.KeyValueLog.getLogValueIndexOffset;
-
 public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements BTreeLogNode
 {
     int numberOfLogKeyValues;
 
-    public BTreeLogNodeAbstract(
+    private final KeyValueLog keyValueLog;
+
+    BTreeLogNodeAbstract(
             final @PageNumber long pageNumber,
             final Memory memory,
             final int numberOfLogKeyValues,
@@ -25,6 +24,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     {
         super(pageNumber, memory, numberOfKeys, numberOfValues);
         this.numberOfLogKeyValues = numberOfLogKeyValues;
+        this.keyValueLog = new KeyValueLog(memory);
     }
 
     @Override
@@ -41,12 +41,6 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public long getLogValue(final int index)
-    {
-        return buffer.getLong(getLogValueIndexOffset(buffer.getCapacity(), index));
-    }
-
-    @Override
     public boolean shouldSplit()
     {
         final long freeSpaceWithoutConsideringLogBuffer =
@@ -60,8 +54,8 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         final int keyIndex = binarySearchInLog(key);
         final int aLogKeyValues = keyIndex + 1;
         final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
-        final @ByteOffset long sourceOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-        final @ByteOffset long destinationOffset = getLogKeyIndexOffset(bNode.buffer.getCapacity(), bLogKeyValues);
+        final @ByteOffset long sourceOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
+        final @ByteOffset long destinationOffset = bNode.keyValueLog.getLogKeyIndexOffset(bLogKeyValues);
         final @ByteSize int length =
                 StorageUnits.size((bLogKeyValues + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
 
@@ -88,24 +82,37 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         return pageSize - usedBytes;
     }
 
-    HeapMemory spillLog()
+    KeyValueLog spillLog()
     {
         final @ByteSize int keyValueLogSize = StorageUnits.size(numberOfLogKeyValues * 2 * Long.BYTES);
-        final HeapMemory keyValueLog = MemoryFactory.allocateHeap(keyValueLogSize, buffer.getByteOrder());
+        final HeapMemory keyValueLogBuffer = MemoryFactory.allocateHeap(keyValueLogSize, buffer.getByteOrder());
 
-        final @ByteOffset long logStartOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
+        final @ByteOffset long logStartOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
         buffer.getBytes(
                 logStartOffset,
-                keyValueLog.getCapacity(),
-                keyValueLog.getSupportByteBufferIfAny().array());
+                keyValueLogBuffer.getCapacity(),
+                keyValueLogBuffer.getArray());
 
-        assert KeyValueLog.getNumberOfElements(keyValueLog.getCapacity()) % 2 == 0
-                : "log key/value array must even size. Current size " + KeyValueLog.getNumberOfElements(keyValueLog.getCapacity());
+        final KeyValueLog keyValueLog = new KeyValueLog(keyValueLogBuffer);
+
+        assert keyValueLog.getNumberOfElements() % 2 == 0
+                : "log key/value array must even size. Current size " + keyValueLog.getNumberOfElements();
 
         updateNumberOfLogKeyValues(0);
         recalculateFreeSpaceLeft();
 
         return keyValueLog;
+    }
+
+    @Override
+    public long getLogValue(final int index)
+    {
+        return keyValueLog.getValue(index);
+    }
+
+    long getLogKey(final int index)
+    {
+        return keyValueLog.getKey(index);
     }
 
     @Override
@@ -139,8 +146,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
 
     private void setLogKeyValue(final int index, final long key, final long value)
     {
-        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key);
-        buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
+        keyValueLog.putKeyValue(index, key, value);
     }
 
     private void insertLogKeyValue(final int index, final long key, final long value)
@@ -157,20 +163,15 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     /**
      * try to remove a key/value pair for this node log.
      * @param key the key that identifies the key/value pair to remove from the node log
-     * @return true if removed successfully, false if key/value are not in the log.
      */
-    boolean removeLogWithKey(final long key)
+    void removeLogWithKey(final long key)
     {
         final int index = binarySearchInLog(key);
         if (index >= 0)
         {
             removeLogAtIndex(index);
             setDirty();
-
-            return true;
         }
-
-        return false;
     }
 
     @Override
@@ -194,8 +195,8 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         if (gapIndex < numberOfLogKeyValues)
         {
             final int elementsToMove = numberOfLogKeyValues - gapIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
-            final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
+            final @ByteOffset long oldLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
+            final @ByteOffset long newLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
             final @ByteSize int size =
                     StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
             MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
@@ -207,8 +208,8 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         if (numberOfLogKeyValues > 0 && removeIndex < (numberOfLogKeyValues - 1))
         {
             final int elementsToMove = numberOfLogKeyValues - removeIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-            final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
+            final @ByteOffset long oldLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
+            final @ByteOffset long newLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
             final @ByteSize int size =
                     StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
             MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);

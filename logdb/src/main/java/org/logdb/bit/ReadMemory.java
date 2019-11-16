@@ -3,12 +3,8 @@ package org.logdb.bit;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 
-import java.nio.ByteBuffer;
-
 public interface ReadMemory
 {
-    ByteBuffer getSupportByteBufferIfAny();
-
     long getLong();
 
     long getLong(@ByteOffset long offset);

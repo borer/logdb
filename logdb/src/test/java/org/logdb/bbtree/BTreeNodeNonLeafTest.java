@@ -2,7 +2,6 @@ package org.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.support.TestUtils;
 
@@ -711,15 +710,15 @@ class BTreeNodeNonLeafTest
         assertFalse(bTreeNonLeaf.logHasFreeSpace());
         assertEquals(maxLogKeyValuePairs, bTreeNonLeaf.getLogKeyValuesCount());
 
-        final HeapMemory keyValueLog = bTreeNonLeaf.spillLog();
+        final KeyValueLog keyValueLog = bTreeNonLeaf.spillLog();
 
         assertTrue(bTreeNonLeaf.logHasFreeSpace());
         assertEquals(0, bTreeNonLeaf.getLogKeyValuesCount());
 
         for (int i = 0; i < maxLogKeyValuePairs; i++)
         {
-            assertEquals(i, KeyValueLog.getKey(keyValueLog, i));
-            assertEquals(i, KeyValueLog.getValue(keyValueLog, i));
+            assertEquals(i, keyValueLog.getKey(i));
+            assertEquals(i, keyValueLog.getValue(i));
         }
     }
 }

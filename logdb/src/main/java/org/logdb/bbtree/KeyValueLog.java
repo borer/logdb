@@ -5,40 +5,49 @@ import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
-final class KeyValueLog
+class KeyValueLog
 {
-    private KeyValueLog()
+    private final Memory keyValuesBuffer;
+
+    KeyValueLog(final Memory keyValuesBuffer)
     {
+        this.keyValuesBuffer = keyValuesBuffer;
     }
 
-    static long getNumberOfElements(final @ByteSize long capacity)
+    long getNumberOfElements()
     {
-        return capacity / Long.BYTES;
+        return keyValuesBuffer.getCapacity() / Long.BYTES;
     }
 
-    static long getNumberOfPairs(final @ByteSize long capacity)
+    long getNumberOfPairs()
     {
-        return getNumberOfElements(capacity) / 2;
+        return getNumberOfElements() / 2;
     }
 
-    static long getKey(final Memory buffer, final int index)
+    long getKey(final int index)
     {
-        return buffer.getLong(getLogKeyIndexOffset(buffer.getCapacity(), index));
+        return keyValuesBuffer.getLong(getLogKeyIndexOffset(index));
     }
 
-    static long getValue(final Memory buffer, final int index)
+    long getValue(final int index)
     {
-        return buffer.getLong(getLogValueIndexOffset(buffer.getCapacity(), index));
+        return keyValuesBuffer.getLong(getLogValueIndexOffset(index));
     }
 
-    static @ByteOffset long getLogKeyIndexOffset(final @ByteSize long pageSize, final int index)
+    void putKeyValue(int index, long key, long value)
+    {
+        keyValuesBuffer.putLong(getLogKeyIndexOffset(index), key);
+        keyValuesBuffer.putLong(getLogValueIndexOffset(index), value);
+    }
+
+    @ByteOffset long getLogKeyIndexOffset(final int index)
     {
         final @ByteSize long keyValuePairSize = StorageUnits.size(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        return StorageUnits.offset(pageSize - ((index + 1) * keyValuePairSize));
+        return StorageUnits.offset(keyValuesBuffer.getCapacity() - ((index + 1) * keyValuePairSize));
     }
 
-    static @ByteOffset long getLogValueIndexOffset(final @ByteSize long pageSize, final int index)
+    @ByteOffset long getLogValueIndexOffset(final int index)
     {
-        return StorageUnits.offset(getLogKeyIndexOffset(pageSize, index) + BTreeNodePage.KEY_SIZE);
+        return StorageUnits.offset(getLogKeyIndexOffset(index) + BTreeNodePage.KEY_SIZE);
     }
 }

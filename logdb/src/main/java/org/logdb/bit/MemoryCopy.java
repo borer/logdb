@@ -39,17 +39,8 @@ public class MemoryCopy
         }
         else
         {
-            final ByteBuffer sourceSupportByteBufferIfAny = sourceMemory.getSupportByteBufferIfAny();
-            final byte[] sourceArray =
-                    (sourceSupportByteBufferIfAny != null && !sourceSupportByteBufferIfAny.isDirect())
-                            ? sourceSupportByteBufferIfAny.array()
-                            : null;
-
-            final ByteBuffer destinationSupportByteBufferIfAny = destinationMemory.getSupportByteBufferIfAny();
-            final byte[] destinationArray =
-                    (destinationSupportByteBufferIfAny != null && !destinationSupportByteBufferIfAny.isDirect())
-                            ? destinationSupportByteBufferIfAny.array()
-                            : null;
+            final byte[] sourceArray = getBackingArray(sourceMemory);
+            final byte[] destinationArray = getBackingArray(destinationMemory);
 
             NativeMemoryAccess.copyBytes(
                     sourceArray,
@@ -58,5 +49,16 @@ public class MemoryCopy
                     destinationMemory.getBaseAddress() + destinationOffset,
                     lengthBytes);
         }
+    }
+
+    private static byte[] getBackingArray(final Memory memory)
+    {
+        final ByteBuffer supportingByteBuffer = memory instanceof HeapMemory
+                ? ((HeapMemory) memory).getSupportByteBuffer()
+                : null;
+
+        return supportingByteBuffer != null && !supportingByteBuffer.isDirect()
+                ? supportingByteBuffer.array()
+                : null;
     }
 }
