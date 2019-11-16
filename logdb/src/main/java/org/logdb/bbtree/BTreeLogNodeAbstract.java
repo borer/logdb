@@ -160,11 +160,8 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         recalculateFreeSpaceLeft();
     }
 
-    /**
-     * try to remove a key/value pair for this node log.
-     * @param key the key that identifies the key/value pair to remove from the node log
-     */
-    void removeLogWithKey(final long key)
+    @Override
+    public void removeLogWithKey(final long key)
     {
         final int index = binarySearchInLog(key);
         if (index >= 0)

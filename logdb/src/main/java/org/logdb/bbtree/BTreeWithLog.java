@@ -199,12 +199,7 @@ public class BTreeWithLog extends BTreeAbstract
                     final BTreeNodeHeap parentCopy = nodesManager.copyNode(parent, newVersion);
                     index = parentCursor.index;
                     parentCopy.remove(index);
-
-                    final int logIndex = ((BTreeLogNode) parentCopy).binarySearchInLog(key);
-                    if (logIndex > 0)
-                    {
-                        ((BTreeLogNode) parentCopy).removeLogAtIndex(logIndex);
-                    }
+                    ((BTreeLogNode) parentCopy).removeLogWithKey(key);
 
                     newRoot = parentCopy;
 
@@ -330,32 +325,32 @@ public class BTreeWithLog extends BTreeAbstract
         {
             assert node instanceof BTreeNodeNonLeaf : "Node is not instance of BTreeNodeNonLeaf. " + node.toString();
 
-            BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
-            if (nonLeaf.logHasFreeSpace())
+            BTreeNodeNonLeaf currentNonLeaf = (BTreeNodeNonLeaf) node;
+            if (currentNonLeaf.logHasFreeSpace())
             {
-                nonLeaf.insertLog(key, value);
+                currentNonLeaf.insertLog(key, value);
             }
             else
             {
-                putWithLogRecursiveInChildAndSplitIfRequired(nonLeaf, key, value);
+                putWithLogRecursiveInChildAndSplitIfRequired(currentNonLeaf, key, value);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
-                nonLeaf.removeLogWithKey(key);
+                currentNonLeaf.removeLogWithKey(key);
 
-                spillLogForPut(parent, nodeIndexInParent, nonLeaf);
+                spillLogForPut(parent, nodeIndexInParent, currentNonLeaf);
             }
 
-            if (nonLeaf.shouldSplit() && parent != null)
+            if (currentNonLeaf.shouldSplit() && parent != null)
             {
                 this.nodesCount++;
-                final int nodeKeyCount = nonLeaf.getKeyCount();
+                final int nodeKeyCount = currentNonLeaf.getKeyCount();
                 final int nodeKeyIndex = nodeKeyCount >> 1;
-                final long splitKey = nonLeaf.getKey(nodeKeyIndex);
+                final long splitKey = currentNonLeaf.getKey(nodeKeyIndex);
 
                 //split current nonleaf into children
-                final BTreeNodeHeap nonLeafSplit = nodesManager.splitNode(nonLeaf, nodeKeyIndex, nonLeaf.getVersion());
+                final BTreeNodeHeap nonLeafSplit = nodesManager.splitNode(currentNonLeaf, nodeKeyIndex, currentNonLeaf.getVersion());
 
-                parent.insertChild(nodeIndexInParent, splitKey, nonLeaf);
+                parent.insertChild(nodeIndexInParent, splitKey, currentNonLeaf);
                 parent.setChild(nodeIndexInParent +  1, nonLeafSplit);
             }
         }
@@ -499,12 +494,13 @@ public class BTreeWithLog extends BTreeAbstract
             BTreeNode currentNode = root;
             while (currentNode.getNodeType() == BtreeNodeType.NonLeaf)
             {
-                if (((BTreeLogNode) currentNode).getLogKeyValuesCount() > 0)
+                final BTreeLogNode bTreeLogNode = (BTreeLogNode) currentNode;
+                if (bTreeLogNode.getLogKeyValuesCount() > 0)
                 {
-                    final int logIndex = ((BTreeLogNode) currentNode).binarySearchInLog(key);
+                    final int logIndex = bTreeLogNode.binarySearchInLog(key);
                     if (logIndex >= 0)
                     {
-                        final long logValue = ((BTreeLogNode) currentNode).getLogValue(logIndex);
+                        final long logValue = bTreeLogNode.getLogValue(logIndex);
                         if (logValue != LOG_VALUE_TO_REMOVE_SENTINEL)
                         {
                             return logValue;

@@ -115,7 +115,6 @@ public class BTreeImpl extends BTreeAbstract
 
                 parentCursor = parentCursor.parent;
                 currentNode = parentNode;
-                keyCount = currentNode.getKeyCount();
             }
 
             updatePathToRoot(parentCursor, currentNode);
@@ -191,7 +190,7 @@ public class BTreeImpl extends BTreeAbstract
         else
         {
             final @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-            boolean isNonLeaf = false;
+            boolean isNonLeaf;
             try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
             {
                 mappedNode.initNode(committedRootPageNumber);
@@ -237,7 +236,7 @@ public class BTreeImpl extends BTreeAbstract
             else
             {
                 @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-                boolean isNonLeaf = false;
+                boolean isNonLeaf;
                 try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
                 {
                     mappedNode.initNode(committedRootPageNumber);
@@ -263,7 +262,7 @@ public class BTreeImpl extends BTreeAbstract
         else
         {
             @PageNumber long committedRootPageNumber = StorageUnits.pageNumber(committedRoot.get());
-            boolean isNonLeaf = false;
+            boolean isNonLeaf;
             try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
             {
                 mappedNode.initNode(committedRootPageNumber);

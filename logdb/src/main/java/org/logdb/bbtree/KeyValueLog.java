@@ -46,7 +46,7 @@ class KeyValueLog
         return StorageUnits.offset(keyValuesBuffer.getCapacity() - ((index + 1) * keyValuePairSize));
     }
 
-    @ByteOffset long getLogValueIndexOffset(final int index)
+    private @ByteOffset long getLogValueIndexOffset(final int index)
     {
         return StorageUnits.offset(getLogKeyIndexOffset(index) + BTreeNodePage.KEY_SIZE);
     }
