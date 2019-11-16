@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.logdb.bit.DirectMemory;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
@@ -11,7 +12,7 @@ import java.util.function.Consumer;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
-public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
+public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseable
 {
     private final Consumer<BTreeMappedNode> closeHandler;
     private final Storage storage;
@@ -38,6 +39,23 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
         this.pageNumber = pageNumber;
         storage.mapPage(pageNumber, memory);
         initNodeFromBuffer();
+    }
+
+    private void initNodeFromBuffer()
+    {
+        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
+        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
+
+        if (getNodeType() == BtreeNodeType.NonLeaf)
+        {
+            numberOfLogKeyValues = buffer.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
+        }
+        else
+        {
+            numberOfLogKeyValues = 0;
+        }
+
+        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
     @Override
@@ -93,14 +111,15 @@ public class BTreeMappedNode extends BTreeNodeAbstract implements AutoCloseable
     }
 
     @Override
-    public void copy(final BTreeNodeHeap copyNode)
+    public void copy(final BTreeNodeHeap destinationNode)
     {
-        MemoryCopy.copy(buffer, copyNode.getBuffer());
-        copyNode.initNodeFromBuffer();
+        final HeapMemory destinationNodeBuffer = destinationNode.getBuffer();
+        MemoryCopy.copy(this.buffer, destinationNodeBuffer, destinationNodeBuffer.getCapacity());
+        destinationNode.initNodeFromBuffer();
 
-        if (copyNode.getNodeType() == BtreeNodeType.NonLeaf && (copyNode instanceof BTreeNodeNonLeaf))
+        if (destinationNode.getNodeType() == BtreeNodeType.NonLeaf && (destinationNode instanceof BTreeNodeNonLeaf))
         {
-            ((BTreeNodeNonLeaf)copyNode).setChildren(new BTreeNodeHeap[numberOfValues]);
+            ((BTreeNodeNonLeaf) destinationNode).setChildren(new BTreeNodeHeap[numberOfValues]);
         }
     }
 

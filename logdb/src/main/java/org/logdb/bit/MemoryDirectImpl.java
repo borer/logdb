@@ -209,6 +209,12 @@ public class MemoryDirectImpl implements DirectMemory
     }
 
     @Override
+    public void reset()
+    {
+        NativeMemoryAccess.fillBytes(baseAddress, capacity, (byte)0);
+    }
+
+    @Override
     public byte getByte()
     {
         return getByte(position);

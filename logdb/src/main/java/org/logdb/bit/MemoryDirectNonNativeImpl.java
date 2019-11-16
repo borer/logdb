@@ -127,6 +127,12 @@ public class MemoryDirectNonNativeImpl implements DirectMemory
     }
 
     @Override
+    public void reset()
+    {
+        NonNativeMemoryAccess.fillBytes(baseAddress, capacity, (byte)0);
+    }
+
+    @Override
     public int getInt()
     {
         return getInt(position);

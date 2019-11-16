@@ -56,7 +56,7 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            bTreeNonLeaf.removeLog(i);
+            bTreeNonLeaf.removeLogWithKey(i);
         }
 
         for (int i = 0; i < maxLogKeyValues; i++)
@@ -73,7 +73,7 @@ class BTreeNodeNonLeafTest
         final int maxLogKeyValues = 10;
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            bTreeNonLeaf.removeLog(i);
+            bTreeNonLeaf.removeLogWithKey(i);
         }
 
         assertEquals(0, bTreeNonLeaf.numberOfLogKeyValues);

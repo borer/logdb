@@ -88,7 +88,7 @@ public class BTreePrinter
         printer.append("\"];\n");
     }
 
-    private static void printNonLeaf(final StringBuilder printer, final BTreeNodeAbstract node, final NodesManager nodesManager)
+    private static void printNonLeaf(final StringBuilder printer, final BTreeLogNodeAbstract node, final NodesManager nodesManager)
     {
         final String id = String.valueOf(node.getPageNumber());
         final String lastChildId = getPageUniqueId(node.numberOfKeys, node);

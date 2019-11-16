@@ -1,10 +1,8 @@
 package org.logdb.bbtree;
 
 import org.logdb.bit.DirectMemory;
-import org.logdb.bit.HeapMemory;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
-import org.logdb.bit.MemoryFactory;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -13,21 +11,17 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Objects;
 
 import static org.logdb.bbtree.KeyValueLog.getLogKeyIndexOffset;
-import static org.logdb.bbtree.KeyValueLog.getLogValueIndexOffset;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    private long freeSizeLeftBytes;
+    long freeSizeLeftBytes;
 
     @PageNumber long pageNumber;
     int numberOfKeys;
     int numberOfValues;
-    int numberOfLogKeyValues;
     boolean isDirty;
 
     final Memory buffer;
@@ -42,7 +36,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
      */
     BTreeNodeAbstract(final @PageNumber long pageNumber,
                       final Memory buffer,
-                      final int numberOfLogKeyValues,
                       final int numberOfKeys,
                       final int numberOfValues)
     {
@@ -50,7 +43,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         this.buffer = Objects.requireNonNull(buffer, "buffer must not be null");
         this.numberOfKeys = numberOfKeys;
         this.numberOfValues = numberOfValues;
-        this.numberOfLogKeyValues = numberOfLogKeyValues;
         this.freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
         this.isDirty = true;
     }
@@ -98,14 +90,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
         pageNumber = StorageUnits.INVALID_PAGE_NUMBER;
         numberOfKeys = 0;
         numberOfValues = getNodeType() == BtreeNodeType.NonLeaf ? 1 : 0;
-        numberOfLogKeyValues = 0;
         isDirty = false;
-
-        final ByteBuffer supportByteBufferIfAny = buffer.getSupportByteBufferIfAny();
-        if (supportByteBufferIfAny != null)
-        {
-            Arrays.fill(supportByteBufferIfAny.array(), (byte)0);
-        }
+        buffer.reset();
     }
 
     private void setNodePageType(final BtreeNodeType type)
@@ -145,15 +131,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return StorageUnits.version(buffer.getLong(BTreeNodePage.PAGE_VERSION_OFFSET));
     }
 
-    @Override
-    public boolean shouldSplit()
-    {
-        final long freeSpaceWithoutConsideringLogBuffer =
-                freeSizeLeftBytes + (numberOfLogKeyValues * (long)(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-        final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
-    }
-
     void setPreviousRoot(final @PageNumber long previousRootPageNumber)
     {
         buffer.putLong(BTreeNodePage.PAGE_PREV_OFFSET, previousRootPageNumber);
@@ -170,46 +147,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return pageNumber;
     }
 
-    public void initNodeFromBuffer()
-    {
-        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
-        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
-
-        if (getNodeType() == BtreeNodeType.NonLeaf)
-        {
-            numberOfLogKeyValues = buffer.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
-        }
-        else
-        {
-            numberOfLogKeyValues = 0;
-        }
-
-        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
-    }
-
-    private long calculateFreeSpaceLeft(final long pageSize)
-    {
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int numberOfKeyValues = numberOfKeys + extraValues + numberOfLogKeyValues;
-        final int sizeForKeyValues = numberOfKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        final int usedBytes = sizeForKeyValues + BTreeNodePage.HEADER_SIZE_BYTES;
-        return pageSize - usedBytes;
-    }
-
-    private void recalculateFreeSpaceLeft()
-    {
-        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
-    }
-
     @Override
     public int getKeyCount()
     {
         return numberOfKeys;
-    }
-
-    int getLogKeyValuesCount()
-    {
-        return numberOfLogKeyValues;
     }
 
     @Override
@@ -243,11 +184,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     long getLogKey(final int index)
     {
         return buffer.getLong(getLogKeyIndexOffset(buffer.getCapacity(), index));
-    }
-
-    long getLogValue(final int index)
-    {
-        return buffer.getLong(getLogValueIndexOffset(buffer.getCapacity(), index));
     }
 
     void insertKeyAndValue(final int index, final long key, final long value)
@@ -295,12 +231,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         buffer.putInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET, numberOfValues);
     }
 
-    void updateNumberOfLogKeyValues(final int numberOfLogKeyValues)
-    {
-        this.numberOfLogKeyValues = numberOfLogKeyValues;
-        buffer.putInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET, numberOfLogKeyValues);
-    }
-
     /**
      * Gets the value at index position.
      *
@@ -315,53 +245,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
     boolean logHasFreeSpace()
     {
         return freeSizeLeftBytes > (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-    }
-
-    void removeLogKeyValue(final int index)
-    {
-        copyLogKeyValuesExcept(index);
-
-        numberOfLogKeyValues--;
-        updateNumberOfLogKeyValues(numberOfLogKeyValues);
-
-        recalculateFreeSpaceLeft();
-    }
-
-    void insertLogKeyValue(final int index, final long key, final long value)
-    {
-        copyLogKeyValuesWithGap(index);
-        setLogKeyValue(index, key, value);
-
-        numberOfLogKeyValues++;
-        updateNumberOfLogKeyValues(numberOfLogKeyValues);
-
-        recalculateFreeSpaceLeft();
-    }
-
-    void setLogKeyValue(final int index, final long key, final long value)
-    {
-        buffer.putLong(getLogKeyIndexOffset(buffer.getCapacity(), index), key);
-        buffer.putLong(getLogValueIndexOffset(buffer.getCapacity(), index), value);
-    }
-
-    HeapMemory spillLog()
-    {
-        final @ByteSize int keyValueLogSize = StorageUnits.size(numberOfLogKeyValues * 2 * Long.BYTES);
-        final HeapMemory keyValueLog = MemoryFactory.allocateHeap(keyValueLogSize, buffer.getByteOrder());
-
-        final @ByteOffset long logStartOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
-        buffer.getBytes(
-                logStartOffset,
-                keyValueLog.getCapacity(),
-                keyValueLog.getSupportByteBufferIfAny().array());
-
-        assert KeyValueLog.getNumberOfElements(keyValueLog.getCapacity()) % 2 == 0
-                : "log key/value array must even size. Current size " + KeyValueLog.getNumberOfElements(keyValueLog.getCapacity());
-
-        updateNumberOfLogKeyValues(0);
-        recalculateFreeSpaceLeft();
-
-        return keyValueLog;
     }
 
     long setValue(final int index, final long value)
@@ -394,28 +277,12 @@ abstract class BTreeNodeAbstract implements BTreeNode
         bNode.recalculateFreeSpaceLeft();
     }
 
-    void splitLog(final long key, final BTreeNodeAbstract bNode)
+    void recalculateFreeSpaceLeft()
     {
-        final int keyIndex = binarySearchInLog(key);
-        final int aLogKeyValues = keyIndex + 1;
-        final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
-        final @ByteOffset long sourceOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-        final @ByteOffset long destinationOffset = getLogKeyIndexOffset(bNode.buffer.getCapacity(), bLogKeyValues);
-        final @ByteSize int length =
-                StorageUnits.size((bLogKeyValues + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-
-        MemoryCopy.copy(buffer,
-                sourceOffset,
-                bNode.buffer,
-                destinationOffset,
-                length);
-
-        updateNumberOfLogKeyValues(aLogKeyValues);
-        bNode.updateNumberOfLogKeyValues(bLogKeyValues);
-
-        recalculateFreeSpaceLeft();
-        bNode.recalculateFreeSpaceLeft();
+        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
+
+    abstract long calculateFreeSpaceLeft(final long pageSize);
 
     void setDirty()
     {
@@ -469,45 +336,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
         MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 
-    /**
-     * Copy the elements of an array, with a gap.
-     *
-     * @param gapIndex the index of the gap
-     */
-    private void copyLogKeyValuesWithGap(final int gapIndex)
-    {
-        if (gapIndex < numberOfLogKeyValues)
-        {
-            final int elementsToMove = numberOfLogKeyValues - gapIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
-            final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-            final @ByteSize int size =
-                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
-        }
-    }
-
-    private void copyLogKeyValuesExcept(final int removeIndex)
-    {
-        if (numberOfLogKeyValues > 0 && removeIndex < (numberOfLogKeyValues - 1))
-        {
-            final int elementsToMove = numberOfLogKeyValues - removeIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues);
-            final @ByteOffset long newLogKeyValueIndexOffset = getLogKeyIndexOffset(buffer.getCapacity(), numberOfLogKeyValues - 1);
-            final @ByteSize int size =
-                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
-        }
-    }
-
     int binarySearch(final long key)
     {
         return SearchUtils.binarySearch(key, numberOfKeys, this::getKey);
-    }
-
-    int binarySearchInLog(final long key)
-    {
-        return SearchUtils.binarySearch(key, numberOfLogKeyValues, this::getLogKey);
     }
 
     @Override
@@ -527,21 +358,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
                             getPreviousRoot(),
                             getTimestamp(),
                             getVersion()));
-        }
-
-        if (numberOfLogKeyValues > 0)
-        {
-            contentBuilder.append(" log KV : ");
-            for (int i = 0; i < numberOfLogKeyValues; i++)
-            {
-                contentBuilder.append(getLogKey(i));
-                contentBuilder.append("-");
-                contentBuilder.append(getLogValue(i));
-                if (i + 1 != numberOfLogKeyValues)
-                {
-                    contentBuilder.append(",");
-                }
-            }
         }
 
         contentBuilder.append(" keys : ");

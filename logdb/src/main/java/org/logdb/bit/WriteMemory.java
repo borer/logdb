@@ -19,4 +19,6 @@ public interface WriteMemory
     void putByte(byte b);
 
     void putByte(@ByteOffset long offset, byte b);
+
+    void reset();
 }

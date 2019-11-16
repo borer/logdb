@@ -22,7 +22,6 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
                 0);
     }
 
@@ -213,7 +212,6 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
                 0);
         bTreeLeaf.split(at, newBtree);
 
@@ -250,7 +248,6 @@ class BTreeNodeLeafTest
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
                 0);
         bTreeLeaf.split(at, newBtree);
 
@@ -284,7 +281,6 @@ class BTreeNodeLeafTest
                 bTreeLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
                 0
         );
         bTreeLeaf.copy(copy);
@@ -299,5 +295,11 @@ class BTreeNodeLeafTest
             assertEquals(i, copy.getKey(i));
             assertEquals(i, copy.getValue(i));
         }
+    }
+
+    @Test
+    void shouldCalculateFreeSpaceCorrectly()
+    {
+
     }
 }

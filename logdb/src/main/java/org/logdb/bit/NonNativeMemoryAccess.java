@@ -68,12 +68,17 @@ public final class NonNativeMemoryAccess extends MemoryAccess
         }
     }
 
-    public static void putByte(final long address, final byte b)
+    static void fillBytes(final long baseAddress, final long capacity, final byte b)
+    {
+        THE_UNSAFE.setMemory(baseAddress, capacity, b);
+    }
+
+    static void putByte(final long address, final byte b)
     {
         THE_UNSAFE.putByte(address, b);
     }
 
-    public static byte getByte(final long address)
+    static byte getByte(final long address)
     {
         return THE_UNSAFE.getByte(address);
     }

@@ -12,7 +12,12 @@ public class MemoryCopy
 {
     public static void copy(final Memory sourceMemory, final Memory destinationMemory)
     {
-        copy(sourceMemory, ZERO_OFFSET, destinationMemory, ZERO_OFFSET, sourceMemory.getCapacity());
+        copy(sourceMemory, destinationMemory, sourceMemory.getCapacity());
+    }
+
+    public static void copy(final Memory sourceMemory, final Memory destinationMemory, final @ByteSize long lengthBytes)
+    {
+        copy(sourceMemory, ZERO_OFFSET, destinationMemory, ZERO_OFFSET, lengthBytes);
     }
 
     public static void copy(final Memory sourceMemory,

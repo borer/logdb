@@ -72,7 +72,6 @@ public class TestUtils
                 idSupplier.getAsLong(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
                 0,
-                0,
                 0);
         for (int i = 0; i < numKeys; i++)
         {

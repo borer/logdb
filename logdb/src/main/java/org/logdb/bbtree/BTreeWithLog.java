@@ -94,7 +94,7 @@ public class BTreeWithLog extends BTreeAbstract
                 removeWithLogRecursiveAndRebalanceParent(parent, nodeIndexInParent, nonLeaf, key, keyIndex, childrenCopy);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
-                nonLeaf.removeLog(key);
+                nonLeaf.removeLogWithKey(key);
 
                 spillLogForRemove(parent, nodeIndexInParent, nonLeaf);
             }
@@ -180,7 +180,7 @@ public class BTreeWithLog extends BTreeAbstract
                 {
                     parent = parentCursor.getNode(mappedNode);
                     assert parent.getNodeType() == BtreeNodeType.NonLeaf;
-                    final int logKeyValuesCount = ((BTreeNodeAbstract) parent).getLogKeyValuesCount();
+                    final int logKeyValuesCount = ((BTreeLogNodeAbstract) parent).getLogKeyValuesCount();
                     isSafeToRemoveParent = logKeyValuesCount == 0;
                 }
 
@@ -201,10 +201,10 @@ public class BTreeWithLog extends BTreeAbstract
                     index = parentCursor.index;
                     parentCopy.remove(index);
 
-                    final int logIndex = ((BTreeNodeAbstract) parentCopy).binarySearchInLog(key);
+                    final int logIndex = ((BTreeLogNodeAbstract) parentCopy).binarySearchInLog(key);
                     if (logIndex > 0)
                     {
-                        ((BTreeNodeAbstract) parentCopy).removeLogKeyValue(logIndex);
+                        ((BTreeLogNodeAbstract) parentCopy).removeLogAtIndex(logIndex);
                     }
 
                     newRoot = parentCopy;
@@ -227,7 +227,7 @@ public class BTreeWithLog extends BTreeAbstract
                 final BTreeNode parentNode = parentCursor.getNode(mappedNode);
                 if (parentNode.getNodeType() == BtreeNodeType.NonLeaf)
                 {
-                    final int logIndex = ((BTreeNodeAbstract) parentNode).binarySearchInLog(key);
+                    final int logIndex = ((BTreeLogNodeAbstract) parentNode).binarySearchInLog(key);
                     if (wasFound)
                     {
                         final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
@@ -235,7 +235,7 @@ public class BTreeWithLog extends BTreeAbstract
 
                         if (logIndex >= 0)
                         {
-                            ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                            ((BTreeLogNodeAbstract) copyParent).removeLogAtIndex(logIndex);
                         }
 
                         newRoot = copyParent;
@@ -246,7 +246,7 @@ public class BTreeWithLog extends BTreeAbstract
                         {
                             wasFound = true;
                             final BTreeNodeHeap copyParent = nodesManager.copyNode(parentNode, newVersion);
-                            ((BTreeNodeAbstract) copyParent).removeLogKeyValue(logIndex);
+                            ((BTreeLogNodeAbstract) copyParent).removeLogAtIndex(logIndex);
 
                             newRoot = copyParent;
                         }
@@ -341,7 +341,7 @@ public class BTreeWithLog extends BTreeAbstract
                 putWithLogRecursiveInChildAndSplitIfRequired(nonLeaf, key, value);
 
                 //remove log if there is any, as we already removed the key/value in the previous step
-                nonLeaf.removeLog(key);
+                nonLeaf.removeLogWithKey(key);
 
                 spillLogForPut(parent, nodeIndexInParent, nonLeaf);
             }
@@ -500,12 +500,12 @@ public class BTreeWithLog extends BTreeAbstract
             BTreeNode currentNode = root;
             while (currentNode.getNodeType() == BtreeNodeType.NonLeaf)
             {
-                if (((BTreeNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
+                if (((BTreeLogNodeAbstract) currentNode).getLogKeyValuesCount() > 0)
                 {
-                    final int logIndex = ((BTreeNodeAbstract) currentNode).binarySearchInLog(key);
+                    final int logIndex = ((BTreeLogNodeAbstract) currentNode).binarySearchInLog(key);
                     if (logIndex >= 0)
                     {
-                        final long logValue = ((BTreeNodeAbstract) currentNode).getLogValue(logIndex);
+                        final long logValue = ((BTreeLogNodeAbstract) currentNode).getLogValue(logIndex);
                         if (logValue != LOG_VALUE_TO_REMOVE_SENTINEL)
                         {
                             return logValue;

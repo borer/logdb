@@ -8,7 +8,7 @@ import org.logdb.time.Milliseconds;
 
 import java.io.IOException;
 
-public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
+public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeHeap
 {
     static final int NON_COMMITTED_CHILD = Integer.MIN_VALUE;
 
@@ -42,42 +42,6 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     {
         throw new RuntimeException(
                 String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
-    }
-
-    void insertLog(final long key, final long value)
-    {
-        final int index = binarySearchInLog(key);
-
-        if (index < 0)
-        {
-            final int absIndex = -index - 1;
-            insertLogKeyValue(absIndex, key, value);
-        }
-        else
-        {
-            setLogKeyValue(index, key, value);
-        }
-
-        setDirty();
-    }
-
-    /**
-     * try to remove a key/value pair for this node log.
-     * @param key the key that identifies the key/value pair to remove from the node log
-     * @return true if removed successfully, false if key/value are not in the log.
-     */
-    boolean removeLog(final long key)
-    {
-        final int index = binarySearchInLog(key);
-        if (index >= 0)
-        {
-            removeLogKeyValue(index);
-            setDirty();
-
-            return true;
-        }
-
-        return false;
     }
 
     @Override
@@ -164,18 +128,28 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public void copy(final BTreeNodeHeap copyNode)
+    public void copy(final BTreeNodeHeap destinationNode)
     {
-        assert copyNode instanceof BTreeNodeNonLeaf : "when copying a non leaf node, needs same type";
+        assert destinationNode instanceof BTreeNodeNonLeaf : "when copying a non leaf node, needs same type";
 
-        MemoryCopy.copy(buffer, copyNode.getBuffer());
-        copyNode.initNodeFromBuffer();
+        MemoryCopy.copy(buffer, destinationNode.getBuffer());
+        destinationNode.initNodeFromBuffer();
 
         final BTreeNodeHeap[] copyChildren = new BTreeNodeHeap[children.length];
         System.arraycopy(children, 0, copyChildren, 0, children.length);
 
-        final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) copyNode;
+        final BTreeNodeNonLeaf bTreeNodeNonLeaf = (BTreeNodeNonLeaf) destinationNode;
         bTreeNodeNonLeaf.setChildren(copyChildren);
+    }
+
+    @Override
+    public void initNodeFromBuffer()
+    {
+        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
+        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
+        numberOfLogKeyValues = buffer.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
+
+        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
     @Override
@@ -310,5 +284,28 @@ public class BTreeNodeNonLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public HeapMemory getBuffer()
     {
         return (HeapMemory)buffer;
+    }
+
+    @Override
+    public String toString()
+    {
+        final StringBuilder contentBuilder = new StringBuilder(super.toString());
+
+        if (numberOfLogKeyValues > 0)
+        {
+            contentBuilder.append(" log KV : ");
+            for (int i = 0; i < numberOfLogKeyValues; i++)
+            {
+                contentBuilder.append(getLogKey(i));
+                contentBuilder.append("-");
+                contentBuilder.append(getLogValue(i));
+                if (i + 1 != numberOfLogKeyValues)
+                {
+                    contentBuilder.append(",");
+                }
+            }
+        }
+
+        return contentBuilder.toString();
     }
 }

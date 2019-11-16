@@ -7,6 +7,7 @@ import sun.misc.Unsafe;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
@@ -49,6 +50,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     public @ByteSize long getCapacity()
     {
         return StorageUnits.size(buffer.capacity());
+    }
+
+    @Override
+    public void reset()
+    {
+        Arrays.fill(buffer.array(), (byte)0);
     }
 
     @Override

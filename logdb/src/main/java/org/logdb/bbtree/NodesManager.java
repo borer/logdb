@@ -127,7 +127,7 @@ public class NodesManager
         BTreeNodeLeaf leaf = leafNodesCache.poll();
         if (leaf == null)
         {
-            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0, 0);
+            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0);
         }
 
         return leaf;

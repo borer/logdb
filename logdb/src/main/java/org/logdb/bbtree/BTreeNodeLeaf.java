@@ -15,11 +15,10 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     public BTreeNodeLeaf(
             final @PageNumber long pageNumber,
             final HeapMemory memory,
-            final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues)
     {
-        super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
+        super(pageNumber, memory, numberOfKeys, numberOfValues);
     }
 
     public static BTreeNodeLeaf load(final @PageNumber long pageNumber, final HeapMemory memory)
@@ -27,7 +26,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         return new BTreeNodeLeaf(
                 pageNumber,
                 memory,
-                memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
                 memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
                 memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET));
     }
@@ -57,10 +55,20 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public void copy(final BTreeNodeHeap copyNode)
+    public void copy(final BTreeNodeHeap destinationNode)
     {
-        MemoryCopy.copy(buffer, copyNode.getBuffer());
-        copyNode.initNodeFromBuffer();
+        assert destinationNode instanceof BTreeNodeLeaf : "when coping a leaf node, needs same type";
+
+        MemoryCopy.copy(buffer, destinationNode.getBuffer());
+        destinationNode.initNodeFromBuffer();
+    }
+
+    @Override
+    public void initNodeFromBuffer()
+    {
+        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
+        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
+        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
     @Override
@@ -161,8 +169,23 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
+    public boolean shouldSplit()
+    {
+        final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        return minimumFreeSpaceBeforeOperatingOnNode > freeSizeLeftBytes;
+    }
+
+    @Override
     public HeapMemory getBuffer()
     {
         return (HeapMemory)buffer;
+    }
+
+    @Override
+    long calculateFreeSpaceLeft(long pageSize)
+    {
+        final int sizeForKeyValues = numberOfKeys * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final int usedBytes = sizeForKeyValues + BTreeNodePage.HEADER_SIZE_BYTES;
+        return pageSize - usedBytes;
     }
 }

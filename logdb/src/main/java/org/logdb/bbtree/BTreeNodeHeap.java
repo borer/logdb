@@ -9,4 +9,6 @@ public interface BTreeNodeHeap extends BTreeNode
      * @return nodes buffer
      */
     HeapMemory getBuffer();
+
+    void initNodeFromBuffer();
 }

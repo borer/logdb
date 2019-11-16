@@ -15,11 +15,6 @@ public interface BTreeNode
     @PageNumber long getPageNumber();
 
     /**
-     * Reload node in memory data from backing storage.
-     */
-    void initNodeFromBuffer();
-
-    /**
      * Inserts key/value pair in the current leaf.
      * If the key already exits, its value is replaced.
      * @param key Key that identifies the value
@@ -74,9 +69,9 @@ public interface BTreeNode
 
     /**
      * Creates a copy of the node. The copy has the same id as the original.
-     * @param copyNode the node that will be populated with the same content as this node
+     * @param destinationNode the node that will be populated with the same content as this node
      */
-    void copy(BTreeNodeHeap copyNode);
+    void copy(BTreeNodeHeap destinationNode);
 
     /**
      * Commits this node to a storage.
