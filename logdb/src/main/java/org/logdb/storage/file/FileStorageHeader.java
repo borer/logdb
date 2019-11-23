@@ -1,7 +1,7 @@
 package org.logdb.storage.file;
 
-import org.logdb.bit.ChecksumUtil;
 import org.logdb.bit.MemoryOrder;
+import org.logdb.checksum.ChecksumUtil;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;

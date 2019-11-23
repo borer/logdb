@@ -1,15 +1,15 @@
-package org.logdb.bit;
+package org.logdb.checksum;
 
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 
-import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class ChecksumUtil
 {
-    private final CRC32 checksumer = new CRC32();
+    private final Checksum checksumer = new Crc32();
     private byte[] longToBytesBuffer = new byte[Long.BYTES];
 
     public int calculateSingleChecksum(final byte[] buffer, final @ByteOffset int offset, final @ByteSize int length)

@@ -1,6 +1,6 @@
 package org.logdb.logfile;
 
-import org.logdb.bit.ChecksumUtil;
+import org.logdb.checksum.ChecksumUtil;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
