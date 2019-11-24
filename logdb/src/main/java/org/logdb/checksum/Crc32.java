@@ -1,7 +1,5 @@
 package org.logdb.checksum;
 
-import java.util.zip.Checksum;
-
 public class Crc32 implements Checksum
 {
     // Table of CRCs of all 8-bit messages.
@@ -69,16 +67,22 @@ public class Crc32 implements Checksum
     }
 
     @Override
-    public long getValue()
+    public byte[] getValue()
     {
+        final long value;
         if (crc < 0)
         {
-            return ~((long) crc); // ^ 0xffffffffffffffffL
+            value = ~((long) crc); // ^ 0xffffffffffffffffL
         }
         else
         {
-            return (long) crc ^ 0x00000000ffffffffL;
+            value = (long) crc ^ 0x00000000ffffffffL;
         }
+
+        final byte[] bytes = new byte[8];
+        ChecksumUtil.longToBytes(value, bytes);
+
+        return bytes;
     }
 
     @Override

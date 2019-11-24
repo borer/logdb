@@ -1,7 +1,5 @@
 package org.logdb.checksum;
 
-import java.util.zip.Checksum;
-
 public class Fletcher64 implements Checksum
 {
     private int a, b, c, d;
@@ -28,7 +26,10 @@ public class Fletcher64 implements Checksum
         for (int i = 0; i < chunks; i++)
         {
             final int chunkOffset = i * chunkSize;
-            final int chunk = bytes[chunkOffset + 3] << 24 | bytes[chunkOffset + 2] << 16 | bytes[chunkOffset + 1] << 8 | bytes[chunkOffset];
+            final int chunk = (bytes[chunkOffset + 3] & 0xff) << 24 |
+                            (bytes[chunkOffset + 2] & 0xff) << 16 |
+                            (bytes[chunkOffset + 1] & 0xff) << 8 |
+                            (bytes[chunkOffset] & 0xff);
             update(chunk);
         }
 
@@ -39,9 +40,14 @@ public class Fletcher64 implements Checksum
     }
 
     @Override
-    public long getValue()
+    public byte[] getValue()
     {
-        return (long) d << 48 | (long) c << 32 | b << 16 | a;
+        final long value = (long) d << 48 | (long) c << 32 | b << 16 | a;
+
+        final byte[] bytes = new byte[8];
+        ChecksumUtil.longToBytes(value, bytes);
+
+        return bytes;
     }
 
     @Override

@@ -3,13 +3,14 @@ package org.logdb.checksum;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 
+import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class ChecksumUtil
 {
-    private final Checksum checksumer = new Crc32();
+    private final Checksum checksumer = new CRC32();
     private byte[] longToBytesBuffer = new byte[Long.BYTES];
 
     public int calculateSingleChecksum(final byte[] buffer, final @ByteOffset int offset, final @ByteSize int length)
@@ -40,8 +41,8 @@ public class ChecksumUtil
 
     public void updateChecksum(final long value)
     {
-        final byte[] bytes = longToBytes(value);
-        checksumer.update(bytes, ZERO_OFFSET, bytes.length);
+        longToBytes(value, longToBytesBuffer);
+        checksumer.update(longToBytesBuffer, ZERO_OFFSET, longToBytesBuffer.length);
     }
 
     public int getAndResetChecksum()
@@ -52,20 +53,20 @@ public class ChecksumUtil
         return value;
     }
 
-    private byte[] longToBytes(final long value)
-    {
-        long mutableValue = value;
-        for (int i = longToBytesBuffer.length - 1; i >= 0; i--)
-        {
-            longToBytesBuffer[i] = (byte)(mutableValue & 0xFF);
-            mutableValue >>= Byte.SIZE;
-        }
-
-        return longToBytesBuffer;
-    }
-
     public boolean compareChecksum(final int checksum1, final int checksum2)
     {
         return Integer.compareUnsigned(checksum1, checksum2) == 0;
+    }
+
+    static void longToBytes(final long value, final byte[] bytes)
+    {
+        bytes[0] = (byte)value;
+        bytes[1] = (byte)(value >> Byte.SIZE);
+        bytes[2] = (byte)(value >> 16);
+        bytes[3] = (byte)(value >> 24);
+        bytes[4] = (byte)(value >> 32);
+        bytes[5] = (byte)(value >> 40);
+        bytes[6] = (byte)(value >> 48);
+        bytes[7] = (byte)(value >> 56);
     }
 }
