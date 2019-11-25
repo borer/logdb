@@ -2,6 +2,7 @@ package org.logdb.benchmark;
 
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.checksum.ChecksumType;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.file.FileStorage;
@@ -51,7 +52,8 @@ public class TestBTreeWithLogRandomKeysWritingBenchmark
                     FileType.INDEX,
                     SEGMENT_FILE_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
-                    DefaultBenchmarkConfig.PAGE_SIZE_BYTES);
+                    DefaultBenchmarkConfig.PAGE_SIZE_BYTES,
+                    ChecksumType.CRC32);
 
             final RootIndex rootIndex = createRootIndex(
                     rootDirectory,

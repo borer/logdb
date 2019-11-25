@@ -1,5 +1,6 @@
 package org.logdb.logfile;
 
+import org.logdb.checksum.ChecksumHelper;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
 import org.logdb.storage.Version;
@@ -21,12 +22,13 @@ public class LogFile implements AutoCloseable
             final Storage storage,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
-            final boolean shouldSyncWrite)
+            final boolean shouldSyncWrite,
+            final ChecksumHelper checksumHelper)
     {
         this.storage = storage;
         this.timeSource = timeSource;
         this.nextWriteVersion = nextWriteVersion;
-        this.logRecordStorage = new LogRecordStorage(storage);
+        this.logRecordStorage = new LogRecordStorage(storage, checksumHelper);
         this.shouldSyncWrite = shouldSyncWrite;
     }
 

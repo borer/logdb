@@ -1,6 +1,5 @@
 package org.logdb.logfile;
 
-import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -8,44 +7,37 @@ import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.logdb.storage.StorageUnits.CHAR_SIZE;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
-import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 import static org.logdb.storage.StorageUnits.ZERO_SIZE;
 
 
 public class LogRecordHeader
 {
-    private static final @ByteSize int CRC_SIZE = INT_BYTES_SIZE;
-    private static final @ByteOffset int CRC_OFFSET = ZERO_OFFSET;
-
     private static final @ByteSize int TYPE_SIZE = CHAR_SIZE;
-    private static final @ByteOffset int TYPE_OFFSET = CRC_OFFSET + StorageUnits.offset(CRC_SIZE);
-
     private static final @ByteSize int KEY_SIZE = INT_BYTES_SIZE;
-    private static final @ByteOffset int KEY_OFFSET = TYPE_OFFSET + StorageUnits.offset(TYPE_SIZE);
-
     private static final @ByteSize int VALUE_SIZE = INT_BYTES_SIZE;
-    private static final @ByteOffset int VALUE_OFFSET = KEY_OFFSET + StorageUnits.offset(KEY_SIZE);
-
     private static final @ByteSize int VERSION_SIZE = LONG_BYTES_SIZE;
-    private static final @ByteOffset int VERSION_OFFSET = VALUE_OFFSET + StorageUnits.offset(VALUE_SIZE);
-
     private static final @ByteSize int TIMESTAMP_SIZE = LONG_BYTES_SIZE;
-    private static final @ByteOffset int TIMESTAMP_OFFSET = VERSION_OFFSET + StorageUnits.offset(VERSION_SIZE);
+    public static final @ByteSize int RECORD_HEADER_STATIC_SIZE = TYPE_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
 
-    public static final @ByteSize int RECORD_HEADER_SIZE = CRC_SIZE + TYPE_SIZE + KEY_SIZE + VALUE_SIZE + VERSION_SIZE + TIMESTAMP_SIZE;
-
-    private int checksum;
+    private final @ByteSize int checksumSize;
+    private byte[] checksum;
     private LogRecordType recordType;
     private @ByteSize int keyLength;
     private @ByteSize int valueLength;
     private @Version long version;
     private @Milliseconds long timestamp;
 
-    public int getChecksum()
+    public LogRecordHeader(final @ByteSize int checksumSize)
+    {
+        this.checksumSize = checksumSize;
+    }
+
+    public byte[] getChecksum()
     {
         return checksum;
     }
@@ -75,7 +67,7 @@ public class LogRecordHeader
         return timestamp;
     }
 
-    void initPut(final int checksum,
+    void initPut(final byte[] checksum,
                  final @ByteSize int keyLength,
                  final @ByteSize int valueLength,
                  final @Version long version,
@@ -84,7 +76,7 @@ public class LogRecordHeader
         init(checksum, LogRecordType.UPDATE, keyLength, valueLength, version, timestamp);
     }
 
-    void initDelete(final int checksum,
+    void initDelete(final byte[] checksum,
                     final @ByteSize int keyLength,
                     final @Version long version,
                     final @Milliseconds long timestamp)
@@ -93,7 +85,7 @@ public class LogRecordHeader
     }
 
     private void init(
-            final int checksum,
+            final byte[] checksum,
             final LogRecordType recordType,
             final @ByteSize int keyLength,
             final @ByteSize int valueLength,
@@ -111,7 +103,8 @@ public class LogRecordHeader
     public void read(final ByteBuffer buffer)
     {
         buffer.rewind();
-        this.checksum = buffer.getInt();
+        this.checksum = new byte[checksumSize];
+        buffer.get(checksum);
         this.recordType = LogRecordType.fromChar(buffer.getChar());
         this.keyLength = StorageUnits.size(buffer.getInt());
         this.valueLength = StorageUnits.size(buffer.getInt());
@@ -123,20 +116,25 @@ public class LogRecordHeader
     void write(final ByteBuffer destinationBuffer)
     {
         destinationBuffer.rewind();
-        destinationBuffer.putInt(CRC_OFFSET, checksum);
-        destinationBuffer.putChar(TYPE_OFFSET, recordType.getChar());
-        destinationBuffer.putInt(KEY_OFFSET, keyLength);
-        destinationBuffer.putInt(VALUE_OFFSET, valueLength);
-        destinationBuffer.putLong(VERSION_OFFSET, version);
-        destinationBuffer.putLong(TIMESTAMP_OFFSET, timestamp);
+        destinationBuffer.put(checksum);
+        destinationBuffer.putChar(recordType.getChar());
+        destinationBuffer.putInt(keyLength);
+        destinationBuffer.putInt(valueLength);
+        destinationBuffer.putLong(version);
+        destinationBuffer.putLong(timestamp);
         destinationBuffer.rewind();
+    }
+
+    public @ByteSize int getSize()
+    {
+        return StorageUnits.size(RECORD_HEADER_STATIC_SIZE + checksumSize);
     }
 
     @Override
     public String toString()
     {
         return "LogRecordHeader{" +
-                "checksum=" + checksum +
+                "checksum=" + Arrays.toString(checksum) +
                 ", recordType=" + recordType +
                 ", keyLength=" + keyLength +
                 ", valueLength=" + valueLength +

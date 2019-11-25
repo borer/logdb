@@ -1,5 +1,6 @@
-package org.logdb;
+package org.logdb.builder;
 
+import org.logdb.LogDb;
 import org.logdb.async.AsyncWriteDelegatingBTree;
 import org.logdb.async.NonDaemonThreadFactory;
 import org.logdb.bbtree.BTree;
@@ -8,6 +9,10 @@ import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bbtree.RootReference;
 import org.logdb.bit.DirectMemory;
+import org.logdb.checksum.Checksum;
+import org.logdb.checksum.ChecksumFactory;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
 import org.logdb.logfile.LogFile;
 import org.logdb.root.index.RootIndex;
 import org.logdb.root.index.RootIndexRecord;
@@ -47,6 +52,7 @@ public class LogDbBuilder
     private boolean asyncIndexWrite;
     private int asyncQueueCapacity = 8192;
     private boolean shouldSyncWrite = false;
+    private ChecksumType checksumType = ChecksumType.CRC32;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -99,6 +105,12 @@ public class LogDbBuilder
     public LogDbBuilder shouldSyncWrite(final boolean shouldSyncWrite)
     {
         this.shouldSyncWrite = shouldSyncWrite;
+        return this;
+    }
+
+    public LogDbBuilder checksum(final ChecksumType checksumType)
+    {
+        this.checksumType = checksumType;
         return this;
     }
 
@@ -218,7 +230,11 @@ public class LogDbBuilder
     {
         final FileStorage logDbFileStorage = buildFileStorage(FileType.HEAP);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbFileStorage.getAppendVersion());
-        return new LogFile(logDbFileStorage, timeSource, nextWriteVersion, shouldSyncWrite);
+
+        final Checksum checksum = ChecksumFactory.checksumFromType(checksumType);
+        final ChecksumHelper checksumHelper = new ChecksumHelper(checksum, checksumType);
+
+        return new LogFile(logDbFileStorage, timeSource, nextWriteVersion, shouldSyncWrite, checksumHelper);
     }
 
     private @Version long getNextWriteVersion(final @Version long appendVersion)
@@ -238,11 +254,12 @@ public class LogDbBuilder
                     fileType,
                     segmentFileSize,
                     byteOrder,
-                    pageSizeBytes);
+                    pageSizeBytes,
+                    checksumType);
         }
         else
         {
-            fileStorage = FileStorageFactory.openExisting(rootDirectory, fileType);
+            fileStorage = FileStorageFactory.openExisting(rootDirectory, fileType, checksumType);
         }
         return fileStorage;
     }

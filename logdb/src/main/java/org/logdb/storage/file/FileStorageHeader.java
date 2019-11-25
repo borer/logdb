@@ -1,7 +1,10 @@
 package org.logdb.storage.file;
 
 import org.logdb.bit.MemoryOrder;
-import org.logdb.checksum.ChecksumUtil;
+import org.logdb.checksum.Checksum;
+import org.logdb.checksum.ChecksumFactory;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -13,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static org.logdb.Config.LOG_DB_VERSION;
 import static org.logdb.storage.StorageUnits.BYTE_SIZE;
@@ -23,7 +27,7 @@ import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public final class FileStorageHeader implements FileHeader
 {
-    private static final int INVALID_CHECKSUM = 0;
+    private static final byte[] INVALID_CHECKSUM = new byte[0];
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     /////Static Header
@@ -42,11 +46,15 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
     private static final @ByteSize int SEGMENT_FILE_SIZE_BYTES = LONG_BYTES_SIZE;
 
+    private static final @ByteOffset int STATIC_CHECKSUM_TYPE_OFFSET = StorageUnits.offset(SEGMENT_FILE_SIZE_OFFSET + SEGMENT_FILE_SIZE_BYTES);
+    private static final @ByteSize int STATIC_CHECKSUM_TYPE_OFFSET_SIZE = INT_BYTES_SIZE;
+
     static final @ByteSize int STATIC_HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
             BYTE_ORDER_SIZE +
             LOG_DB_VERSION_SIZE +
             PAGE_SIZE_BYTES +
-            SEGMENT_FILE_SIZE_BYTES;
+            SEGMENT_FILE_SIZE_BYTES +
+            STATIC_CHECKSUM_TYPE_OFFSET_SIZE;
 
     /////End Static Header
     /////Dynamic Header
@@ -60,10 +68,12 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int CURRENT_FILE_APPEND_OFFSET = StorageUnits.offset(GLOBAL_APPEND_OFFSET + GLOBAL_APPEND_SIZE);
     private static final @ByteSize int CURRENT_FILE_APPEND_OFFSET_SIZE = LONG_BYTES_SIZE;
 
-    private static final @ByteOffset int CHECKSUM_OFFSET = StorageUnits.offset(CURRENT_FILE_APPEND_OFFSET + CURRENT_FILE_APPEND_OFFSET_SIZE);
-    private static final @ByteSize int CHECKSUM_SIZE = INT_BYTES_SIZE;
+    private static final @ByteOffset int DYNAMIC_CHECKSUM_LENGTH_OFFSET =
+            StorageUnits.offset(CURRENT_FILE_APPEND_OFFSET + CURRENT_FILE_APPEND_OFFSET_SIZE);
+    private static final @ByteSize int DYNAMIC_CHECKSUM_LENGTH_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteSize int DYNAMIC_HEADER_SIZE = APPEND_VERSION_SIZE + GLOBAL_APPEND_SIZE + CURRENT_FILE_APPEND_OFFSET_SIZE + CHECKSUM_SIZE;
+    private static final @ByteSize int DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM =
+            APPEND_VERSION_SIZE + GLOBAL_APPEND_SIZE + CURRENT_FILE_APPEND_OFFSET_SIZE + DYNAMIC_CHECKSUM_LENGTH_SIZE;
 
     ////End Dynamic Header
 
@@ -74,7 +84,7 @@ public final class FileStorageHeader implements FileHeader
     private @Version long appendVersion;
     private @ByteOffset long globalAppendOffset;
     private @ByteOffset long currentFileAppendOffset;
-    private int checksum;
+    private byte[] checksumBuffer;
     private HeaderNumber headerNumber;
 
     private final @ByteSize long segmentFileSize; //must be multiple of pageSize
@@ -82,7 +92,7 @@ public final class FileStorageHeader implements FileHeader
     private final @ByteSize int pageSize; // Must be a power of two
     private final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
 
-    private ChecksumUtil checksumUtil;
+    private ChecksumHelper checksumHelper;
 
     private FileStorageHeader(
             final ByteOrder byteOrder,
@@ -92,11 +102,12 @@ public final class FileStorageHeader implements FileHeader
             final @ByteOffset long globalAppendOffset,
             final @ByteOffset long currentFileAppendOffset,
             final @Version int logDbVersion,
-            final int checksum,
+            final ChecksumHelper checksumHelper,
+            final byte[] checksumBuffer,
             final HeaderNumber headerNumber)
     {
         this.logDbVersion = logDbVersion;
-        this.headerNumber = headerNumber;
+        this.headerNumber = Objects.requireNonNull(headerNumber, "header number cannot be null");
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
         assert segmentFileSize % pageSize == 0 : "segmentFileSize must be multiple of pageSize";
 
@@ -106,21 +117,23 @@ public final class FileStorageHeader implements FileHeader
         this.segmentFileSize = segmentFileSize;
         this.globalAppendOffset = globalAppendOffset;
         this.currentFileAppendOffset = currentFileAppendOffset;
-        this.checksum = checksum;
+        this.checksumBuffer = Objects.requireNonNull(checksumBuffer, "checksum buffer cannot be null");
+        this.checksumHelper = Objects.requireNonNull(checksumHelper, "checksumHelper cannot be null");
         this.staticWriteBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE); // appendVersion, globalAppendOffset and currentFileAppendOffset
         this.staticWriteBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
 
-        this.dynamicWriteBuffer = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        this.dynamicWriteBuffer = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM + checksumBuffer.length);
         this.dynamicWriteBuffer.order(DEFAULT_HEADER_BYTE_ORDER);
-
-        this.checksumUtil = new ChecksumUtil();
     }
 
     static FileStorageHeader newHeader(
             final ByteOrder byteOrder,
             final @ByteSize int pageSizeBytes,
-            final @ByteSize long segmentFileSize)
+            final @ByteSize long segmentFileSize,
+            ChecksumHelper checksumHelper)
     {
+        final byte[] checksumBuffer = new byte[checksumHelper.getValueSize()];
+
         return new FileStorageHeader(
                 byteOrder,
                 INITIAL_VERSION,
@@ -129,7 +142,8 @@ public final class FileStorageHeader implements FileHeader
                 StorageUnits.INVALID_OFFSET,
                 StorageUnits.INVALID_OFFSET,
                 LOG_DB_VERSION,
-                INVALID_CHECKSUM,
+                checksumHelper,
+                checksumBuffer,
                 HeaderNumber.HEADER2);
     }
 
@@ -158,12 +172,16 @@ public final class FileStorageHeader implements FileHeader
         final @ByteSize long segmentFileSize =
                 StorageUnits.size(getLongInCorrectByteOrder(staticHeaderBuffer.getLong(SEGMENT_FILE_SIZE_OFFSET)));
 
+        final ChecksumType checksumType = ChecksumType.fromValue(staticHeaderBuffer.get(STATIC_CHECKSUM_TYPE_OFFSET));
+        final Checksum checksum = ChecksumFactory.checksumFromType(checksumType);
+        final ChecksumHelper checksumHelper = new ChecksumHelper(checksum, checksumType);
+
         final @ByteSize long staticHeaderSize = getStaticHeaderSizeAlignedToNearestPage(pageSize);
         final @ByteSize long dynamicHeaderSizeInPages = getDynamicHeaderSizeAlignedToNearestPage(pageSize);
         channel.position(staticHeaderSize);
 
         //Read first dynamic header
-        final ByteBuffer dynamicBuffer1 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        final ByteBuffer dynamicBuffer1 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM + checksumHelper.getValueSize());
         FileUtils.readFully(channel, dynamicBuffer1);
         dynamicBuffer1.order(DEFAULT_HEADER_BYTE_ORDER);
         dynamicBuffer1.rewind();
@@ -171,18 +189,19 @@ public final class FileStorageHeader implements FileHeader
         channel.position(staticHeaderSize + dynamicHeaderSizeInPages);
 
         //Read second dynamic header
-        final ByteBuffer dynamicBuffer2 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE);
+        final ByteBuffer dynamicBuffer2 = ByteBuffer.allocate(DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM + checksumHelper.getValueSize());
         FileUtils.readFully(channel, dynamicBuffer2);
         dynamicBuffer2.order(DEFAULT_HEADER_BYTE_ORDER);
         dynamicBuffer2.rewind();
 
-        final HeaderNumber headerNumber = chooseLatestValidDynamicHeader(dynamicBuffer1, dynamicBuffer2);
+        final HeaderNumber headerNumber = chooseLatestValidDynamicHeader(dynamicBuffer1, dynamicBuffer2, checksumHelper);
         final ByteBuffer buffer = HeaderNumber.HEADER1 == headerNumber ? dynamicBuffer1 : dynamicBuffer2;
 
         final @Version long appendVersion = StorageUnits.version(getLongInCorrectByteOrder(buffer.getLong(APPEND_VERSION_OFFSET)));
         final @ByteOffset long lastPersistedOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(GLOBAL_APPEND_OFFSET)));
         final @ByteOffset long appendOffset = StorageUnits.offset(getLongInCorrectByteOrder(buffer.getLong(CURRENT_FILE_APPEND_OFFSET)));
-        final int checksum = getIntegerInCorrectByteOrder(buffer.getInt(CHECKSUM_OFFSET));
+
+        final byte[] checksumBuffer = readDynamicChecksumBuffer(buffer);
 
         final FileStorageHeader fileStorageHeader = new FileStorageHeader(
                 byteOrder,
@@ -192,7 +211,8 @@ public final class FileStorageHeader implements FileHeader
                 lastPersistedOffset,
                 appendOffset,
                 logDbVersion,
-                checksum,
+                checksumHelper,
+                checksumBuffer,
                 headerNumber);
 
         channel.position(staticHeaderSize + (dynamicHeaderSizeInPages * 2));
@@ -200,12 +220,23 @@ public final class FileStorageHeader implements FileHeader
         return fileStorageHeader;
     }
 
+    private static byte[] readDynamicChecksumBuffer(final ByteBuffer buffer)
+    {
+        final int checksumSize = buffer.getInt(DYNAMIC_CHECKSUM_LENGTH_OFFSET);
+        final byte[] checksum = new byte[checksumSize];
+        buffer.position(DYNAMIC_CHECKSUM_LENGTH_OFFSET + DYNAMIC_CHECKSUM_LENGTH_SIZE);
+        buffer.get(checksum);
+        buffer.rewind();
+        return checksum;
+    }
+
     private static HeaderNumber chooseLatestValidDynamicHeader(
             final ByteBuffer buffer1,
-            final ByteBuffer buffer2)
+            final ByteBuffer buffer2,
+            final ChecksumHelper checksumHelper)
     {
-        final boolean isHeader1Valid = isDynamicHeaderValid(buffer1);
-        final boolean isHeader2Valid = isDynamicHeaderValid(buffer2);
+        final boolean isHeader1Valid = isDynamicHeaderValid(buffer1, checksumHelper);
+        final boolean isHeader2Valid = isDynamicHeaderValid(buffer2, checksumHelper);
 
         if (!isHeader1Valid && isHeader2Valid)
         {
@@ -231,12 +262,20 @@ public final class FileStorageHeader implements FileHeader
         }
     }
 
-    private static boolean isDynamicHeaderValid(final ByteBuffer buffer)
+    private static boolean isDynamicHeaderValid(final ByteBuffer buffer, final ChecksumHelper checksumHelper)
     {
-        final ChecksumUtil checksumUtil = new ChecksumUtil();
-        final int storedChecksum = getIntegerInCorrectByteOrder(buffer.getInt(CHECKSUM_OFFSET));
-        final int calculatedChecksum = checksumUtil.calculateSingleChecksum(buffer.array(), ZERO_OFFSET, DYNAMIC_HEADER_SIZE - CHECKSUM_SIZE);
-        return storedChecksum == calculatedChecksum;
+        final byte[] storedChecksum = readDynamicChecksumBuffer(buffer);
+
+        if (storedChecksum.length != checksumHelper.getValueSize())
+        {
+            return false;
+        }
+
+        return checksumHelper.compareSingleChecksum(
+                storedChecksum,
+                buffer.array(),
+                ZERO_OFFSET,
+                DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM);
     }
 
     @Override
@@ -257,6 +296,7 @@ public final class FileStorageHeader implements FileHeader
         staticWriteBuffer.putInt(LOG_DB_VERSION_OFFSET, getIntegerInCorrectByteOrder(logDbVersion));
         staticWriteBuffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
         staticWriteBuffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
+        staticWriteBuffer.putInt(STATIC_CHECKSUM_TYPE_OFFSET, getIntegerInCorrectByteOrder(checksumHelper.getType().getTypeValue()));
 
         staticWriteBuffer.rewind();
 
@@ -271,8 +311,9 @@ public final class FileStorageHeader implements FileHeader
         dynamicWriteBuffer.putLong(APPEND_VERSION_OFFSET, getLongInCorrectByteOrder(appendVersion));
         dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffset));
         dynamicWriteBuffer.putLong(CURRENT_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(currentFileAppendOffset));
-        dynamicWriteBuffer.putInt(CHECKSUM_OFFSET, getIntegerInCorrectByteOrder(checksum));
-
+        dynamicWriteBuffer.putInt(DYNAMIC_CHECKSUM_LENGTH_OFFSET, getIntegerInCorrectByteOrder(checksumBuffer.length));
+        dynamicWriteBuffer.position(DYNAMIC_CHECKSUM_LENGTH_OFFSET + DYNAMIC_CHECKSUM_LENGTH_SIZE);
+        dynamicWriteBuffer.put(checksumBuffer);
         dynamicWriteBuffer.rewind();
 
         final @ByteOffset long headerOffset = HeaderNumber.getOffset(headerNumber, pageSize);
@@ -340,9 +381,10 @@ public final class FileStorageHeader implements FileHeader
         dynamicWriteBuffer.putLong(GLOBAL_APPEND_OFFSET, getLongInCorrectByteOrder(globalAppendOffsetOffset));
         dynamicWriteBuffer.putLong(CURRENT_FILE_APPEND_OFFSET, getLongInCorrectByteOrder(currentFileAppendOffset));
 
-        final @ByteSize int length = StorageUnits.size(DYNAMIC_HEADER_SIZE - CHECKSUM_SIZE);
-        this.checksum = checksumUtil.calculateSingleChecksum(dynamicWriteBuffer.array(), ZERO_OFFSET, length);
-        dynamicWriteBuffer.putInt(CHECKSUM_OFFSET, getIntegerInCorrectByteOrder(checksum));
+        this.checksumBuffer = checksumHelper.calculateSingleChecksum(dynamicWriteBuffer.array(), ZERO_OFFSET, DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM);
+        dynamicWriteBuffer.putInt(DYNAMIC_CHECKSUM_LENGTH_OFFSET, getIntegerInCorrectByteOrder(checksumBuffer.length));
+        dynamicWriteBuffer.position(DYNAMIC_CHECKSUM_LENGTH_OFFSET + DYNAMIC_CHECKSUM_LENGTH_SIZE);
+        dynamicWriteBuffer.put(checksumBuffer);
         dynamicWriteBuffer.rewind();
     }
 
@@ -360,7 +402,7 @@ public final class FileStorageHeader implements FileHeader
 
     public static @ByteSize long getDynamicHeaderSizeAlignedToNearestPage(final @ByteSize int pageSize)
     {
-        final @PageNumber long pageNumbers = StorageUnits.pageNumber((DYNAMIC_HEADER_SIZE / pageSize) + 1);
+        final @PageNumber long pageNumbers = StorageUnits.pageNumber((DYNAMIC_HEADER_SIZE_WITHOUT_CHECKSUM / pageSize) + 1);
         return StorageUnits.size(pageNumbers * pageSize);
     }
 
@@ -384,6 +426,11 @@ public final class FileStorageHeader implements FileHeader
         return byteOrderEncoded == 1 ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
     }
 
+    public @ByteSize int getChecksumSize()
+    {
+        return StorageUnits.size(checksumBuffer.length);
+    }
+
     @Override
     public String toString()
     {
@@ -393,13 +440,13 @@ public final class FileStorageHeader implements FileHeader
                 ", appendVersion=" + appendVersion +
                 ", globalAppendOffset=" + globalAppendOffset +
                 ", currentFileAppendOffset=" + currentFileAppendOffset +
-                ", checksum=" + checksum +
+                ", checksumBuffer=" + Arrays.toString(checksumBuffer) +
                 ", headerNumber=" + headerNumber +
                 ", segmentFileSize=" + segmentFileSize +
                 ", byteOrder=" + byteOrder +
                 ", pageSize=" + pageSize +
                 ", logDbVersion=" + logDbVersion +
-                ", checksumUtil=" + checksumUtil +
+                ", checksumHelper=" + checksumHelper +
                 '}';
     }
 

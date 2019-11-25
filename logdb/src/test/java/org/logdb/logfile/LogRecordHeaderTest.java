@@ -5,11 +5,12 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LogRecordHeaderTest
 {
-    private static final int CHECKSUM = 1;
+    private static final byte[] CHECKSUM = {80, 80};
     private static final int KEY_LENGTH = 2;
     private static final int VALUE_LENGTH = 3;
     private static final long VERSION = 4L;
@@ -21,8 +22,9 @@ class LogRecordHeaderTest
     @BeforeEach
     void setUp()
     {
-        logRecordHeader = new LogRecordHeader();
-        buffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
+        logRecordHeader = new LogRecordHeader(CHECKSUM.length);
+        final int checksumSize = Integer.BYTES + CHECKSUM.length;
+        buffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_STATIC_SIZE + checksumSize);
     }
 
     @Test
@@ -31,7 +33,7 @@ class LogRecordHeaderTest
         logRecordHeader.initPut(CHECKSUM, KEY_LENGTH, VALUE_LENGTH, VERSION, TIMESTAMP);
         logRecordHeader.write(buffer);
 
-        final LogRecordHeader readLogRecordHeader = new LogRecordHeader();
+        final LogRecordHeader readLogRecordHeader = new LogRecordHeader(CHECKSUM.length);
         readLogRecordHeader.read(buffer);
 
         assertLogRecordHeader(readLogRecordHeader);
@@ -43,7 +45,7 @@ class LogRecordHeaderTest
         logRecordHeader.initDelete(CHECKSUM, KEY_LENGTH, VERSION, TIMESTAMP);
         logRecordHeader.write(buffer);
 
-        final LogRecordHeader readLogRecordHeader = new LogRecordHeader();
+        final LogRecordHeader readLogRecordHeader = new LogRecordHeader(CHECKSUM.length);
         readLogRecordHeader.read(buffer);
 
         assertLogRecordHeader(readLogRecordHeader);
@@ -51,7 +53,7 @@ class LogRecordHeaderTest
 
     private void assertLogRecordHeader(LogRecordHeader readLogRecordHeader)
     {
-        assertEquals(logRecordHeader.getChecksum(), readLogRecordHeader.getChecksum());
+        assertArrayEquals(logRecordHeader.getChecksum(), readLogRecordHeader.getChecksum());
         assertEquals(logRecordHeader.getRecordType(), readLogRecordHeader.getRecordType());
         assertEquals(logRecordHeader.getKeyLength(), readLogRecordHeader.getKeyLength());
         assertEquals(logRecordHeader.getValueLength(), readLogRecordHeader.getValueLength());

@@ -18,7 +18,7 @@ public class LogDb implements AutoCloseable
 
     private ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
 
-    LogDb(final LogFile logFile, final BTree index)
+    public LogDb(final LogFile logFile, final BTree index)
     {
         this.logFile = logFile;
         this.index = index;

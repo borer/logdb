@@ -1,6 +1,9 @@
 package org.logdb.logfile;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
+import org.logdb.checksum.Crc32;
 import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.TestUtils;
 
@@ -16,7 +19,8 @@ class LogRecordStorageTest
     void shouldPersistAndReadRecord() throws IOException
     {
         final MemoryStorage storage = new MemoryStorage(TestUtils.BYTE_ORDER, TestUtils.PAGE_SIZE_BYTES, MEMORY_CHUNK_SIZE);
-        final LogRecordStorage logRecordStorage = new LogRecordStorage(storage);
+        final ChecksumHelper checksumHelper = new ChecksumHelper(new Crc32(), ChecksumType.CRC32);
+        final LogRecordStorage logRecordStorage = new LogRecordStorage(storage, checksumHelper);
 
         final byte[] key = "key".getBytes();
         final byte[] value = "value".getBytes();

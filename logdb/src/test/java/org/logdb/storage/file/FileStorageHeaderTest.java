@@ -1,6 +1,9 @@
 package org.logdb.storage.file;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
+import org.logdb.checksum.Crc32;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
@@ -13,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FileStorageHeaderTest
 {
+    private static final Crc32 CHECKSUM = new Crc32();
+    private static final ChecksumHelper CHECKSUM_HELPER = new ChecksumHelper(CHECKSUM, ChecksumType.CRC32);
+
     @Test
     void shouldBeAbleToSaveAndLoadHeader() throws IOException
     {
@@ -20,7 +26,8 @@ class FileStorageHeaderTest
         final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
-                pageSizeBytes << 5);
+                pageSizeBytes << 5,
+                CHECKSUM_HELPER);
 
         final SeekableByteChannel channel = new ByteBufferSeekableByteChannel(
                 ByteBuffer.allocate(pageSizeBytes * 3));
@@ -76,6 +83,7 @@ class FileStorageHeaderTest
         public SeekableByteChannel position(final long newPosition)
         {
             buffer.position((int)newPosition);
+            position = (int)newPosition;
             return this;
         }
 

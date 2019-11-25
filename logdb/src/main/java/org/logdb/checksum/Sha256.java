@@ -1,7 +1,11 @@
 package org.logdb.checksum;
 
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class Sha256 implements Checksum
 {
@@ -39,5 +43,19 @@ public class Sha256 implements Checksum
     public void reset()
     {
         instance.reset();
+    }
+
+    @Override
+    public @ByteSize int getValueSize()
+    {
+        return StorageUnits.size(32);
+    }
+
+    @Override
+    public boolean compare(final byte[] bytes)
+    {
+        final byte[] currectValue = getValue();
+
+        return Arrays.equals(currectValue, bytes);
     }
 }

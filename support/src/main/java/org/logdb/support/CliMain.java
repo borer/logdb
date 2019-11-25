@@ -1,7 +1,7 @@
 package org.logdb.support;
 
 import org.logdb.LogDb;
-import org.logdb.LogDbBuilder;
+import org.logdb.builder.LogDbBuilder;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 import org.logdb.time.SystemTimeSource;

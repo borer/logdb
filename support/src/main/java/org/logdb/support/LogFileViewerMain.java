@@ -42,6 +42,7 @@ public class LogFileViewerMain
             final ByteOrder fileByteOrder = fileStorageHeader.getOrder();
             final @ByteSize int pageSize = fileStorageHeader.getPageSize();
             final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
+            final @ByteSize int checksumSize = fileStorageHeader.getChecksumSize();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
@@ -49,8 +50,8 @@ public class LogFileViewerMain
                             lastPersistedOffset,
                             fileByteOrder.toString()));
 
-            final LogRecordHeader logRecordHeader = new LogRecordHeader();
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
+            final LogRecordHeader logRecordHeader = new LogRecordHeader(checksumSize);
+            final ByteBuffer headerBuffer = ByteBuffer.allocate(logRecordHeader.getSize());
 
             headerBuffer.order(fileByteOrder);
 
@@ -76,7 +77,7 @@ public class LogFileViewerMain
                 }
                 catch (final Exception e)
                 {
-                    final long originalOffset = fileChannel.position() - LogRecordHeader.RECORD_HEADER_SIZE;
+                    final @ByteOffset long originalOffset = StorageUnits.offset(fileChannel.position() - logRecordHeader.getSize());
                     System.out.println(
                             "Unable to parse header at offset " + originalOffset);
                     System.out.println("Header contents : " + new String(headerBuffer.array()));
@@ -96,10 +97,7 @@ public class LogFileViewerMain
                 fileChannel.read(valueBuffer);
                 final String valueString = new String(valueBuffer.array());
 
-                lastRecordSize =
-                        LogRecordHeader.RECORD_HEADER_SIZE +
-                                logRecordHeader.getKeyLength() +
-                                logRecordHeader.getValueLength();
+                lastRecordSize = logRecordHeader.getSize() + logRecordHeader.getKeyLength() + logRecordHeader.getValueLength();
 
                 System.out.println(
                         String.format("offset %d : %s | key %d | value %s",

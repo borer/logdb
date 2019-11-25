@@ -1,5 +1,11 @@
 package org.logdb.checksum;
 
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
+
+import static org.logdb.checksum.BinaryHelper.bytesToInt;
+import static org.logdb.checksum.BinaryHelper.longToBytes;
+
 public class Crc32 implements Checksum
 {
     // Table of CRCs of all 8-bit messages.
@@ -69,6 +75,14 @@ public class Crc32 implements Checksum
     @Override
     public byte[] getValue()
     {
+        final byte[] bytes = new byte[8];
+        longToBytes(getValueInternal(), bytes);
+
+        return bytes;
+    }
+
+    private long getValueInternal()
+    {
         final long value;
         if (crc < 0)
         {
@@ -79,16 +93,25 @@ public class Crc32 implements Checksum
             value = (long) crc ^ 0x00000000ffffffffL;
         }
 
-        final byte[] bytes = new byte[8];
-        ChecksumUtil.longToBytes(value, bytes);
-
-        return bytes;
+        return value;
     }
 
     @Override
     public void reset()
     {
         crc = 0xffffffff;
+    }
+
+    @Override
+    public @ByteSize int getValueSize()
+    {
+        return StorageUnits.LONG_BYTES_SIZE;
+    }
+
+    @Override
+    public boolean compare(final byte[] bytes)
+    {
+        return Integer.compareUnsigned((int)getValueInternal(), bytesToInt(bytes)) == 0;
     }
 
     static int[] generateTable()

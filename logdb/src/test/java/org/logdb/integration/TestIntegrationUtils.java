@@ -4,6 +4,9 @@ import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreeWithLog;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bit.DirectMemory;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
+import org.logdb.checksum.Crc32;
 import org.logdb.logfile.LogFile;
 import org.logdb.root.index.RootIndex;
 import org.logdb.root.index.RootIndexRecord;
@@ -31,6 +34,9 @@ import static org.logdb.support.TestUtils.createInitialRootReference;
 class TestIntegrationUtils
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestIntegrationUtils.class);
+    private static final Crc32 CHECKSUM = new Crc32();
+    private static final ChecksumType CHECKSUM_TYPE = ChecksumType.CRC32;
+    private static final ChecksumHelper CHECKSUM_HELPER = new ChecksumHelper(CHECKSUM, CHECKSUM_TYPE);
 
     static LogFile createNewLogFile(final Path file) throws IOException
     {
@@ -44,15 +50,16 @@ class TestIntegrationUtils
                 FileType.HEAP,
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
-                PAGE_SIZE_BYTES);
+                PAGE_SIZE_BYTES,
+                CHECKSUM_TYPE);
 
-        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true);
+        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true, CHECKSUM_HELPER);
     }
 
     static LogFile readLogFile(final Path rootDirectory)
     {
-        FileStorage storageLogFile = FileStorageFactory.openExisting(rootDirectory, FileType.HEAP);
-        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true);
+        FileStorage storageLogFile = FileStorageFactory.openExisting(rootDirectory, FileType.HEAP, CHECKSUM_TYPE);
+        return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true, CHECKSUM_HELPER);
     }
 
     static BTreeWithLog createNewPersistedLogBtree(final Path path) throws IOException
@@ -77,7 +84,8 @@ class TestIntegrationUtils
                 FileType.INDEX,
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
-                PAGE_SIZE_BYTES);
+                PAGE_SIZE_BYTES,
+                CHECKSUM_TYPE);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
         final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
@@ -94,7 +102,7 @@ class TestIntegrationUtils
     {
         LOGGER.info("Reading temporal path " + path.getFileName());
 
-        final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
+        final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX, CHECKSUM_TYPE);
 
         final RootIndex rootIndex = openRootIndex(path);
         final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
@@ -132,7 +140,8 @@ class TestIntegrationUtils
                 FileType.INDEX,
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
-                PAGE_SIZE_BYTES);
+                PAGE_SIZE_BYTES,
+                CHECKSUM_TYPE);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
         final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
@@ -152,7 +161,7 @@ class TestIntegrationUtils
 
     static BTreeImpl loadPersistedBtree(final Path path, final TimeSource timeSource)
     {
-        final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX);
+        final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX, CHECKSUM_TYPE);
 
         final RootIndex rootIndex = openRootIndex(path);
         final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
@@ -172,7 +181,8 @@ class TestIntegrationUtils
                 FileType.ROOT_INDEX,
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
-                PAGE_SIZE_BYTES);
+                PAGE_SIZE_BYTES,
+                CHECKSUM_TYPE);
 
         return new RootIndex(
                 rootIndexStorage,
@@ -183,7 +193,7 @@ class TestIntegrationUtils
 
     private static RootIndex openRootIndex(final Path path)
     {
-        final FileStorage rootIndexStorage = FileStorageFactory.openExisting(path, FileType.ROOT_INDEX);
+        final FileStorage rootIndexStorage = FileStorageFactory.openExisting(path, FileType.ROOT_INDEX, CHECKSUM_TYPE);
 
         final @ByteOffset long lastPersistedOffset = rootIndexStorage.getLastPersistedOffset();
         final @PageNumber long lastRootPageNumber = rootIndexStorage.getPageNumber(lastPersistedOffset);

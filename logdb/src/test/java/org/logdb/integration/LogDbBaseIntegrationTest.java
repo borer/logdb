@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.LogDb;
-import org.logdb.LogDbBuilder;
+import org.logdb.builder.LogDbBuilder;
 import org.logdb.storage.Version;
 import org.logdb.storage.file.FileStorageUtil;
 import org.logdb.storage.file.FileType;

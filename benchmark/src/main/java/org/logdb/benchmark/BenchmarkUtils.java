@@ -2,6 +2,7 @@ package org.logdb.benchmark;
 
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bbtree.RootReference;
+import org.logdb.checksum.ChecksumType;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
@@ -17,6 +18,8 @@ import java.nio.file.Path;
 
 class BenchmarkUtils
 {
+    private static final ChecksumType CHECKSUM_TYPE = ChecksumType.CRC32;
+
     static RootIndex createRootIndex(
             final Path path,
             final @ByteSize long segmentFileSize,
@@ -28,7 +31,8 @@ class BenchmarkUtils
                 FileType.ROOT_INDEX,
                 segmentFileSize,
                 byteOrder,
-                pageSize);
+                pageSize,
+                CHECKSUM_TYPE);
 
         return new RootIndex(
                 rootIndexStorage,

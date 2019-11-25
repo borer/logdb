@@ -20,6 +20,7 @@ import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 class LogFileIntegrationTest
 {
     @TempDir Path tempDirectory;
+    private static final long HEADER_CHECKSUM_SIZE = Long.BYTES; // crc32 value
 
     @Test
     void shouldPersistAndReadMultipleSimpleKeyValue() throws Exception
@@ -82,7 +83,7 @@ class LogFileIntegrationTest
             assertArrayEquals(valueBytes, readValue);
 
             assertExceptionWithMessage(
-                    "offset 1574 refers to a delete record",
+                    "offset 1578 refers to a delete record",
                     () -> logFile.read(removeOffset));
         }
     }
@@ -169,7 +170,7 @@ class LogFileIntegrationTest
                 if (i != 0)
                 {
                     final long expectedOffset = previousOffset +
-                            LogRecordHeader.RECORD_HEADER_SIZE +
+                            LogRecordHeader.RECORD_HEADER_STATIC_SIZE + HEADER_CHECKSUM_SIZE +
                             previousKeyLength +
                             previousValueLength;
 
@@ -201,7 +202,7 @@ class LogFileIntegrationTest
 
                 //assert that the log records are sequentially stored
                 final long expectedOffset = previousOffset +
-                        LogRecordHeader.RECORD_HEADER_SIZE +
+                        LogRecordHeader.RECORD_HEADER_STATIC_SIZE + HEADER_CHECKSUM_SIZE +
                         previousKeyLength +
                         previousValueLength;
 

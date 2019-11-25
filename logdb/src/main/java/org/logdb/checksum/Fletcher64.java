@@ -1,5 +1,11 @@
 package org.logdb.checksum;
 
+import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
+
+import static org.logdb.checksum.BinaryHelper.bytesToLong;
+import static org.logdb.checksum.BinaryHelper.longToBytes;
+
 public class Fletcher64 implements Checksum
 {
     private int a, b, c, d;
@@ -42,17 +48,34 @@ public class Fletcher64 implements Checksum
     @Override
     public byte[] getValue()
     {
-        final long value = (long) d << 48 | (long) c << 32 | b << 16 | a;
+        final long value = getValueInternal();
 
         final byte[] bytes = new byte[8];
-        ChecksumUtil.longToBytes(value, bytes);
+        longToBytes(value, bytes);
 
         return bytes;
+    }
+
+    private long getValueInternal()
+    {
+        return (long) d << 48 | (long) c << 32 | b << 16 | a;
     }
 
     @Override
     public void reset()
     {
         a = b = c = d = 0;
+    }
+
+    @Override
+    public @ByteSize int getValueSize()
+    {
+        return StorageUnits.LONG_BYTES_SIZE;
+    }
+
+    @Override
+    public boolean compare(final byte[] bytes)
+    {
+        return Long.compareUnsigned(getValueInternal(), bytesToLong(bytes)) == 0;
     }
 }

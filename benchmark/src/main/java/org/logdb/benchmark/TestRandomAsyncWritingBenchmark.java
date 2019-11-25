@@ -1,7 +1,7 @@
 package org.logdb.benchmark;
 
 import org.logdb.LogDb;
-import org.logdb.LogDbBuilder;
+import org.logdb.builder.LogDbBuilder;
 import org.logdb.time.SystemTimeSource;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

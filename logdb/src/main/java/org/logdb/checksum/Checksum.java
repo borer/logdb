@@ -1,5 +1,7 @@
 package org.logdb.checksum;
 
+import org.logdb.storage.ByteSize;
+
 public interface Checksum
 {
     /**
@@ -12,11 +14,11 @@ public interface Checksum
     /**
      * Updates the current checksum with the specified array of bytes.
      *
-     * @param b   the byte array to update the checksum with
-     * @param off the start offset of the data
-     * @param len the number of bytes to use for the update
+     * @param bytes   the byte array to update the checksum with
+     * @param offset the start offset of the data
+     * @param length the number of bytes to use for the update
      */
-    void update(byte[] b, int off, int len);
+    void update(byte[] bytes, int offset, int length);
 
     /**
      * Returns the current checksum value.
@@ -29,4 +31,8 @@ public interface Checksum
      * Resets the checksum to its initial value.
      */
     void reset();
+
+    @ByteSize int getValueSize();
+
+    boolean compare(byte[] bytes);
 }

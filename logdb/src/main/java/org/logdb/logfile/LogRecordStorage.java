@@ -1,6 +1,6 @@
 package org.logdb.logfile;
 
-import org.logdb.checksum.ChecksumUtil;
+import org.logdb.checksum.ChecksumHelper;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
@@ -27,19 +27,20 @@ import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
  */
 class LogRecordStorage
 {
-    private final ChecksumUtil checksumer;
+    private final ChecksumHelper checksumHelper;
     private final ByteBuffer headerBuffer;
     private final Storage storage;
     private final LogRecordHeader logRecordHeader;
 
-    LogRecordStorage(final Storage storage)
+    LogRecordStorage(final Storage storage, final ChecksumHelper checksumHelper)
     {
         this.storage = Objects.requireNonNull(storage, "Storage cannot be null");
-        this.headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
-        headerBuffer.order(storage.getOrder());
+        this.checksumHelper = Objects.requireNonNull(checksumHelper, "checkHelper cannot be null");
 
-        this.checksumer = new ChecksumUtil();
-        this.logRecordHeader = new LogRecordHeader();
+        this.logRecordHeader = new LogRecordHeader(checksumHelper.getValueSize());
+
+        this.headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_STATIC_SIZE + checksumHelper.getValueSize());
+        headerBuffer.order(storage.getOrder());
     }
 
     @ByteOffset long writePut(
@@ -48,7 +49,7 @@ class LogRecordStorage
             final @Version long version,
             final @Milliseconds long timestamp) throws IOException
     {
-        final int checksum = calculatePutChecksum(key, value, version, timestamp);
+        final byte[] checksum = calculatePutChecksum(key, value, version, timestamp);
         logRecordHeader.initPut(
                 checksum,
                 StorageUnits.size(key.length),
@@ -70,7 +71,7 @@ class LogRecordStorage
 
         if (LogRecordType.UPDATE == logRecordHeader.getRecordType())
         {
-            final @ByteOffset long valueOffset = StorageUnits.offset(offset + LogRecordHeader.RECORD_HEADER_SIZE + logRecordHeader.getKeyLength());
+            final @ByteOffset long valueOffset = StorageUnits.offset(offset + logRecordHeader.getSize() + logRecordHeader.getKeyLength());
             return readValue(valueOffset);
         }
         else if (LogRecordType.DELETE == logRecordHeader.getRecordType())
@@ -88,7 +89,7 @@ class LogRecordStorage
             final @Version long version,
             final @Milliseconds long timestamp) throws IOException
     {
-        final int checksum = calculateDeleteChecksum(key, version, timestamp);
+        final byte[] checksum = calculateDeleteChecksum(key, version, timestamp);
         logRecordHeader.initDelete(
                 checksum,
                 StorageUnits.size(key.length),
@@ -102,35 +103,35 @@ class LogRecordStorage
         return offset;
     }
 
-    private int calculateDeleteChecksum(
+    private byte[] calculateDeleteChecksum(
             final byte[] key,
             final @Version long version,
             final @Milliseconds long timestamp)
     {
-        checksumer.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
-        checksumer.updateChecksum(version);
-        checksumer.updateChecksum(timestamp);
-        return checksumer.getAndResetChecksum();
+        checksumHelper.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
+        checksumHelper.updateChecksum(version);
+        checksumHelper.updateChecksum(timestamp);
+        return checksumHelper.getAndResetChecksum();
     }
 
-    private int calculatePutChecksum(
+    private byte[] calculatePutChecksum(
             final byte[] key,
             final byte[] value,
             final @Version long version,
             final @Milliseconds long timestamp)
     {
-        checksumer.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
-        checksumer.updateChecksum(value, ZERO_OFFSET, StorageUnits.size(value.length));
-        checksumer.updateChecksum(version);
-        checksumer.updateChecksum(timestamp);
-        return checksumer.getAndResetChecksum();
+        checksumHelper.updateChecksum(key, ZERO_OFFSET, StorageUnits.size(key.length));
+        checksumHelper.updateChecksum(value, ZERO_OFFSET, StorageUnits.size(value.length));
+        checksumHelper.updateChecksum(version);
+        checksumHelper.updateChecksum(timestamp);
+        return checksumHelper.getAndResetChecksum();
     }
 
     private void readHeader(final @ByteOffset long offset)
     {
         try
         {
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_SIZE);
+            final ByteBuffer headerBuffer = ByteBuffer.allocate(logRecordHeader.getSize());
             headerBuffer.order(storage.getOrder());
             storage.readBytes(offset, headerBuffer);
 

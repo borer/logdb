@@ -2,6 +2,9 @@ package org.logdb.storage.file;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
+import org.logdb.checksum.Crc32;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
@@ -16,6 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class FixedFileStorageHeaderTest
 {
     private static final String FIXED_HEADER_LOGINDEX = "fixed_header.logindex";
+    private static final Crc32 CHECKSUM = new Crc32();
+    private static final ChecksumHelper CHECKSUM_HELPER = new ChecksumHelper(CHECKSUM, ChecksumType.CRC32);
+
     @TempDir
     Path tempDirectory;
 
@@ -26,7 +32,8 @@ class FixedFileStorageHeaderTest
         final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
-                pageSizeBytes << 5);
+                pageSizeBytes << 5,
+                CHECKSUM_HELPER);
 
         final File emptyFile = tempDirectory.resolve("empty_file.logindex").toFile();
         try (RandomAccessFile emptyRaf = new RandomAccessFile(emptyFile, "rw"))
@@ -59,7 +66,8 @@ class FixedFileStorageHeaderTest
         final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
-                pageSizeBytes << 5);
+                pageSizeBytes << 5,
+                CHECKSUM_HELPER);
 
         final File headerFile = tempDirectory.resolve(FIXED_HEADER_LOGINDEX).toFile();
         final RandomAccessFile headerRandomAccessFile = new RandomAccessFile(headerFile, "rw");

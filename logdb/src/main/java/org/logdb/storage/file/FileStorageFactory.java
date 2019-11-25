@@ -1,6 +1,10 @@
 package org.logdb.storage.file;
 
 import org.logdb.bit.UnsafeArrayList;
+import org.logdb.checksum.Checksum;
+import org.logdb.checksum.ChecksumFactory;
+import org.logdb.checksum.ChecksumHelper;
+import org.logdb.checksum.ChecksumType;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
@@ -29,7 +33,8 @@ public class FileStorageFactory
             final FileType fileType,
             final @ByteSize long segmentFileSize,
             final ByteOrder byteOrder,
-            final @ByteSize int pageSizeBytes) throws IOException
+            final @ByteSize int pageSizeBytes,
+            final ChecksumType checksumType) throws IOException
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
 
@@ -57,11 +62,16 @@ public class FileStorageFactory
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
             currentAppendFile.setLength(segmentFileSize);
 
-            FileHeader fileHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize);
+            final Checksum checksum = ChecksumFactory.checksumFromType(checksumType);
+            final ChecksumHelper checksumHelper = new ChecksumHelper(checksum, checksumType);
+
+            FileHeader fileHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize, checksumHelper);
             FileHeader newFileHeader = FileStorageHeader.newHeader(
                     fileHeader.getOrder(),
                     fileHeader.getPageSize(),
-                    fileHeader.getSegmentFileSize());
+                    fileHeader.getSegmentFileSize(),
+                    checksumHelper
+            );
 
             if (FileType.ROOT_INDEX == fileType)
             {
@@ -95,7 +105,7 @@ public class FileStorageFactory
         return fileStorage;
     }
 
-    public static FileStorage openExisting(final Path rootDirectory, final FileType fileType)
+    public static FileStorage openExisting(final Path rootDirectory, final FileType fileType, final ChecksumType checksumType)
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
 
@@ -109,6 +119,9 @@ public class FileStorageFactory
 
             final RandomAccessFile currentAppendFile = new RandomAccessFile(lastFile.toFile(), "rw");
             final FileChannel currentAppendChannel = currentAppendFile.getChannel();
+
+            final Checksum checksum = ChecksumFactory.checksumFromType(checksumType);
+            final ChecksumHelper checksumHelper = new ChecksumHelper(checksum, checksumType);
 
             final FileHeader fileHeader;
             final FileHeader newFileHeader;
@@ -124,7 +137,8 @@ public class FileStorageFactory
                         FileStorageHeader.newHeader(
                                 rootIndexHeader.getOrder(),
                                 rootIndexHeader.getPageSize(),
-                                rootIndexHeader.getSegmentFileSize()),
+                                rootIndexHeader.getSegmentFileSize(),
+                                checksumHelper),
                         headerAccessFile,
                         headerChannel);
             }
@@ -134,7 +148,8 @@ public class FileStorageFactory
                 newFileHeader = FileStorageHeader.newHeader(
                         fileHeader.getOrder(),
                         fileHeader.getPageSize(),
-                        fileHeader.getSegmentFileSize());
+                        fileHeader.getSegmentFileSize(),
+                        checksumHelper);
             }
 
             fileStorage = createFileStorage(
