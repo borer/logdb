@@ -11,8 +11,10 @@ public class ChecksumFactory
         {
             case CRC32:
                 return new Crc32();
-            case FLETCHER4:
-                return new Fletcher64();
+            case FLETCHER8:
+                return new Fletcher8();
+            case FLETCHER32:
+                return new Fletcher32();
             case SHA256:
                 try
                 {

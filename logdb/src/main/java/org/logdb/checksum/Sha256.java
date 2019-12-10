@@ -54,8 +54,8 @@ public class Sha256 implements Checksum
     @Override
     public boolean compare(final byte[] bytes)
     {
-        final byte[] currectValue = getValue();
+        final byte[] currentValue = getValue();
 
-        return Arrays.equals(currectValue, bytes);
+        return Arrays.equals(currentValue, bytes);
     }
 }

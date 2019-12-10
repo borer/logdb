@@ -6,9 +6,9 @@ import org.logdb.storage.StorageUnits;
 import static org.logdb.checksum.BinaryHelper.bytesToLong;
 import static org.logdb.checksum.BinaryHelper.longToBytes;
 
-public class Fletcher64 implements Checksum
+public class Fletcher8 implements Checksum
 {
-    private int a, b, c, d;
+    int a, b, c, d;
 
     @Override
     public void update(final int byteValue)

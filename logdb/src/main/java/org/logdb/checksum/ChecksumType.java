@@ -3,8 +3,9 @@ package org.logdb.checksum;
 public enum ChecksumType
 {
     CRC32(1),
-    FLETCHER4(2),
-    SHA256(3);
+    FLETCHER8(2),
+    FLETCHER32(3),
+    SHA256(4);
 
     private final int type;
 
