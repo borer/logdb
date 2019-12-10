@@ -124,6 +124,9 @@
                                     <version>${jupiter-engine.version}</version>
                                 </dependency>
                             </dependencies>
+                            <configuration>
+                                <trimStackTrace>false</trimStackTrace>
+                            </configuration>
                         </plugin>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
@@ -207,6 +210,9 @@
                                     <version>${jupiter-engine.version}</version>
                                 </dependency>
                             </dependencies>
+                            <configuration>
+                                <trimStackTrace>false</trimStackTrace>
+                            </configuration>
                         </plugin>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
