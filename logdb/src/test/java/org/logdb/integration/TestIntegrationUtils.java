@@ -28,6 +28,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.NODE_LOG_PERCENTAGE;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.logdb.support.TestUtils.createInitialRootReference;
 
@@ -95,7 +96,8 @@ class TestIntegrationUtils
                 timeSource,
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
-                createInitialRootReference(nodesManage));
+                createInitialRootReference(nodesManage),
+                NODE_LOG_PERCENTAGE);
     }
 
     static BTreeWithLog loadPersistedLogBtree(final Path path)
@@ -112,7 +114,8 @@ class TestIntegrationUtils
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
-                null);
+                null,
+                NODE_LOG_PERCENTAGE);
     }
 
     static BTreeImpl createNewPersistedBtree(final Path path, final TimeSource timeSource) throws IOException

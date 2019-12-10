@@ -22,6 +22,7 @@ public class TestUtils
     public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     public static final int PAGE_SIZE_BYTES = 512;
+    public static final int NODE_LOG_PERCENTAGE = 30;
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
     public static final @ByteSize int MEMORY_CHUNK_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);

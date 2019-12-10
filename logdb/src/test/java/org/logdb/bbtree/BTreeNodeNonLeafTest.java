@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.logdb.support.TestUtils.NODE_LOG_PERCENTAGE;
 
 class BTreeNodeNonLeafTest
 {
@@ -701,18 +702,18 @@ class BTreeNodeNonLeafTest
     void shouldBeAbleToSpillKeyValuesFromNodeLog()
     {
         long maxLogKeyValuePairs = 0L;
-        while (bTreeNonLeaf.logHasFreeSpace())
+        while (bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE))
         {
             bTreeNonLeaf.insertLog(maxLogKeyValuePairs, maxLogKeyValuePairs);
             maxLogKeyValuePairs++;
         }
 
-        assertFalse(bTreeNonLeaf.logHasFreeSpace());
+        assertFalse(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
         assertEquals(maxLogKeyValuePairs, bTreeNonLeaf.getLogKeyValuesCount());
 
         final KeyValueLog keyValueLog = bTreeNonLeaf.spillLog();
 
-        assertTrue(bTreeNonLeaf.logHasFreeSpace());
+        assertTrue(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
         assertEquals(0, bTreeNonLeaf.getLogKeyValuesCount());
 
         for (int i = 0; i < maxLogKeyValuePairs; i++)
@@ -720,5 +721,19 @@ class BTreeNodeNonLeafTest
             assertEquals(i, keyValueLog.getKey(i));
             assertEquals(i, keyValueLog.getValue(i));
         }
+    }
+
+    @Test
+    void shouldBeAbleToReservePercentageForLog()
+    {
+        final long bytesForLog = FixedPointAritmetic.getPercentageOfQuantity(TestUtils.PAGE_SIZE_BYTES, NODE_LOG_PERCENTAGE);
+        final long pairsInLog = bytesForLog / (2 * Long.BYTES);
+        for (long i = 0; i < pairsInLog; i++)
+        {
+            assertTrue(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
+            bTreeNonLeaf.insertLog(i, i);
+        }
+
+        assertFalse(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
     }
 }

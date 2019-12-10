@@ -28,6 +28,7 @@ import java.util.Random;
 import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.NODE_LOG_PERCENTAGE;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
@@ -68,7 +69,8 @@ public class TestBTreeWithLogRandomKeysWritingBenchmark
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,
-                    createInitialRootReference(nodesManager));
+                    createInitialRootReference(nodesManager),
+                    NODE_LOG_PERCENTAGE);
             random = new Random();
         }
 

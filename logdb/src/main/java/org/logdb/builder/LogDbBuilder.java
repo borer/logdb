@@ -53,6 +53,7 @@ public class LogDbBuilder
     private int asyncQueueCapacity = 8192;
     private boolean shouldSyncWrite = false;
     private ChecksumType checksumType = ChecksumType.CRC32;
+    private int nodeLogPercentage = 30;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -111,6 +112,12 @@ public class LogDbBuilder
     public LogDbBuilder checksum(final ChecksumType checksumType)
     {
         this.checksumType = checksumType;
+        return this;
+    }
+
+    public LogDbBuilder nodeLogPercentage(final int nodeLogPercentage)
+    {
+        this.nodeLogPercentage = nodeLogPercentage;
         return this;
     }
 
@@ -216,7 +223,7 @@ public class LogDbBuilder
         final BTree index;
         if (useIndexWithLog)
         {
-            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
+            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference, nodeLogPercentage);
         }
         else
         {

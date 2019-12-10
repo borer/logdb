@@ -9,13 +9,14 @@ import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 
+import static org.logdb.bbtree.FixedPointAritmetic.getPercentageOfQuantity;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements BTreeLogNode
 {
-    int numberOfLogKeyValues;
-
     private final KeyValueLog keyValueLog;
+
+    int numberOfLogKeyValues;
 
     BTreeLogNodeAbstract(
             final @PageNumber long pageNumber,
@@ -45,10 +46,18 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     @Override
     public boolean shouldSplit()
     {
-        final long freeSpaceWithoutConsideringLogBuffer =
-                freeSizeLeftBytes + (numberOfLogKeyValues * (long)(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
         final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        return minimumFreeSpaceBeforeOperatingOnNode > freeSpaceWithoutConsideringLogBuffer;
+        return minimumFreeSpaceBeforeOperatingOnNode > freeSizeLeftBytes;
+    }
+
+    @Override
+    long calculateFreeSpaceLeft(final long pageSize)
+    {
+        final int extraValues = numberOfValues - numberOfKeys;
+        final int numberOfKeyValues = numberOfKeys + extraValues;
+        final int sizeForKeyValues = numberOfKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final int usedBytes = BTreeNodePage.HEADER_SIZE_BYTES + sizeForKeyValues + getLogSize();
+        return pageSize - usedBytes;
     }
 
     void splitLog(final long key, final BTreeLogNodeAbstract bNode)
@@ -74,20 +83,21 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         bNode.recalculateFreeSpaceLeft();
     }
 
-    @Override
-    long calculateFreeSpaceLeft(final long pageSize)
+    boolean logHasFreeSpace(final int logSizePercentage)
     {
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int numberOfKeyValues = numberOfKeys + extraValues + numberOfLogKeyValues;
-        final int sizeForKeyValues = numberOfKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        final int usedBytes = sizeForKeyValues + BTreeNodePage.HEADER_SIZE_BYTES;
-        return pageSize - usedBytes;
+        final @ByteSize int logSize = getLogSize();
+        final long maxLogSpace = getPercentageOfQuantity(buffer.getCapacity(), logSizePercentage);
+        return logSize < maxLogSpace && (maxLogSpace - logSize) > (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+    }
+
+    @ByteSize private int getLogSize()
+    {
+        return StorageUnits.size(numberOfLogKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
     }
 
     KeyValueLog spillLog()
     {
-        final @ByteSize int keyValueLogSize = StorageUnits.size(numberOfLogKeyValues * 2 * Long.BYTES);
-        final HeapMemory keyValueLogBuffer = MemoryFactory.allocateHeap(keyValueLogSize, buffer.getByteOrder());
+        final HeapMemory keyValueLogBuffer = MemoryFactory.allocateHeap(getLogSize(), buffer.getByteOrder());
 
         final @ByteOffset long logStartOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
         buffer.getBytes(

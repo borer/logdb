@@ -235,11 +235,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return buffer.getLong(getValueIndexOffsetNew(index));
     }
 
-    boolean logHasFreeSpace()
-    {
-        return freeSizeLeftBytes > (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-    }
-
     long setValue(final int index, final long value)
     {
         final @ByteOffset long valueIndexOffset = getValueIndexOffsetNew(index);
