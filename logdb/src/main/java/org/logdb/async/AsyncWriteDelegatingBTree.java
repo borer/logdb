@@ -19,8 +19,8 @@ public class AsyncWriteDelegatingBTree implements BTree
     private final ManyToOneConcurrentArrayQueue<Command> queue;
     private final ThreadFactory threadFactory;
     private final BTree delegate;
-    private boolean isRunning;
     private Thread thread;
+    private final CommandProcessingThread commandProcessingThread;
 
     public AsyncWriteDelegatingBTree(
             final ThreadFactory threadFactory,
@@ -30,68 +30,25 @@ public class AsyncWriteDelegatingBTree implements BTree
         this.threadFactory = threadFactory;
         this.delegate = delegate;
         this.queue = new ManyToOneConcurrentArrayQueue<>(queueCapacity);
+        this.commandProcessingThread = new CommandProcessingThread(queue, delegate);
     }
 
     public void start()
     {
-        if (isRunning)
+        if (commandProcessingThread.isRunning())
         {
             return;
         }
 
-        final int[] numberOfModification = new int[1];
-        isRunning = true;
-
-        thread = threadFactory.newThread(() ->
-        {
-            while (isRunning)
-            {
-                queue.drain(command ->
-                {
-                    ++numberOfModification[0];
-                    switch (command.commandType)
-                    {
-                        case ADD:
-                            try
-                            {
-                                delegate.put(command.key, command.value);
-                            }
-                            catch (ArrayIndexOutOfBoundsException e)
-                            {
-                                LOGGER.error("index out of bounds for " + command.toString(), e);
-                            }
-                            break;
-                        case DELETE:
-                            delegate.remove(command.key);
-                            break;
-                        default:
-                            throw new RuntimeException("Unrecognized command " + command.toString());
-                    }
-                });
-
-                if (numberOfModification[0] > 0)
-                {
-                    numberOfModification[0] = 0;
-                    try
-                    {
-                        delegate.commit();
-                    }
-                    catch (IOException e)
-                    {
-                        throw new RuntimeException("Unable to commit delegate ", e);
-                    }
-                }
-            }
-        });
-
+        thread = threadFactory.newThread(commandProcessingThread);
         thread.start();
     }
 
     private void stop()
     {
-        isRunning = false;
         try
         {
+            commandProcessingThread.stop();
             thread.join();
         }
         catch (final InterruptedException e)
@@ -174,35 +131,5 @@ public class AsyncWriteDelegatingBTree implements BTree
     {
         stop();
         delegate.close();
-    }
-
-    private static final class Command
-    {
-        final CommandType commandType;
-        final long key;
-        final long value;
-
-        Command(final CommandType commandType, final long key, final long value)
-        {
-            this.commandType = commandType;
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public String toString()
-        {
-            return "Command{" +
-                    "commandType=" + commandType +
-                    ", key=" + key +
-                    ", value=" + value +
-                    '}';
-        }
-    }
-
-    private enum CommandType
-    {
-        ADD,
-        DELETE
     }
 }
