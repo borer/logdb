@@ -12,6 +12,8 @@ import org.logdb.bit.MemoryCopy;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.checksum.ChecksumType;
 import org.logdb.root.index.RootIndex;
+import org.logdb.storage.ByteOffset;
+import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.support.TestUtils;
 import org.logdb.time.TimeUnits;
@@ -57,6 +59,37 @@ class FileStorageTest
         catch (final IllegalArgumentException e)
         {
             assertEquals(e.getMessage(), "Page Size must be bigger than 128 bytes and a power of 2. Provided was " + 4097);
+        }
+    }
+
+    @Test
+    void shouldPersistAndLoadPage() throws Exception
+    {
+        final int expectedStartValue = 123456;
+        final int expectedEndValue = 987654;
+        try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES, CHECKSUM_TYPE))
+        {
+            final HeapMemory heapMemory = storage.allocateHeapPage();
+            final long endOffset = heapMemory.getCapacity() - Long.BYTES;
+
+            heapMemory.putLong(0, expectedStartValue);
+            heapMemory.putLong(endOffset, expectedEndValue);
+
+            final @ByteOffset long storageOffset = storage.append(heapMemory.getSupportByteBuffer());
+            final @PageNumber long pageNumber = storage.getPageNumber(storageOffset);
+
+            storage.commitMetadata(storageOffset, 1);
+            storage.flush(true);
+
+            final DirectMemory persistedMemory = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
+            storage.mapPage(pageNumber, persistedMemory);
+
+            assertEquals(expectedStartValue, persistedMemory.getLong(0));
+            assertEquals(expectedEndValue, persistedMemory.getLong(endOffset));
+
+            assertEquals(1, storage.getAppendVersion());
+            assertEquals(storageOffset, storage.getLastPersistedOffset());
+            assertEquals(pageNumber, storage.getLastPersistedPageNumber());
         }
     }
 
