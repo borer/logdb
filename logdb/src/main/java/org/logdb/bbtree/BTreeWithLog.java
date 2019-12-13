@@ -11,18 +11,15 @@ import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 public class BTreeWithLog extends BTreeAbstract
 {
     private static final int LOG_VALUE_TO_REMOVE_SENTINEL = -1;
-    private final int nodeLogPercentage;
 
     public BTreeWithLog(
             final NodesManager nodesManager,
             final TimeSource timeSource,
             final @Version long nextWriteVersion,
             final @PageNumber long lastRootPageNumber,
-            final RootReference rootReference,
-            final int nodeLogPercentage)
+            final RootReference rootReference)
     {
         super(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
-        this.nodeLogPercentage = nodeLogPercentage;
     }
 
     /**
@@ -84,7 +81,7 @@ public class BTreeWithLog extends BTreeAbstract
         else
         {
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
-            if (nonLeaf.logHasFreeSpace(nodeLogPercentage))
+            if (nonLeaf.logHasFreeSpace())
             {
                 nonLeaf.insertLog(key, LOG_VALUE_TO_REMOVE_SENTINEL);
             }
@@ -324,7 +321,7 @@ public class BTreeWithLog extends BTreeAbstract
             assert node instanceof BTreeNodeNonLeaf : "Node is not instance of BTreeNodeNonLeaf. " + node.toString();
 
             BTreeNodeNonLeaf currentNonLeaf = (BTreeNodeNonLeaf) node;
-            if (currentNonLeaf.logHasFreeSpace(nodeLogPercentage))
+            if (currentNonLeaf.logHasFreeSpace())
             {
                 currentNonLeaf.insertLog(key, value);
             }

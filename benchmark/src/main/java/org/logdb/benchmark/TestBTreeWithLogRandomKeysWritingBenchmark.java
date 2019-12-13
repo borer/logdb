@@ -28,7 +28,7 @@ import java.util.Random;
 import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
-import static org.logdb.benchmark.DefaultBenchmarkConfig.NODE_LOG_PERCENTAGE;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.NODE_LOG_SIZE;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
@@ -53,24 +53,26 @@ public class TestBTreeWithLogRandomKeysWritingBenchmark
                     FileType.INDEX,
                     SEGMENT_FILE_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
-                    DefaultBenchmarkConfig.PAGE_SIZE_BYTES,
+                    PAGE_SIZE_BYTES,
+                    NODE_LOG_SIZE,
                     ChecksumType.CRC32);
 
             final RootIndex rootIndex = createRootIndex(
                     rootDirectory,
                     SEGMENT_FILE_SIZE,
                     PAGE_SIZE_BYTES,
+                    NODE_LOG_SIZE,
                     ByteOrder.LITTLE_ENDIAN);
 
-            nodesManager = new NodesManager(storage, rootIndex, false);
+            nodesManager = new NodesManager(storage, rootIndex, false, NODE_LOG_SIZE);
 
             btree = new BTreeWithLog(
                     nodesManager,
                     new SystemTimeSource(),
                     INITIAL_VERSION,
                     StorageUnits.INVALID_PAGE_NUMBER,
-                    createInitialRootReference(nodesManager),
-                    NODE_LOG_PERCENTAGE);
+                    createInitialRootReference(nodesManager)
+            );
             random = new Random();
         }
 

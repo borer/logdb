@@ -23,6 +23,8 @@ import static org.logdb.support.TestUtils.createRootIndex;
 class BTreeImplTest
 {
     private static final int PAGE_SIZE = 256;
+    private static final int MAX_LOG_SIZE = 0;
+
     private BTreeImpl bTree;
 
     @BeforeEach
@@ -31,7 +33,7 @@ class BTreeImplTest
         final Storage storage = new MemoryStorage(TestUtils.BYTE_ORDER, PAGE_SIZE, MEMORY_CHUNK_SIZE);
         final RootIndex rootIndex = createRootIndex(PAGE_SIZE);
 
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true, MAX_LOG_SIZE);
 
         bTree = new BTreeImpl(
                 nodesManager,

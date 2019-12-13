@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
@@ -17,20 +18,22 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     public BTreeNodeNonLeaf(
             final @PageNumber long pageNumber,
             final HeapMemory memory,
+            final @ByteSize int maxLogSize,
             final int numberOfLogKeyValues,
             final int numberOfKeys,
             final int numberOfValues,
             final BTreeNodeHeap[] children)
     {
-        super(pageNumber, memory, numberOfLogKeyValues, numberOfKeys, numberOfValues);
+        super(pageNumber, memory, maxLogSize, numberOfLogKeyValues, numberOfKeys, numberOfValues);
         this.children = children;
     }
 
-    public static BTreeNodeNonLeaf load(final @PageNumber long pageNumber, final HeapMemory memory)
+    public static BTreeNodeNonLeaf load(final @PageNumber long pageNumber, final HeapMemory memory, final @ByteSize int maxLogSize)
     {
         return new BTreeNodeNonLeaf(
                 pageNumber,
                 memory,
+                maxLogSize,
                 memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
                 memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
                 memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET),

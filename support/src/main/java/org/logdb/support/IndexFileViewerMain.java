@@ -39,6 +39,7 @@ public class IndexFileViewerMain
 
             final ByteOrder fileByteOrder = fileStorageHeader.getOrder();
             final @ByteSize int pageSize = fileStorageHeader.getPageSize();
+            final @ByteSize int pageLogSize = fileStorageHeader.getPageLogSize();
             final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
 
             System.out.println(
@@ -65,7 +66,8 @@ public class IndexFileViewerMain
                     },
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
-                    StorageUnits.INVALID_PAGE_NUMBER);
+                    StorageUnits.INVALID_PAGE_NUMBER,
+                    pageLogSize);
 
             final @ByteOffset long fileHeaderOffsetToSkip = StorageUnits.offset(
                     FileStorageHeader.getStaticHeaderSizeAlignedToNearestPage(pageSize) +

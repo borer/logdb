@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.HeapMemory;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
@@ -26,6 +27,7 @@ public class NodesManager
     private final IdSupplier idSupplier;
     private final RootIndex rootIndex;
     private final boolean shouldSyncWrite;
+    private final @ByteSize int maxLogSize;
 
     private final List<RootReference> dirtyRootNodes;
     private final Queue<BTreeNodeNonLeaf> nonLeafNodesCache;
@@ -34,11 +36,16 @@ public class NodesManager
 
     private @PageNumber long lastPersistedPageNumber;
 
-    public NodesManager(final Storage storage, final RootIndex rootIndex, final boolean shouldSyncWrite)
+    public NodesManager(
+            final Storage storage,
+            final RootIndex rootIndex,
+            final boolean shouldSyncWrite,
+            final @ByteSize int maxLogSize)
     {
         this.storage = Objects.requireNonNull(storage, "storage cannot be null");
         this.rootIndex = Objects.requireNonNull(rootIndex, "rootIndex cannot be null");
         this.shouldSyncWrite = shouldSyncWrite;
+        this.maxLogSize = maxLogSize;
 
         this.idSupplier = new IdSupplier();
         this.dirtyRootNodes = new ArrayList<>();
@@ -68,7 +75,8 @@ public class NodesManager
                     this::returnMappedNode,
                     storage,
                     storage.getUninitiatedDirectMemoryPage(),
-                    StorageUnits.pageNumber(0));
+                    StorageUnits.pageNumber(0),
+                    maxLogSize);
         }
 
         return mappedNode;
@@ -116,7 +124,14 @@ public class NodesManager
         BTreeNodeNonLeaf nonLeaf = nonLeafNodesCache.poll();
         if (nonLeaf == null)
         {
-            nonLeaf = new BTreeNodeNonLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0, 1, new BTreeNodeHeap[1]);
+            nonLeaf = new BTreeNodeNonLeaf(
+                    idSupplier.getAsLong(),
+                    storage.allocateHeapPage(),
+                    maxLogSize,
+                    0,
+                    0,
+                    1,
+                    new BTreeNodeHeap[1]);
         }
 
         return nonLeaf;

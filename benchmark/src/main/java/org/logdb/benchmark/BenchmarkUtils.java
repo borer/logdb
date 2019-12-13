@@ -24,6 +24,7 @@ class BenchmarkUtils
             final Path path,
             final @ByteSize long segmentFileSize,
             final @ByteSize int pageSize,
+            final @ByteSize int pageLogSize,
             final ByteOrder byteOrder) throws IOException
     {
         final FileStorage rootIndexStorage = FileStorageFactory.createNew(
@@ -32,6 +33,7 @@ class BenchmarkUtils
                 segmentFileSize,
                 byteOrder,
                 pageSize,
+                pageLogSize,
                 CHECKSUM_TYPE);
 
         return new RootIndex(

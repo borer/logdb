@@ -27,11 +27,10 @@ import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public final class FileStorageHeader implements FileHeader
 {
-    private static final byte[] INVALID_CHECKSUM = new byte[0];
     private static final ByteOrder DEFAULT_HEADER_BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     /////Static Header
-    static final @ByteOffset long STATIC_HEADER_OFFSET = StorageUnits.ZERO_OFFSET;
+    private static final @ByteOffset long STATIC_HEADER_OFFSET = StorageUnits.ZERO_OFFSET;
 
     private static final byte[] LOG_DB_MAGIC_STRING = { 0x4c, 0x6f, 0x67, 0x44, 0x42, 0x00, 0x00}; // LogDb
     private static final @ByteOffset int BYTE_ORDER_OFFSET = StorageUnits.offset(LOG_DB_MAGIC_STRING.length); // size 7
@@ -43,16 +42,20 @@ public final class FileStorageHeader implements FileHeader
     private static final @ByteOffset int PAGE_SIZE_OFFSET = StorageUnits.offset(LOG_DB_VERSION_OFFSET + LOG_DB_VERSION_SIZE);
     private static final @ByteSize int PAGE_SIZE_BYTES = INT_BYTES_SIZE;
 
-    private static final @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
+    private static final @ByteOffset int PAGE_LOG_SIZE_OFFSET = StorageUnits.offset(PAGE_SIZE_OFFSET + PAGE_SIZE_BYTES);
+    private static final @ByteSize int PAGE_LOG_SIZE_BYTES = INT_BYTES_SIZE;
+
+    private static final @ByteOffset int SEGMENT_FILE_SIZE_OFFSET = StorageUnits.offset(PAGE_LOG_SIZE_OFFSET + PAGE_LOG_SIZE_BYTES);
     private static final @ByteSize int SEGMENT_FILE_SIZE_BYTES = LONG_BYTES_SIZE;
 
     private static final @ByteOffset int STATIC_CHECKSUM_TYPE_OFFSET = StorageUnits.offset(SEGMENT_FILE_SIZE_OFFSET + SEGMENT_FILE_SIZE_BYTES);
     private static final @ByteSize int STATIC_CHECKSUM_TYPE_OFFSET_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteSize int STATIC_HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
+    private static final @ByteSize int STATIC_HEADER_SIZE = StorageUnits.size(LOG_DB_MAGIC_STRING.length) +
             BYTE_ORDER_SIZE +
             LOG_DB_VERSION_SIZE +
             PAGE_SIZE_BYTES +
+            PAGE_LOG_SIZE_BYTES +
             SEGMENT_FILE_SIZE_BYTES +
             STATIC_CHECKSUM_TYPE_OFFSET_SIZE;
 
@@ -90,6 +93,7 @@ public final class FileStorageHeader implements FileHeader
     private final @ByteSize long segmentFileSize; //must be multiple of pageSize
     private final ByteOrder byteOrder;
     private final @ByteSize int pageSize; // Must be a power of two
+    private final @ByteSize int pageLogSize; // Must be a power of two
     private final @Version int logDbVersion; //TODO: when loading a new file compare that we have compatible versions
 
     private ChecksumHelper checksumHelper;
@@ -98,6 +102,7 @@ public final class FileStorageHeader implements FileHeader
             final ByteOrder byteOrder,
             final @Version long appendVersion,
             final @ByteSize int pageSize,
+            final @ByteSize int pageLogSize,
             final @ByteSize long segmentFileSize,
             final @ByteOffset long globalAppendOffset,
             final @ByteOffset long currentFileAppendOffset,
@@ -110,10 +115,12 @@ public final class FileStorageHeader implements FileHeader
         this.headerNumber = Objects.requireNonNull(headerNumber, "header number cannot be null");
         assert pageSize > 0 && ((pageSize & (pageSize - 1)) == 0) : "page size must be power of 2. Provided " + pageSize;
         assert segmentFileSize % pageSize == 0 : "segmentFileSize must be multiple of pageSize";
+        assert pageSize > pageLogSize : "pageSize must be bigger than page log size";
 
         this.byteOrder = byteOrder;
         this.appendVersion = appendVersion;
         this.pageSize = pageSize;
+        this.pageLogSize = pageLogSize;
         this.segmentFileSize = segmentFileSize;
         this.globalAppendOffset = globalAppendOffset;
         this.currentFileAppendOffset = currentFileAppendOffset;
@@ -129,6 +136,7 @@ public final class FileStorageHeader implements FileHeader
     static FileStorageHeader newHeader(
             final ByteOrder byteOrder,
             final @ByteSize int pageSizeBytes,
+            final @ByteSize int pageLogSize,
             final @ByteSize long segmentFileSize,
             ChecksumHelper checksumHelper)
     {
@@ -138,6 +146,7 @@ public final class FileStorageHeader implements FileHeader
                 byteOrder,
                 INITIAL_VERSION,
                 pageSizeBytes,
+                pageLogSize,
                 segmentFileSize,
                 StorageUnits.INVALID_OFFSET,
                 StorageUnits.INVALID_OFFSET,
@@ -169,6 +178,8 @@ public final class FileStorageHeader implements FileHeader
         final @Version int logDbVersion = StorageUnits.version(getIntegerInCorrectByteOrder(staticHeaderBuffer.getInt(LOG_DB_VERSION_OFFSET)));
         final @ByteSize int pageSize =
                 StorageUnits.size(getIntegerInCorrectByteOrder(staticHeaderBuffer.getInt(PAGE_SIZE_OFFSET)));
+        final @ByteSize int pageLogSize =
+                StorageUnits.size(getIntegerInCorrectByteOrder(staticHeaderBuffer.getInt(PAGE_LOG_SIZE_OFFSET)));
         final @ByteSize long segmentFileSize =
                 StorageUnits.size(getLongInCorrectByteOrder(staticHeaderBuffer.getLong(SEGMENT_FILE_SIZE_OFFSET)));
 
@@ -207,6 +218,7 @@ public final class FileStorageHeader implements FileHeader
                 byteOrder,
                 appendVersion,
                 pageSize,
+                pageLogSize,
                 segmentFileSize,
                 lastPersistedOffset,
                 appendOffset,
@@ -295,6 +307,7 @@ public final class FileStorageHeader implements FileHeader
         staticWriteBuffer.put(BYTE_ORDER_OFFSET, getEncodedByteOrder(byteOrder));
         staticWriteBuffer.putInt(LOG_DB_VERSION_OFFSET, getIntegerInCorrectByteOrder(logDbVersion));
         staticWriteBuffer.putInt(PAGE_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageSize));
+        staticWriteBuffer.putInt(PAGE_LOG_SIZE_OFFSET, getIntegerInCorrectByteOrder(pageLogSize));
         staticWriteBuffer.putLong(SEGMENT_FILE_SIZE_OFFSET, getLongInCorrectByteOrder(segmentFileSize));
         staticWriteBuffer.putInt(STATIC_CHECKSUM_TYPE_OFFSET, getIntegerInCorrectByteOrder(checksumHelper.getType().getTypeValue()));
 
@@ -334,6 +347,12 @@ public final class FileStorageHeader implements FileHeader
     public @ByteSize int getPageSize()
     {
         return pageSize;
+    }
+
+    @Override
+    public @ByteSize int getPageLogSize()
+    {
+        return pageLogSize;
     }
 
     @Override

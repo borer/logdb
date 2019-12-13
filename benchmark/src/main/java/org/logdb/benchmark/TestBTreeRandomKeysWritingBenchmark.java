@@ -29,6 +29,7 @@ import java.util.Random;
 import static org.logdb.benchmark.BenchmarkUtils.createInitialRootReference;
 import static org.logdb.benchmark.BenchmarkUtils.createRootIndex;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.INITIAL_VERSION;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.NODE_LOG_SIZE;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
@@ -54,15 +55,17 @@ public class TestBTreeRandomKeysWritingBenchmark
                     SEGMENT_FILE_SIZE,
                     ByteOrder.LITTLE_ENDIAN,
                     DefaultBenchmarkConfig.PAGE_SIZE_BYTES,
+                    DefaultBenchmarkConfig.PAGE_SIZE_BYTES,
                     ChecksumType.CRC32);
 
             final RootIndex rootIndex = createRootIndex(
                     rootDirectory,
                     SEGMENT_FILE_SIZE,
                     PAGE_SIZE_BYTES,
+                    NODE_LOG_SIZE,
                     ByteOrder.LITTLE_ENDIAN);
 
-            nodesManager = new NodesManager(storage, rootIndex, false);
+            nodesManager = new NodesManager(storage, rootIndex, false, NODE_LOG_SIZE);
 
             btree = new BTreeImpl(
                     nodesManager,

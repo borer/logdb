@@ -20,6 +20,8 @@ public interface FileHeader
 
     @ByteSize int getPageSize();
 
+    @ByteSize int getPageLogSize();
+
     ByteOrder getOrder();
 
     @Version int getDbVersion();

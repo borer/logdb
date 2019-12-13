@@ -32,7 +32,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.storage.file.FileStorageFactory.createNew;
 import static org.logdb.support.TestUtils.BYTE_ORDER;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
+import static org.logdb.support.TestUtils.NODE_LOG_SIZE;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
+import static org.logdb.support.TestUtils.ZERO_NODE_LOG_SIZE;
 
 class FileStorageTest
 {
@@ -43,7 +45,7 @@ class FileStorageTest
     @Test
     void shouldNotBeAbleToCreateFileStorageWithInvalidPageSize() throws Exception
     {
-        try (FileStorage ignored = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, 100, CHECKSUM_TYPE))
+        try (FileStorage ignored = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, 100, NODE_LOG_SIZE, CHECKSUM_TYPE))
         {
             fail("should have failed creating file storage with invalid page size");
         }
@@ -52,7 +54,7 @@ class FileStorageTest
             assertEquals(e.getMessage(), "Page Size must be bigger than 128 bytes and a power of 2. Provided was " + 100);
         }
 
-        try(FileStorage ignored = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, 4097, CHECKSUM_TYPE))
+        try(FileStorage ignored = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, 4097, NODE_LOG_SIZE, CHECKSUM_TYPE))
         {
             fail("should have failed creating file storage with invalid page size");
         }
@@ -67,7 +69,14 @@ class FileStorageTest
     {
         final int expectedStartValue = 123456;
         final int expectedEndValue = 987654;
-        try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES, CHECKSUM_TYPE))
+        try (FileStorage storage = createNew(
+                tempDirectory,
+                FileType.INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
+                BYTE_ORDER,
+                PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
+                CHECKSUM_TYPE))
         {
             final HeapMemory heapMemory = storage.allocateHeapPage();
             final long endOffset = heapMemory.getCapacity() - Long.BYTES;
@@ -102,7 +111,14 @@ class FileStorageTest
         final long version = 2L;
         final int previousRootPageNumber = 1234;
 
-        try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES, CHECKSUM_TYPE))
+        try (FileStorage storage = createNew(
+                tempDirectory,
+                FileType.INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
+                BYTE_ORDER,
+                PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
+                CHECKSUM_TYPE))
         {
             final RootIndex rootIndex = new RootIndex(
                     storage,
@@ -110,7 +126,7 @@ class FileStorageTest
                     TimeUnits.millis(0),
                     StorageUnits.INVALID_OFFSET);
 
-            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true, ZERO_NODE_LOG_SIZE);
 
             final long pageNumber = leaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
             storage.flush(true);
@@ -144,7 +160,14 @@ class FileStorageTest
         final long version = 1L;
         final int previousRootPageNumber = 56789;
 
-        try (FileStorage storage = createNew(tempDirectory, FileType.INDEX, TestUtils.SEGMENT_FILE_SIZE, BYTE_ORDER, PAGE_SIZE_BYTES, CHECKSUM_TYPE))
+        try (FileStorage storage = createNew(
+                tempDirectory,
+                FileType.INDEX,
+                TestUtils.SEGMENT_FILE_SIZE,
+                BYTE_ORDER,
+                PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
+                CHECKSUM_TYPE))
         {
             final RootIndex rootIndex = new RootIndex(
                     storage,
@@ -152,7 +175,7 @@ class FileStorageTest
                     TimeUnits.millis(0),
                     StorageUnits.INVALID_OFFSET);
 
-            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
+            final NodesManager nodesManager = new NodesManager(storage, rootIndex, true, ZERO_NODE_LOG_SIZE);
 
             final long pageNumber = nonLeaf.commit(nodesManager, true, previousRootPageNumber, timestamp, version);
             storage.flush(true);
@@ -162,7 +185,7 @@ class FileStorageTest
 
             final HeapMemory heapMemory = storage.allocateHeapPage();
             MemoryCopy.copy(persistedMemory, heapMemory);
-            final BTreeNodeNonLeaf loadedNonLeaf = BTreeNodeNonLeaf.load(pageNumber, heapMemory);
+            final BTreeNodeNonLeaf loadedNonLeaf = BTreeNodeNonLeaf.load(pageNumber, heapMemory, ZERO_NODE_LOG_SIZE);
 
             assertTrue(loadedNonLeaf.isRoot());
             assertEquals(previousRootPageNumber, loadedNonLeaf.getPreviousRoot());
@@ -191,6 +214,7 @@ class FileStorageTest
     {
         final int segmentFileSize = 512;
         final int pageSizeBytes = 128;
+        final int pageLogSize = 38;
 
         final byte[] record = new byte[pageSizeBytes];
         Arrays.fill(record, (byte) 1);
@@ -198,7 +222,7 @@ class FileStorageTest
 
         assertEquals(0, Files.list(tempDirectory).count());
 
-        try(FileStorage fileStorage = createNew(tempDirectory, FileType.HEAP, segmentFileSize, BYTE_ORDER, pageSizeBytes, CHECKSUM_TYPE))
+        try(FileStorage fileStorage = createNew(tempDirectory, FileType.HEAP, segmentFileSize, BYTE_ORDER, pageSizeBytes, pageLogSize, CHECKSUM_TYPE))
         {
             final List<Path> storageFiles = Files.list(tempDirectory).collect(Collectors.toList());
             assertEquals(1, storageFiles.size());
@@ -221,6 +245,7 @@ class FileStorageTest
     {
         final int segmentFileSize = 512;
         final int pageSizeBytes = 128;
+        final int pageLogSize = 38;
 
         final byte[] record = new byte[pageSizeBytes];
         Arrays.fill(record, (byte) 1);
@@ -228,7 +253,7 @@ class FileStorageTest
 
         assertEquals(0, Files.list(tempDirectory).count());
 
-        try(FileStorage fileStorage = createNew(tempDirectory, FileType.INDEX, segmentFileSize, BYTE_ORDER, pageSizeBytes, CHECKSUM_TYPE))
+        try(FileStorage fileStorage = createNew(tempDirectory, FileType.INDEX, segmentFileSize, BYTE_ORDER, pageSizeBytes, pageLogSize, CHECKSUM_TYPE))
         {
             final List<Path> storageFiles = Files.list(tempDirectory).collect(Collectors.toList());
             assertEquals(1, storageFiles.size());

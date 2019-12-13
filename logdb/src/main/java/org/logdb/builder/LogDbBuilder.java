@@ -47,13 +47,13 @@ public class LogDbBuilder
     private @ByteSize long segmentFileSize;
     private ByteOrder byteOrder;
     private @ByteSize int pageSizeBytes;
+    private @ByteSize int pageLogSize;
     private TimeSource timeSource;
     private boolean useIndexWithLog;
     private boolean asyncIndexWrite;
     private int asyncQueueCapacity = 8192;
     private boolean shouldSyncWrite = false;
     private ChecksumType checksumType = ChecksumType.CRC32;
-    private int nodeLogPercentage = 30;
 
     public LogDbBuilder setRootDirectory(final Path rootDirectory)
     {
@@ -115,9 +115,9 @@ public class LogDbBuilder
         return this;
     }
 
-    public LogDbBuilder nodeLogPercentage(final int nodeLogPercentage)
+    public LogDbBuilder pageLogSize(final @ByteSize int pageLogSize)
     {
-        this.nodeLogPercentage = nodeLogPercentage;
+        this.pageLogSize = pageLogSize;
         return this;
     }
 
@@ -162,9 +162,23 @@ public class LogDbBuilder
     {
         Objects.requireNonNull(rootDirectory);
 
+        if (pageSizeBytes <= 128)
+        {
+            throw new RuntimeException("Page size too small (minimum 256 bytes), provided " + pageSizeBytes);
+        }
+
         if (segmentFileSize < 0 || segmentFileSize % pageSizeBytes != 0)
         {
-            throw new RuntimeException("invalid segment size, provided " + segmentFileSize);
+            throw new RuntimeException("Invalid segment size, provided " + segmentFileSize);
+        }
+
+        if (pageLogSize >= pageSizeBytes || pageLogSize < 0)
+        {
+            final String message = String.format(
+                    "Invalid page log size (it has to be less than the page size) provided max page log %s , provided node page size %s",
+                    pageLogSize,
+                    pageSizeBytes);
+            throw new RuntimeException(message);
         }
     }
 
@@ -203,7 +217,7 @@ public class LogDbBuilder
     {
         final FileStorage logDbIndexFileStorage = buildFileStorage(FileType.INDEX);
         final @Version long nextWriteVersion = getNextWriteVersion(logDbIndexFileStorage.getAppendVersion());
-        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex, shouldSyncWrite);
+        final NodesManager nodesManager = new NodesManager(logDbIndexFileStorage, rootIndex, shouldSyncWrite, pageLogSize);
 
         final @PageNumber long lastRootPageNumber = nodesManager.loadLastRootPageNumber();
         final RootReference rootReference;
@@ -223,7 +237,7 @@ public class LogDbBuilder
         final BTree index;
         if (useIndexWithLog)
         {
-            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference, nodeLogPercentage);
+            index = new BTreeWithLog(nodesManager, timeSource, nextWriteVersion, lastRootPageNumber, rootReference);
         }
         else
         {
@@ -262,6 +276,7 @@ public class LogDbBuilder
                     segmentFileSize,
                     byteOrder,
                     pageSizeBytes,
+                    pageLogSize,
                     checksumType);
         }
         else

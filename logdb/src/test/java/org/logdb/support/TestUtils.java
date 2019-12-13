@@ -22,7 +22,8 @@ public class TestUtils
     public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     public static final int PAGE_SIZE_BYTES = 512;
-    public static final int NODE_LOG_PERCENTAGE = 30;
+    public static final int NODE_LOG_SIZE = 154;
+    public static final @ByteSize int ZERO_NODE_LOG_SIZE = StorageUnits.ZERO_SIZE;
 
     public static final long SEGMENT_FILE_SIZE = PAGE_SIZE_BYTES * 200;
     public static final @ByteSize int MEMORY_CHUNK_SIZE = StorageUnits.size(PAGE_SIZE_BYTES * 200);
@@ -57,6 +58,7 @@ public class TestUtils
         final BTreeNodeNonLeaf nonLeaf = new BTreeNodeNonLeaf(
                 startId,
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
+                NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least

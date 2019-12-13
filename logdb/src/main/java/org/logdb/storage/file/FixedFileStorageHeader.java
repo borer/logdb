@@ -57,6 +57,12 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
+    public @ByteSize int getPageLogSize()
+    {
+        return delegate.getPageLogSize();
+    }
+
+    @Override
     public ByteOrder getOrder()
     {
         return delegate.getOrder();

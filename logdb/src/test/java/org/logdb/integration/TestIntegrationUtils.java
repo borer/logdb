@@ -28,7 +28,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
-import static org.logdb.support.TestUtils.NODE_LOG_PERCENTAGE;
+import static org.logdb.support.TestUtils.NODE_LOG_SIZE;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
 import static org.logdb.support.TestUtils.createInitialRootReference;
 
@@ -52,6 +52,7 @@ class TestIntegrationUtils
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
                 PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
                 CHECKSUM_TYPE);
 
         return new LogFile(storageLogFile, new StubTimeSource(), storageLogFile.getAppendVersion(), true, CHECKSUM_HELPER);
@@ -86,18 +87,19 @@ class TestIntegrationUtils
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
                 PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
                 CHECKSUM_TYPE);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
-        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true, NODE_LOG_SIZE);
 
         return new BTreeWithLog(
                 nodesManage,
                 timeSource,
                 INITIAL_VERSION,
                 StorageUnits.INVALID_PAGE_NUMBER,
-                createInitialRootReference(nodesManage),
-                NODE_LOG_PERCENTAGE);
+                createInitialRootReference(nodesManage)
+        );
     }
 
     static BTreeWithLog loadPersistedLogBtree(final Path path)
@@ -107,15 +109,15 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX, CHECKSUM_TYPE);
 
         final RootIndex rootIndex = openRootIndex(path);
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true, NODE_LOG_SIZE);
 
         return new BTreeWithLog(
                 nodesManager,
                 new StubTimeSource(),
                 INITIAL_VERSION,
                 nodesManager.loadLastRootPageNumber(),
-                null,
-                NODE_LOG_PERCENTAGE);
+                null
+        );
     }
 
     static BTreeImpl createNewPersistedBtree(final Path path, final TimeSource timeSource) throws IOException
@@ -144,10 +146,11 @@ class TestIntegrationUtils
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
                 PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
                 CHECKSUM_TYPE);
 
         final RootIndex rootIndex = createRootIndex(path, byteOrder);
-        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true);
+        final NodesManager nodesManage = new NodesManager(storage, rootIndex, true, NODE_LOG_SIZE);
 
         return new BTreeImpl(
                 nodesManage,
@@ -167,7 +170,7 @@ class TestIntegrationUtils
         final FileStorage storage = FileStorageFactory.openExisting(path, FileType.INDEX, CHECKSUM_TYPE);
 
         final RootIndex rootIndex = openRootIndex(path);
-        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true);
+        final NodesManager nodesManager = new NodesManager(storage, rootIndex, true, NODE_LOG_SIZE);
 
         return new BTreeImpl(
                 nodesManager,
@@ -185,6 +188,7 @@ class TestIntegrationUtils
                 TestUtils.SEGMENT_FILE_SIZE,
                 byteOrder,
                 PAGE_SIZE_BYTES,
+                NODE_LOG_SIZE,
                 CHECKSUM_TYPE);
 
         return new RootIndex(

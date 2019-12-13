@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.logdb.support.TestUtils.NODE_LOG_PERCENTAGE;
 
 class BTreeNodeNonLeafTest
 {
@@ -165,6 +164,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -237,6 +237,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -340,6 +341,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -437,6 +439,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -504,6 +507,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -591,6 +595,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf split = new BTreeNodeNonLeaf(
                 0L,
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 1, //there is always one child at least
@@ -678,6 +683,7 @@ class BTreeNodeNonLeafTest
         final BTreeNodeNonLeaf copy = new BTreeNodeNonLeaf(
                 bTreeNonLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(TestUtils.PAGE_SIZE_BYTES, TestUtils.BYTE_ORDER),
+                TestUtils.NODE_LOG_SIZE,
                 0,
                 0,
                 0, //there is always one child at least
@@ -702,18 +708,18 @@ class BTreeNodeNonLeafTest
     void shouldBeAbleToSpillKeyValuesFromNodeLog()
     {
         long maxLogKeyValuePairs = 0L;
-        while (bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE))
+        while (bTreeNonLeaf.logHasFreeSpace())
         {
             bTreeNonLeaf.insertLog(maxLogKeyValuePairs, maxLogKeyValuePairs);
             maxLogKeyValuePairs++;
         }
 
-        assertFalse(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
+        assertFalse(bTreeNonLeaf.logHasFreeSpace());
         assertEquals(maxLogKeyValuePairs, bTreeNonLeaf.getLogKeyValuesCount());
 
         final KeyValueLog keyValueLog = bTreeNonLeaf.spillLog();
 
-        assertTrue(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
+        assertTrue(bTreeNonLeaf.logHasFreeSpace());
         assertEquals(0, bTreeNonLeaf.getLogKeyValuesCount());
 
         for (int i = 0; i < maxLogKeyValuePairs; i++)
@@ -726,14 +732,13 @@ class BTreeNodeNonLeafTest
     @Test
     void shouldBeAbleToReservePercentageForLog()
     {
-        final long bytesForLog = FixedPointAritmetic.getPercentageOfQuantity(TestUtils.PAGE_SIZE_BYTES, NODE_LOG_PERCENTAGE);
-        final long pairsInLog = bytesForLog / (2 * Long.BYTES);
+        final long pairsInLog = TestUtils.NODE_LOG_SIZE / (2 * Long.BYTES);
         for (long i = 0; i < pairsInLog; i++)
         {
-            assertTrue(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
+            assertTrue(bTreeNonLeaf.logHasFreeSpace());
             bTreeNonLeaf.insertLog(i, i);
         }
 
-        assertFalse(bTreeNonLeaf.logHasFreeSpace(NODE_LOG_PERCENTAGE));
+        assertFalse(bTreeNonLeaf.logHasFreeSpace());
     }
 }

@@ -34,6 +34,7 @@ public class FileStorageFactory
             final @ByteSize long segmentFileSize,
             final ByteOrder byteOrder,
             final @ByteSize int pageSizeBytes,
+            final @ByteSize int pageLogSize,
             final ChecksumType checksumType) throws IOException
     {
         Objects.requireNonNull(rootDirectory, "Database root directory cannot be null");
@@ -65,10 +66,11 @@ public class FileStorageFactory
             final Checksum checksum = ChecksumFactory.checksumFromType(checksumType);
             final ChecksumHelper checksumHelper = new ChecksumHelper(checksum, checksumType);
 
-            FileHeader fileHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, segmentFileSize, checksumHelper);
+            FileHeader fileHeader = FileStorageHeader.newHeader(byteOrder, pageSizeBytes, pageLogSize, segmentFileSize, checksumHelper);
             FileHeader newFileHeader = FileStorageHeader.newHeader(
                     fileHeader.getOrder(),
                     fileHeader.getPageSize(),
+                    fileHeader.getPageLogSize(),
                     fileHeader.getSegmentFileSize(),
                     checksumHelper
             );
@@ -137,6 +139,7 @@ public class FileStorageFactory
                         FileStorageHeader.newHeader(
                                 rootIndexHeader.getOrder(),
                                 rootIndexHeader.getPageSize(),
+                                rootIndexHeader.getPageLogSize(),
                                 rootIndexHeader.getSegmentFileSize(),
                                 checksumHelper),
                         headerAccessFile,
@@ -148,6 +151,7 @@ public class FileStorageFactory
                 newFileHeader = FileStorageHeader.newHeader(
                         fileHeader.getOrder(),
                         fileHeader.getPageSize(),
+                        fileHeader.getPageLogSize(),
                         fileHeader.getSegmentFileSize(),
                         checksumHelper);
             }

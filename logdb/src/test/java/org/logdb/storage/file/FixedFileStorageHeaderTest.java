@@ -29,9 +29,11 @@ class FixedFileStorageHeaderTest
     void shouldPersistHeaderOnlyInSetFile() throws Exception
     {
         final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
+        final @ByteSize int pageLogSize = StorageUnits.size(1228);
         final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
+                pageLogSize,
                 pageSizeBytes << 5,
                 CHECKSUM_HELPER);
 
@@ -63,9 +65,12 @@ class FixedFileStorageHeaderTest
     void shouldPersistHeaderAndReadInSetFile() throws Exception
     {
         final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
+        final @ByteSize int pageLogSize = StorageUnits.size(1228);
+
         final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
+                pageLogSize,
                 pageSizeBytes << 5,
                 CHECKSUM_HELPER);
 

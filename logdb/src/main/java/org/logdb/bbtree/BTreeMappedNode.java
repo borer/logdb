@@ -3,6 +3,7 @@ package org.logdb.bbtree;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.Version;
@@ -22,9 +23,10 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
             final Consumer<BTreeMappedNode> closeHandler,
             final Storage storage,
             final DirectMemory memory,
-            final @PageNumber long pageNumber)
+            final @PageNumber long pageNumber,
+            final @ByteSize int maxLogSize)
     {
-        super(pageNumber, memory, 0, 0, 0);
+        super(pageNumber, memory, maxLogSize, 0, 0, 0);
         this.closeHandler = closeHandler;
         this.storage = storage;
         this.memory = memory;
