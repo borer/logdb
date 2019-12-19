@@ -1,13 +1,26 @@
-package org.logdb.checksum;
+package org.logdb.bit;
 
-class BinaryHelper
+public final class BinaryHelper
 {
-    static void longToBytes(final long value, final byte[] bytes)
+    private BinaryHelper()
+    {
+
+    }
+
+    public static byte[] longToBytes(final long value)
+    {
+        final byte[] bytes = new byte[Long.BYTES];
+        longToBytes(value, bytes, 0);
+
+        return bytes;
+    }
+
+    public static void longToBytes(final long value, final byte[] bytes)
     {
         longToBytes(value, bytes, 0);
     }
 
-    static void longToBytes(final long value, final byte[] bytes, final int offset)
+    public static void longToBytes(final long value, final byte[] bytes, final int offset)
     {
         bytes[offset] = (byte)value;
         bytes[offset + 1] = (byte)(value >> Byte.SIZE);
@@ -19,7 +32,7 @@ class BinaryHelper
         bytes[offset + 7] = (byte)(value >> 56);
     }
 
-    static long bytesToLong(final byte[] bytes)
+    public static long bytesToLong(final byte[] bytes)
     {
         return ((long) bytes[7] << 56) |
                 ((long) bytes[6] & 0xff) << 48 |
@@ -31,7 +44,7 @@ class BinaryHelper
                 ((long) bytes[0] & 0xff);
     }
 
-    static int bytesToInt(final byte[] bytes)
+    public static int bytesToInt(final byte[] bytes)
     {
         return ((int) bytes[3] & 0xff) << 24 |
                 ((int) bytes[2] & 0xff) << 16 |
@@ -39,7 +52,7 @@ class BinaryHelper
                 ((int) bytes[0] & 0xff);
     }
 
-    static void intToBytes(final int value, final byte[] bytes)
+    public static void intToBytes(final int value, final byte[] bytes)
     {
         bytes[0] = (byte)value;
         bytes[1] = (byte)(value >> Byte.SIZE);

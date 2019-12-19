@@ -1,133 +1,126 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.HeapMemory;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.Memory;
-import org.logdb.bit.MemoryCopy;
-import org.logdb.bit.MemoryFactory;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 
+import java.nio.charset.Charset;
+
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements BTreeLogNode
 {
-    private final KeyValueLog keyValueLog;
+    KeyValueLog keyValueLog;
     private @ByteSize int maxLogSize;
-
-    int numberOfLogKeyValues;
 
     BTreeLogNodeAbstract(
             final @PageNumber long pageNumber,
             final Memory memory,
             final @ByteSize int maxLogSize,
-            final int numberOfLogKeyValues,
-            final int numberOfKeys,
-            final int numberOfValues)
+            final int numberOfPairs)
     {
-        super(pageNumber, memory, numberOfKeys, numberOfValues);
-        this.numberOfLogKeyValues = numberOfLogKeyValues;
+        super(pageNumber, memory, numberOfPairs, StorageUnits.offset((short)(memory.getCapacity() - maxLogSize)));
         this.maxLogSize = maxLogSize;
-        this.keyValueLog = new KeyValueLog(memory);
+
+        if (maxLogSize > 0)
+        {
+            final @ByteOffset long logOffset = getLogStartOffset(memory, maxLogSize);
+            final Memory logMemory = memory.slice((int) logOffset);
+
+            this.keyValueLog = KeyValueLogImpl.create(logMemory);
+        }
+        else
+        {
+            this.keyValueLog = KeyValueLogEmpty.INSTANCE;
+        }
+    }
+
+    @ByteOffset
+    static long getLogStartOffset(Memory memory, @ByteSize int maxLogSize)
+    {
+        return StorageUnits.offset(memory.getCapacity() - maxLogSize);
+    }
+
+    void refreshKeyValueLog()
+    {
+        keyValueLog.cacheNumberOfLogPairs();
+    }
+
+    int getNumberOfLogPairs()
+    {
+       return keyValueLog.getNumberOfPairs();
     }
 
     @Override
     public void reset()
     {
         super.reset();
-        numberOfLogKeyValues = 0;
+        topKeyValueHeapOffset = StorageUnits.offset((short) (buffer.getCapacity() - maxLogSize));
+        keyValueLog.resetLog();
     }
 
     @Override
     public int getLogKeyValuesCount()
     {
-        return numberOfLogKeyValues;
+        return keyValueLog.getNumberOfPairs();
     }
 
     @Override
-    public boolean shouldSplit()
+    public boolean shouldSplit(final @ByteSize int requiredSpace)
     {
-        final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        return minimumFreeSpaceBeforeOperatingOnNode > freeSizeLeftBytes;
+        return requiredSpace > freeSizeLeftBytes;
     }
 
     @Override
-    long calculateFreeSpaceLeft(final long pageSize)
+    @ByteSize long calculateFreeSpaceLeft(final long pageSize)
     {
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int numberOfKeyValues = numberOfKeys + extraValues;
-        final int sizeForKeyValues = numberOfKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        final int usedBytes = BTreeNodePage.HEADER_SIZE_BYTES + sizeForKeyValues + maxLogSize;
-        return pageSize - usedBytes;
+        final @ByteSize long sizeWithoutLog = StorageUnits.size(pageSize - maxLogSize);
+        final @ByteSize int sizeForKeyValuesCells = StorageUnits.size(numberOfPairs * BTreeNodePage.CELL_SIZE);
+        final @ByteSize long usedHeapSize = StorageUnits.size(sizeWithoutLog - topKeyValueHeapOffset);
+        final long usedBytes = BTreeNodePage.HEADER_SIZE_BYTES + sizeForKeyValuesCells + usedHeapSize;
+        return StorageUnits.size(sizeWithoutLog - usedBytes);
     }
 
-    void splitLog(final long key, final BTreeLogNodeAbstract bNode)
+    void splitLog(final byte[] key, final BTreeLogNodeAbstract bNode)
     {
-        final int keyIndex = binarySearchInLog(key);
-        final int aLogKeyValues = keyIndex + 1;
-        final int bLogKeyValues = numberOfLogKeyValues - aLogKeyValues;
-        final @ByteOffset long sourceOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
-        final @ByteOffset long destinationOffset = bNode.keyValueLog.getLogKeyIndexOffset(bLogKeyValues);
-        final @ByteSize int length =
-                StorageUnits.size((bLogKeyValues + 1) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-
-        MemoryCopy.copy(buffer,
-                sourceOffset,
-                bNode.buffer,
-                destinationOffset,
-                length);
-
-        updateNumberOfLogKeyValues(aLogKeyValues);
-        bNode.updateNumberOfLogKeyValues(bLogKeyValues);
+        keyValueLog.splitLog(key, bNode.keyValueLog);
 
         recalculateFreeSpaceLeft();
         bNode.recalculateFreeSpaceLeft();
     }
 
-    boolean logHasFreeSpace()
+    boolean logHasFreeSpace(final @ByteSize int sizeToInsert)
     {
-        final @ByteSize int actualLogSize = getActualLogSize();
-        return actualLogSize < maxLogSize && (maxLogSize - actualLogSize) > (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+        final @ByteSize long actualLogSize = keyValueLog.getUsedSize();
+        return actualLogSize < maxLogSize && (maxLogSize - actualLogSize) > (sizeToInsert + KeyValueLogImpl.CELL_SIZE);
     }
 
-    @ByteSize private int getActualLogSize()
+    KeyValueLogImpl spillLog()
     {
-        return StorageUnits.size(numberOfLogKeyValues * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-    }
-
-    KeyValueLog spillLog()
-    {
-        final HeapMemory keyValueLogBuffer = MemoryFactory.allocateHeap(getActualLogSize(), buffer.getByteOrder());
-
-        final @ByteOffset long logStartOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
-        buffer.getBytes(
-                logStartOffset,
-                keyValueLogBuffer.getCapacity(),
-                keyValueLogBuffer.getArray());
-
-        final KeyValueLog keyValueLog = new KeyValueLog(keyValueLogBuffer);
-
-        assert keyValueLog.getNumberOfElements() % 2 == 0
-                : "log key/value array must even size. Current size " + keyValueLog.getNumberOfElements();
-
-        updateNumberOfLogKeyValues(0);
+        final KeyValueLogImpl spilledKeyValueLog = keyValueLog.spillLog();
         recalculateFreeSpaceLeft();
-
-        return keyValueLog;
+        return spilledKeyValueLog;
     }
 
     @Override
-    public boolean hasKeyLog(long key)
+    public boolean hasKeyLog(final long key)
     {
-        final int logIndex = binarySearchInLog(key);
+        final int logIndex = keyValueLog.binarySearchInLog(BinaryHelper.longToBytes(key));
         return logIndex >= 0;
     }
 
     @Override
     public long getLogValue(final long key)
     {
-        final int logIndex = binarySearchInLog(key);
+        return getLogValue(BinaryHelper.longToBytes(key));
+    }
+
+    public long getLogValue(final byte[] key)
+    {
+        final int logIndex = keyValueLog.binarySearchInLog(key);
         if (logIndex >= 0)
         {
             return getLogValueAtIndex(logIndex);
@@ -141,108 +134,60 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     @Override
     public long getLogValueAtIndex(final int index)
     {
-        return keyValueLog.getValue(index);
+        return BinaryHelper.bytesToLong(getLogValueAtIndexBytes(index));
+    }
+
+    public byte[] getLogValueAtIndexBytes(final int index)
+    {
+        return keyValueLog.getValueBytesAtIndex(index);
     }
 
     long getLogKey(final int index)
     {
-        return keyValueLog.getKey(index);
+        return BinaryHelper.bytesToLong(getLogKeyBytes(index));
+    }
+
+    byte[] getLogKeyBytes(final int index)
+    {
+        return keyValueLog.getKeyBytesAtIndex(index);
     }
 
     int binarySearchInLog(final long key)
     {
-        return SearchUtils.binarySearch(key, numberOfLogKeyValues, this::getLogKey);
+        return binarySearchInLog(BinaryHelper.longToBytes(key));
     }
 
-    private void updateNumberOfLogKeyValues(final int numberOfLogKeyValues)
+    int binarySearchInLog(final byte[] key)
     {
-        this.numberOfLogKeyValues = numberOfLogKeyValues;
-        buffer.putInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET, numberOfLogKeyValues);
+        return keyValueLog.binarySearchInLog(key);
     }
 
     void insertLog(final long key, final long value)
     {
-        final int index = binarySearchInLog(key);
+        insertLog(BinaryHelper.longToBytes(key), BinaryHelper.longToBytes(value));
+    }
 
-        if (index < 0)
-        {
-            final int absIndex = -index - 1;
-            insertLogKeyValue(absIndex, key, value);
-        }
-        else
-        {
-            setLogKeyValue(index, key, value);
-        }
+    void insertLog(final byte[] key, final byte[] value)
+    {
+        keyValueLog.insertLog(key, value);
+        recalculateFreeSpaceLeft();
 
         setDirty();
-    }
-
-    private void setLogKeyValue(final int index, final long key, final long value)
-    {
-        keyValueLog.putKeyValue(index, key, value);
-    }
-
-    private void insertLogKeyValue(final int index, final long key, final long value)
-    {
-        copyLogKeyValuesWithGap(index);
-        setLogKeyValue(index, key, value);
-
-        numberOfLogKeyValues++;
-        updateNumberOfLogKeyValues(numberOfLogKeyValues);
-
-        recalculateFreeSpaceLeft();
     }
 
     @Override
     public void removeLog(final long key)
     {
-        final int index = binarySearchInLog(key);
-        if (index >= 0)
+        removeLogBytes(BinaryHelper.longToBytes(key));
+    }
+
+    public void removeLogBytes(final byte[] key)
+    {
+        final boolean hasRemoved = keyValueLog.removeLogBytes(key);
+        if (hasRemoved)
         {
-            removeLogAtIndex(index);
+            recalculateFreeSpaceLeft();
             setDirty();
-        }
-    }
-
-    @Override
-    public void removeLogAtIndex(final int index)
-    {
-        copyLogKeyValuesExcept(index);
-
-        numberOfLogKeyValues--;
-        updateNumberOfLogKeyValues(numberOfLogKeyValues);
-
-        recalculateFreeSpaceLeft();
-    }
-
-    /**
-     * Copy the elements of an array, with a gap.
-     *
-     * @param gapIndex the index of the gap
-     */
-    private void copyLogKeyValuesWithGap(final int gapIndex)
-    {
-        if (gapIndex < numberOfLogKeyValues)
-        {
-            final int elementsToMove = numberOfLogKeyValues - gapIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
-            final @ByteOffset long newLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
-            final @ByteSize int size =
-                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
-        }
-    }
-
-    private void copyLogKeyValuesExcept(final int removeIndex)
-    {
-        if (numberOfLogKeyValues > 0 && removeIndex < (numberOfLogKeyValues - 1))
-        {
-            final int elementsToMove = numberOfLogKeyValues - removeIndex;
-            final @ByteOffset long oldLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues);
-            final @ByteOffset long newLogKeyValueIndexOffset = keyValueLog.getLogKeyIndexOffset(numberOfLogKeyValues - 1);
-            final @ByteSize int size =
-                    StorageUnits.size(elementsToMove * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, size);
         }
     }
 
@@ -251,15 +196,17 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     {
         final StringBuilder contentBuilder = new StringBuilder(super.toString());
 
-        if (numberOfLogKeyValues > 0)
+        final int numberOfLogPairs = keyValueLog.getNumberOfPairs();
+        if (numberOfLogPairs > 0)
         {
+            Charset utf8 = Charset.forName("UTF-8");
             contentBuilder.append(" log KV : ");
-            for (int i = 0; i < numberOfLogKeyValues; i++)
+            for (int i = 0; i < numberOfLogPairs; i++)
             {
-                contentBuilder.append(getLogKey(i));
+                contentBuilder.append(new String(getLogKeyBytes(i), utf8));
                 contentBuilder.append("-");
-                contentBuilder.append(getLogValueAtIndex(i));
-                if (i + 1 != numberOfLogKeyValues)
+                contentBuilder.append(new String(getLogValueAtIndexBytes(i), utf8));
+                if (i + 1 != numberOfLogPairs)
                 {
                     contentBuilder.append(",");
                 }
@@ -267,5 +214,23 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         }
 
         return contentBuilder.toString();
+    }
+
+    @Override
+    String printDebug()
+    {
+        final StringBuilder contentBuilder = new StringBuilder(super.printDebug());
+        if (keyValueLog instanceof KeyValueLogImpl)
+        {
+            final String logDebug = ((KeyValueLogImpl) keyValueLog).printDebug();
+            return contentBuilder
+                    .append(System.lineSeparator())
+                    .append(logDebug)
+                    .toString();
+        }
+        else
+        {
+            return contentBuilder.append("Empty Log").toString();
+        }
     }
 }

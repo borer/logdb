@@ -143,4 +143,41 @@ class MemoryCopyTest
         assertEquals(expectedFirstValue, destinationMemory.getLong(0));
         assertEquals(expectedSecondValue, destinationMemory.getLong(secondValueOffset));
     }
+
+    @Test
+    void shouldCopyMemoryByteBufferWithOffset()
+    {
+        final long expectedValue = 123456789L;
+        final int capacity = 1024;
+        final int sliceOffset = 512;
+        final int copyDestinationOffset = 100;
+        final HeapMemory memorySource = MemoryFactory.allocateHeap(capacity, ByteOrder.LITTLE_ENDIAN);
+        final Memory newSourceMemory = memorySource.slice(sliceOffset);
+
+        newSourceMemory.putLong(expectedValue);
+        MemoryCopy.copy(newSourceMemory, 0, newSourceMemory, copyDestinationOffset, Long.BYTES);
+
+        assertEquals(expectedValue, newSourceMemory.getLong(copyDestinationOffset));
+        assertEquals(expectedValue, memorySource.getLong(sliceOffset + copyDestinationOffset));
+    }
+
+    @Test
+    void shouldCopyMemoryFromByteBufferWithOffsetToOneWithout()
+    {
+        final long expectedValue = 123456789L;
+        final int capacity = 1024;
+        final int sliceOffset = 512;
+        final HeapMemory memorySource = MemoryFactory.allocateHeap(capacity, ByteOrder.LITTLE_ENDIAN);
+        final Memory newSourceMemory = memorySource.slice(sliceOffset);
+        final HeapMemory memoryDestination = MemoryFactory.allocateHeap(capacity, ByteOrder.LITTLE_ENDIAN);
+
+        newSourceMemory.putLong(expectedValue);
+        memoryDestination.putLong(expectedValue * 2);
+
+        MemoryCopy.copy(newSourceMemory, memoryDestination);
+
+        assertEquals(expectedValue, memoryDestination.getLong(0));
+        assertEquals(expectedValue, newSourceMemory.getLong(0));
+        assertEquals(expectedValue, memorySource.getLong(sliceOffset));
+    }
 }

@@ -78,7 +78,7 @@ public class BTreePrinter
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        for (int i = 0; i < node.numberOfKeys; i++)
+        for (int i = 0; i < node.numberOfPairs; i++)
         {
             final long key = node.getKey(i);
             final long value = node.getValue(i);
@@ -91,17 +91,18 @@ public class BTreePrinter
     private static void printNonLeaf(final StringBuilder printer, final BTreeLogNodeAbstract node, final NodesManager nodesManager)
     {
         final String id = String.valueOf(node.getPageNumber());
-        final String lastChildId = getPageUniqueId(node.numberOfKeys, node);
+        final int rightmostIndex = node.numberOfPairs - 1;
+        final String lastChildId = getPageUniqueId(rightmostIndex, node);
 
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        if (node.numberOfLogKeyValues > 0)
+        if (node.getNumberOfLogPairs() > 0)
         {
             printer.append("{ log | {");
-            for (int i = 0; i < node.numberOfLogKeyValues; i++)
+            for (int i = 0; i < node.getNumberOfLogPairs(); i++)
             {
-                if (i + 1 < node.numberOfLogKeyValues)
+                if (i + 1 < node.getNumberOfLogPairs())
                 {
                     printer.append(String.format(" %s-%s | ", node.getLogKey(i), node.getLogValueAtIndex(i)));
                 }
@@ -113,7 +114,7 @@ public class BTreePrinter
             printer.append("}}|");
         }
 
-        for (int i = 0; i < node.numberOfKeys; i++)
+        for (int i = 0; i < rightmostIndex; i++)
         {
             final long key = node.getKey(i);
             final String childId = getPageUniqueId(i, node);
@@ -122,7 +123,7 @@ public class BTreePrinter
         printer.append(" <lastChild> |Ls ");
         printer.append("\"];\n");
 
-        for (int i = 0; i < node.numberOfKeys; i++)
+        for (int i = 0; i < rightmostIndex; i++)
         {
             final String childId = getPageUniqueId(i, node);
             printer.append(String.format("\"%s\":%s -> \"%s\"", id, childId, childId));
@@ -134,7 +135,7 @@ public class BTreePrinter
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            for (int i = 0; i < node.numberOfValues; i++)
+            for (int i = 0; i < node.numberOfPairs; i++)
             {
                 final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);
                 print(printer, child, nodesManager);

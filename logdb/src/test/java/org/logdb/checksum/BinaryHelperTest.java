@@ -1,6 +1,7 @@
 package org.logdb.checksum;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.bit.BinaryHelper;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;

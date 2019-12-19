@@ -59,9 +59,25 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
+    public Memory slice(final @ByteOffset int startOffset)
+    {
+        buffer.mark();
+        buffer.position(startOffset);
+
+        final ByteBuffer sliceBuffer = buffer.slice();
+        sliceBuffer.order(buffer.order());
+
+        buffer.reset();
+
+        return new MemoryByteBufferImpl(sliceBuffer);
+    }
+
+    @Override
     public void reset()
     {
-        Arrays.fill(buffer.array(), (byte)0);
+        final int fromIndex = buffer.arrayOffset();
+        final int toIndex = fromIndex + buffer.capacity() - 1;
+        Arrays.fill(buffer.array(), fromIndex, toIndex, (byte)0);
     }
 
     @Override
@@ -113,6 +129,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     }
 
     @Override
+    public short getShort(@ByteOffset long offset)
+    {
+        return buffer.getShort((int)offset);
+    }
+
+    @Override
     public void getBytes(final byte[] destinationArray)
     {
         buffer.get(destinationArray);
@@ -121,7 +143,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     @Override
     public void getBytes(final @ByteSize long length, final byte[] destinationArray)
     {
-        buffer.get(destinationArray, ZERO_OFFSET, (int)length);
+        getBytes(ZERO_OFFSET, (int)length, destinationArray);
     }
 
     @Override
@@ -130,7 +152,7 @@ public class MemoryByteBufferImpl implements HeapMemory
             final @ByteSize long length,
             final byte[] destinationArray)
     {
-        System.arraycopy(buffer.array(), (int)offset, destinationArray, ZERO_OFFSET, (int)length);
+        System.arraycopy(buffer.array(), buffer.arrayOffset() + (int)offset, destinationArray, ZERO_OFFSET, (int)length);
     }
 
     @Override
@@ -142,7 +164,7 @@ public class MemoryByteBufferImpl implements HeapMemory
     {
         System.arraycopy(
                 buffer.array(),
-                (int)offset,
+                buffer.arrayOffset() + (int)offset,
                 destinationArray,
                 (int)destinationArrayOffset,
                 (int)length);
@@ -157,7 +179,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     @Override
     public void putBytes(@ByteOffset long destinationOffset, final byte[] sourceArray)
     {
-        System.arraycopy(sourceArray, ZERO_OFFSET, buffer.array(), (int)destinationOffset, sourceArray.length);
+        System.arraycopy(
+                sourceArray,
+                ZERO_OFFSET,
+                buffer.array(),
+                buffer.arrayOffset() + (int)destinationOffset,
+                sourceArray.length);
     }
 
     @Override
@@ -170,6 +197,12 @@ public class MemoryByteBufferImpl implements HeapMemory
     public void putByte(final @ByteOffset long offset, final byte b)
     {
         buffer.put((int)offset, b);
+    }
+
+    @Override
+    public void putShort(final @ByteOffset long offset, final short value)
+    {
+        buffer.putShort((int)offset, value);
     }
 
     @Override

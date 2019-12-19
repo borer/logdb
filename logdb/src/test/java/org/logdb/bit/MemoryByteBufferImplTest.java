@@ -56,4 +56,28 @@ class MemoryByteBufferImplTest
 
         assertEquals(expectedMsg, new String(actual));
     }
+
+    @Test
+    void shouldPutAndGetBytesIntoHeapAllocatedMemoryWithOffset()
+    {
+        final String expectedMsg = "this is a test";
+        final byte[] expected =  expectedMsg.getBytes();
+        final byte[] actual = new byte[expected.length];
+        final int offset = 100;
+        final ByteBuffer buffer = ByteBuffer.allocate(expected.length + offset);
+        buffer.position(offset);
+        final ByteBuffer sliceBuffer = buffer.slice();
+        final Memory memory = new MemoryByteBufferImpl(sliceBuffer);
+
+        memory.putBytes(expected);
+        memory.resetPosition();
+        memory.getBytes(actual);
+
+        for (int i = 0; i < expected.length; i++)
+        {
+            assertEquals(expected[i], actual[i]);
+        }
+
+        assertEquals(expectedMsg, new String(actual));
+    }
 }

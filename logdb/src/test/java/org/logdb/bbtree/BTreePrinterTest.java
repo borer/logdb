@@ -12,14 +12,14 @@ import java.nio.ByteOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
-import static org.logdb.support.TestUtils.createLeafNodeWithKeys;
+import static org.logdb.support.TestUtils.createLeafNodeWithLongKeys;
 
 class BTreePrinterTest
 {
     @Test
     void shouldPrintLeafNode()
     {
-        final BTreeNodeLeaf bTreeLeaf = createLeafNodeWithKeys(0, 0, new IdSupplier(0));
+        final BTreeNodeLeaf bTreeLeaf = createLeafNodeWithLongKeys(0, 0, new IdSupplier(0));
 
         for (int i = 0; i < 10; i++)
         {
@@ -39,13 +39,13 @@ class BTreePrinterTest
     {
         final IdSupplier idSupplier = new IdSupplier(0);
         final int numKeysPerChild = 5;
-        final BTreeNodeHeap lastChild = createLeafNodeWithKeys(numKeysPerChild, numKeysPerChild * 10, idSupplier);
-        final BTreeNodeNonLeaf bTreeNonLeaf = TestUtils.createNonLeafNodeWithChild(lastChild, 999);
+        final BTreeNodeHeap lastChild = createLeafNodeWithLongKeys(numKeysPerChild, numKeysPerChild * 10, idSupplier);
+        final BTreeNodeNonLeaf bTreeNonLeaf = TestUtils.createNonLeafNodeWithChild(lastChild, 999, TestUtils.PAGE_SIZE_BYTES, TestUtils.NODE_LOG_SIZE);
 
         for (int i = 0; i < 10; i++)
         {
             final int keyStart = numKeysPerChild * i;
-            final BTreeNodeHeap child = createLeafNodeWithKeys(numKeysPerChild, keyStart, idSupplier);
+            final BTreeNodeHeap child = createLeafNodeWithLongKeys(numKeysPerChild, keyStart, idSupplier);
 
             bTreeNonLeaf.insertChild(i, keyStart, child);
         }

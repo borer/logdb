@@ -15,6 +15,4 @@ public interface BTreeLogNode extends BTreeNode
      * @param key the key that identifies the key/value pair to remove from the node log
      */
     void removeLog(long key);
-
-    void removeLogAtIndex(int index);
 }

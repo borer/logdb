@@ -176,6 +176,14 @@ public class MemoryStorage implements Storage
         memory.setBaseAddress(baseOffset);
     }
 
+    @Override
+    public void mapPage(final @PageNumber long pageNumber, final @ByteOffset short offset, final DirectMemory memory)
+    {
+        final @ByteOffset long pageOffset = getOffset(pageNumber);
+        final @ByteOffset long baseOffset = getBaseOffset(pageOffset);
+        memory.setBaseAddress(baseOffset + offset);
+    }
+
     private @ByteOffset long getBaseOffset(final @ByteOffset long pageOffset)
     {
         assert pageOffset >= 0 : "Offset can only be positive. Provided " + pageOffset;

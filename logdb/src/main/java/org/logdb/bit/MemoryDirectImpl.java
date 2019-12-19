@@ -12,6 +12,7 @@ import static org.logdb.storage.StorageUnits.INT_BYTES_OFFSET;
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_OFFSET;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.SHORT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class MemoryDirectImpl implements DirectMemory
@@ -22,17 +23,24 @@ public class MemoryDirectImpl implements DirectMemory
 
     private @ByteOffset long baseAddress;
     private @ByteOffset long position;
+    private boolean isInitialized;
 
     MemoryDirectImpl(final @ByteSize long capacity)
     {
-        this(UNINITIALIZED_ADDRESS, capacity);
+        this(UNINITIALIZED_ADDRESS, capacity, false);
     }
 
     MemoryDirectImpl(final @ByteOffset long baseAddress, final @ByteSize long capacity)
     {
+        this(baseAddress, capacity, true);
+    }
+
+    private MemoryDirectImpl(final @ByteOffset long baseAddress, final @ByteSize long capacity, final boolean isInitialized)
+    {
         this.baseAddress = baseAddress;
         this.capacity = capacity;
         this.position = ZERO_OFFSET;
+        this.isInitialized = isInitialized;
     }
 
     @Override
@@ -50,13 +58,14 @@ public class MemoryDirectImpl implements DirectMemory
     @Override
     public void setBaseAddress(final @ByteOffset long baseAddress)
     {
+        this.isInitialized = baseAddress != UNINITIALIZED_ADDRESS;
         this.baseAddress = baseAddress;
     }
 
     @Override
-    public boolean isUninitialized()
+    public boolean isInitialized()
     {
-        return baseAddress == UNINITIALIZED_ADDRESS;
+        return isInitialized;
     }
 
     @Override
@@ -69,6 +78,14 @@ public class MemoryDirectImpl implements DirectMemory
     public @ByteSize long getCapacity()
     {
         return capacity;
+    }
+
+    @Override
+    public Memory slice(final @ByteOffset int startOffset)
+    {
+        final @ByteSize long newCapacity = StorageUnits.size(capacity - startOffset);
+
+        return new MemoryDirectImpl(baseAddress + startOffset, newCapacity, isInitialized);
     }
 
     @Override
@@ -131,6 +148,14 @@ public class MemoryDirectImpl implements DirectMemory
         assertBounds(offset, INT_BYTES_SIZE);
 
         return NativeMemoryAccess.getInt(baseAddress + offset);
+    }
+
+    @Override
+    public short getShort(final @ByteOffset long offset)
+    {
+        assertBounds(offset, SHORT_BYTES_SIZE);
+
+        return NativeMemoryAccess.getShort(baseAddress + offset);
     }
 
     @Override
@@ -219,6 +244,14 @@ public class MemoryDirectImpl implements DirectMemory
         assertBounds(baseAddress + offset, BYTE_SIZE);
 
         return NativeMemoryAccess.getByte(baseAddress + offset);
+    }
+
+    @Override
+    public void putShort(final @ByteOffset long offset, final short value)
+    {
+        assertBounds(offset, SHORT_BYTES_SIZE);
+
+        NativeMemoryAccess.putShort(baseAddress + offset, value);
     }
 
     @Override

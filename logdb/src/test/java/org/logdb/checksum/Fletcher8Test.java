@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.logdb.checksum.BinaryHelper.bytesToLong;
+import static org.logdb.bit.BinaryHelper.bytesToLong;
 
 class Fletcher8Test
 {

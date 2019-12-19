@@ -2,10 +2,13 @@ package org.logdb.bbtree;
 
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
+import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
+import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
+import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 
@@ -17,7 +20,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
 {
     private final Consumer<BTreeMappedNode> closeHandler;
     private final Storage storage;
-    private final DirectMemory memory;
+    private final @ByteSize int maxLogSize;
 
     public BTreeMappedNode(
             final Consumer<BTreeMappedNode> closeHandler,
@@ -26,10 +29,10 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
             final @PageNumber long pageNumber,
             final @ByteSize int maxLogSize)
     {
-        super(pageNumber, memory, maxLogSize, 0, 0, 0);
+        super(pageNumber, memory, maxLogSize, 0);
         this.closeHandler = closeHandler;
         this.storage = storage;
-        this.memory = memory;
+        this.maxLogSize = maxLogSize;
     }
 
     /**
@@ -38,26 +41,25 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
      */
     public void initNode(final @PageNumber long pageNumber)
     {
+        assert buffer instanceof DirectMemory;
+
         this.pageNumber = pageNumber;
-        storage.mapPage(pageNumber, memory);
+        storage.mapPage(pageNumber, (DirectMemory) buffer);
+
+        final Memory memory = keyValueLog.getMemory();
+        if (memory instanceof DirectMemory)
+        {
+            final @ByteOffset short logStartOffset = StorageUnits.offset((short)getLogStartOffset(buffer, maxLogSize));
+            storage.mapPage(pageNumber, logStartOffset, (DirectMemory) memory);
+        }
+
         initNodeFromBuffer();
     }
 
     private void initNodeFromBuffer()
     {
-        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
-        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
-
-        if (getNodeType() == BtreeNodeType.NonLeaf)
-        {
-            numberOfLogKeyValues = buffer.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
-        }
-        else
-        {
-            numberOfLogKeyValues = 0;
-        }
-
-        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
+        reloadCacheValuesFromBuffer();
+        refreshKeyValueLog();
     }
 
     @Override
@@ -68,6 +70,12 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
 
     @Override
     public void insert(final long key, final long value)
+    {
+        throw new UnsupportedOperationException("Mapped node doesn't support insertion");
+    }
+
+    @Override
+    public void insert(byte[] key, byte[] value)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support insertion");
     }
@@ -96,8 +104,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     public int getKeyIndex(final long key)
     {
         final boolean isNonLeaf = getNodeType() == BtreeNodeType.NonLeaf;
-        final int nonLeafAddition = isNonLeaf ? 1 : 0;
-        int index = binarySearch(key) + nonLeafAddition;
+        int index = isNonLeaf ? binarySearchNonLeaf(key) + 1 : binarySearch(key);
         if (index < 0 && isNonLeaf)
         {
             index = -index;
@@ -115,13 +122,14 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     @Override
     public void copy(final BTreeNodeHeap destinationNode)
     {
+        //TODO: make the representation of BTreeNodeHeap children be a bit more memory friendly
         final HeapMemory destinationNodeBuffer = destinationNode.getBuffer();
         MemoryCopy.copy(this.buffer, destinationNodeBuffer, destinationNodeBuffer.getCapacity());
         destinationNode.initNodeFromBuffer();
 
         if (destinationNode.getNodeType() == BtreeNodeType.NonLeaf && (destinationNode instanceof BTreeNodeNonLeaf))
         {
-            ((BTreeNodeNonLeaf) destinationNode).setChildren(new BTreeNodeHeap[numberOfValues]);
+            ((BTreeNodeNonLeaf) destinationNode).setChildren(new BTreeNodeHeap[numberOfPairs]);
         }
     }
 
@@ -151,12 +159,6 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     public void setChild(final int index, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support setting children");
-    }
-
-    @Override
-    public int getNumberOfChildren()
-    {
-        return numberOfValues;
     }
 
     @Override

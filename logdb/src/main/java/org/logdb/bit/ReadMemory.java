@@ -13,6 +13,8 @@ public interface ReadMemory
 
     int getInt(@ByteOffset long offset);
 
+    short getShort(@ByteOffset long offset);
+
     void getBytes(byte[] destinationArray);
 
     void getBytes(@ByteSize long length, byte[] destinationArray);

@@ -1,5 +1,7 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.BinaryHelper;
+import org.logdb.bit.ByteArrayComparator;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.Memory;
 import org.logdb.bit.MemoryCopy;
@@ -11,17 +13,26 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeUnits;
 
+import java.nio.charset.Charset;
 import java.util.Objects;
+
+import static org.logdb.bbtree.BTreeNodePage.CELL_KEY_LENGTH_SIZE;
+import static org.logdb.bbtree.BTreeNodePage.CELL_PAGE_OFFSET_SIZE;
+import static org.logdb.bbtree.BTreeNodePage.CELL_SIZE;
+import static org.logdb.bbtree.BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET;
+import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
+import static org.logdb.storage.StorageUnits.ZERO_SIZE;
+import static org.logdb.storage.StorageUnits.ZERO_SIZE_SHORT;
 
 abstract class BTreeNodeAbstract implements BTreeNode
 {
-    long freeSizeLeftBytes;
+    @ByteOffset short topKeyValueHeapOffset;
 
+    @ByteSize long freeSizeLeftBytes;
     @PageNumber long pageNumber;
-    int numberOfKeys;
-    int numberOfValues;
+    int numberOfPairs;
     boolean isDirty;
-
     final Memory buffer;
 
     /**
@@ -29,18 +40,17 @@ abstract class BTreeNodeAbstract implements BTreeNode
      *
      * @param pageNumber     the page number of this node or an id generated for not yet persisted nodes
      * @param buffer         the buffer used as a content for this node
-     * @param numberOfKeys   number of keys in this node
-     * @param numberOfValues number of values in this node
+     * @param numberOfPairs   number of pairs in this node
      */
     BTreeNodeAbstract(final @PageNumber long pageNumber,
                       final Memory buffer,
-                      final int numberOfKeys,
-                      final int numberOfValues)
+                      final int numberOfPairs,
+                      final @ByteOffset short topKeyValueHeapOffset)
     {
         this.pageNumber = pageNumber;
         this.buffer = Objects.requireNonNull(buffer, "buffer must not be null");
-        this.numberOfKeys = numberOfKeys;
-        this.numberOfValues = numberOfValues;
+        this.numberOfPairs = numberOfPairs;
+        this.topKeyValueHeapOffset = topKeyValueHeapOffset;
         this.freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
         this.isDirty = true;
     }
@@ -65,6 +75,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         setNodePageType(getNodeType());
         setRootFlag(false);
+        setTopKeyValueHeapOffset();
         isDirty = false;
     }
 
@@ -78,18 +89,40 @@ abstract class BTreeNodeAbstract implements BTreeNode
         setPreviousRoot(previousRootPageNumber);
         setTimestamp(timestamp);
         setVersion(version);
+        setTopKeyValueHeapOffset();
         isDirty = false;
     }
 
+    private void popBytesFromKeyValueHeap(final @ByteSize int length)
+    {
+        topKeyValueHeapOffset += StorageUnits.offset(length);
+        buffer.putShort(TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
+    }
+
+    private void pushBytesToKeyValueHeap(final @ByteSize int length)
+    {
+        topKeyValueHeapOffset -= StorageUnits.offset(length);
+        buffer.putShort(TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
+    }
+
+    //TODO: add a test that by reflections makes sure that all the properties are reset
     @Override
     public void reset()
     {
-        freeSizeLeftBytes = 0;
+        freeSizeLeftBytes = StorageUnits.ZERO_SIZE;
         pageNumber = StorageUnits.INVALID_PAGE_NUMBER;
-        numberOfKeys = 0;
-        numberOfValues = getNodeType() == BtreeNodeType.NonLeaf ? 1 : 0;
+        numberOfPairs = getNodeType() == BtreeNodeType.NonLeaf ? 1 : 0;
         isDirty = false;
+        topKeyValueHeapOffset = StorageUnits.offset((short) buffer.getCapacity());
         buffer.reset();
+    }
+
+    void reloadCacheValuesFromBuffer()
+    {
+        numberOfPairs = buffer.getInt(BTreeNodePage.NUMBER_OF_PAIRS_OFFSET);
+        topKeyValueHeapOffset = StorageUnits.offset(buffer.getShort(BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET));
+
+        recalculateFreeSpaceLeft();
     }
 
     private void setNodePageType(final BtreeNodeType type)
@@ -100,6 +133,11 @@ abstract class BTreeNodeAbstract implements BTreeNode
     private void setRootFlag(final boolean isRoot)
     {
         buffer.putByte(BTreeNodePage.PAGE_IS_ROOT_OFFSET, (byte) (isRoot ? 1 : 0));
+    }
+
+    private void setTopKeyValueHeapOffset()
+    {
+        buffer.putShort(BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
     }
 
     public boolean isRoot()
@@ -146,82 +184,26 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public int getKeyCount()
+    public int getPairCount()
     {
-        return numberOfKeys;
+        return numberOfPairs;
     }
 
     @Override
     public long getKey(final int index)
     {
-        return buffer.getLong(getKeyIndexOffset(index));
+        return BinaryHelper.bytesToLong(getKeyBytes(index));
     }
 
-    @Override
-    public long getMinKey()
+    public byte[] getKeyBytes(final int index)
     {
-        return buffer.getLong(getKeyIndexOffset(0));
-    }
+        final @ByteOffset short keyOffset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(index)));
+        final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(index)));
+        final byte[] keyBytes = new byte[keyLength];
 
-    @Override
-    public long getMaxKey()
-    {
-        return buffer.getLong(getKeyIndexOffset(numberOfKeys - 1));
-    }
+        buffer.getBytes(keyOffset, keyLength, keyBytes);
 
-    private static @ByteOffset long getKeyIndexOffset(final int index)
-    {
-        return StorageUnits.offset(BTreeNodePage.KEY_START_OFFSET + (index * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE)));
-    }
-
-    private static @ByteOffset long getValueIndexOffsetNew(final int index)
-    {
-        return StorageUnits.offset(getKeyIndexOffset(index) + BTreeNodePage.KEY_SIZE);
-    }
-
-    void insertKeyAndValue(final int index, final long key, final long value)
-    {
-        final int keyCount = getKeyCount();
-        assert index <= keyCount
-                : String.format("index to insert %d > node key cound %d ", index, keyCount);
-
-        copyKeyValuesWithGap(index);
-
-        buffer.putLong(getKeyIndexOffset(index), key);
-        buffer.putLong(getValueIndexOffsetNew(index), value);
-
-        numberOfKeys++;
-        updateNumberOfKeys(numberOfKeys);
-        numberOfValues++;
-        updateNumberOfValues(numberOfValues);
-
-        recalculateFreeSpaceLeft();
-    }
-
-    void removeKeyAndValue(final int index, final int keyCount)
-    {
-        assert (keyCount - 1) >= 0
-                : String.format("key size after removing index %d was %d", index, keyCount - 1);
-        copyKeyValuesExcept(index);
-
-        numberOfKeys--;
-        updateNumberOfKeys(numberOfKeys);
-        numberOfValues--;
-        updateNumberOfValues(numberOfValues);
-
-        recalculateFreeSpaceLeft();
-    }
-
-    void updateNumberOfKeys(final int numberOfKeys)
-    {
-        this.numberOfKeys = numberOfKeys;
-        buffer.putInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET, numberOfKeys);
-    }
-
-    void updateNumberOfValues(final int numberOfValues)
-    {
-        this.numberOfValues = numberOfValues;
-        buffer.putInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET, numberOfValues);
+        return keyBytes;
     }
 
     /**
@@ -232,37 +214,239 @@ abstract class BTreeNodeAbstract implements BTreeNode
      */
     public long getValue(final int index)
     {
-        return buffer.getLong(getValueIndexOffsetNew(index));
+        return BinaryHelper.bytesToLong(getValueBytes(index));
     }
 
-    long setValue(final int index, final long value)
+    public byte[] getValueBytes(final int index)
     {
-        final @ByteOffset long valueIndexOffset = getValueIndexOffsetNew(index);
-        final long oldValue = buffer.getLong(valueIndexOffset);
-        buffer.putLong(valueIndexOffset, value);
+        final short keyOffset = buffer.getShort(getCellIndexOffset(index));
+        final short keyLength = buffer.getShort(getCellIndexKeyLength(index));
+        final @ByteSize short valueLength = StorageUnits.size(buffer.getShort(getCellIndexValueLength(index)));
+        final @ByteOffset int valueOffset = StorageUnits.offset(keyOffset + keyLength);
 
-        return oldValue;
+        final byte[] valueBytes = new byte[valueLength];
+
+        buffer.getBytes(valueOffset, valueLength, valueBytes);
+
+        return valueBytes;
+    }
+
+    @Override
+    public long getMinKey()
+    {
+        return getKey(0);
+    }
+
+    @Override
+    public long getMaxKey()
+    {
+        return getKey(numberOfPairs - 1);
+    }
+
+    private static @ByteOffset long getCellIndexKeyLength(final int index)
+    {
+        return StorageUnits.offset(getCellIndexOffset(index) + CELL_PAGE_OFFSET_SIZE);
+    }
+
+    private static @ByteOffset long getCellIndexValueLength(final int index)
+    {
+        return StorageUnits.offset(getCellIndexOffset(index) + CELL_PAGE_OFFSET_SIZE + CELL_KEY_LENGTH_SIZE);
+    }
+
+    private static @ByteOffset long getCellIndexOffset(final int index)
+    {
+        return StorageUnits.offset(StorageUnits.offset(BTreeNodePage.CELL_START_OFFSET + (index * CELL_SIZE)));
+    }
+
+    void insertKeyAndValue(final int index, final byte[] key, final byte[] value)
+    {
+        final int keyCount = getPairCount();
+        assert index <= keyCount
+                : String.format("index to insert %d > node key cound %d ", index, keyCount);
+
+        copyKeyValueCellsWithGap(index);
+
+        final @ByteOffset short pageRelativeOffset = appendKeyAndValue(key, value);
+
+        buffer.putShort(getCellIndexOffset(index), pageRelativeOffset);
+        buffer.putShort(getCellIndexKeyLength(index), (short)key.length);
+        buffer.putShort(getCellIndexValueLength(index), (short)value.length);
+
+        numberOfPairs++;
+        updateNumberOfPairs(numberOfPairs);
+
+        recalculateFreeSpaceLeft();
+    }
+
+    private @ByteOffset short appendKeyAndValue(final byte[] key, final byte[] value)
+    {
+        assert key.length <= Short.MAX_VALUE : "Key size must be below " + Short.MAX_VALUE + ", provided " + key.length;
+        assert value.length <= Short.MAX_VALUE : "Value size must be below " + Short.MAX_VALUE + ", provided " + value.length;
+
+        final @ByteSize int keyValueTotalSize = StorageUnits.size(key.length + value.length);
+        pushBytesToKeyValueHeap(keyValueTotalSize);
+
+        buffer.putBytes(topKeyValueHeapOffset, key);
+        buffer.putBytes(StorageUnits.offset(topKeyValueHeapOffset + key.length), value);
+
+        return topKeyValueHeapOffset;
+    }
+
+    private @ByteOffset short appendValue(final byte[] value)
+    {
+        assert value.length <= Short.MAX_VALUE : "Value size must be below " + Short.MAX_VALUE + ", provided " + value.length;
+
+        final @ByteSize int valueSize = StorageUnits.size(value.length);
+        pushBytesToKeyValueHeap(valueSize);
+
+        buffer.putBytes(topKeyValueHeapOffset, value);
+
+        return topKeyValueHeapOffset;
+    }
+
+    void removeKeyAndValueWithCell(final int index, final int keyCount)
+    {
+        assert (keyCount - 1) >= 0
+                : String.format("key size after removing index %d was %d", index, keyCount - 1);
+
+        copyKeyValuesExcept(index);
+
+        copyKeyValueCellsExcept(index);
+
+        numberOfPairs--;
+        updateNumberOfPairs(numberOfPairs);
+
+        recalculateFreeSpaceLeft();
+    }
+
+    void updateNumberOfPairs(final int numberOfPairs)
+    {
+        this.numberOfPairs = numberOfPairs;
+        buffer.putInt(BTreeNodePage.NUMBER_OF_PAIRS_OFFSET, numberOfPairs);
+    }
+
+    void setValue(final int index, final long value)
+    {
+        setValue(index, BinaryHelper.longToBytes(value));
+    }
+
+    void setValue(final int index, final byte[] value)
+    {
+        // condition true only for non leaf nodes
+        if (index == (numberOfPairs - 1) && getNodeType() == BtreeNodeType.NonLeaf)
+        {
+            final short pairOffset = buffer.getShort(getCellIndexOffset(index));
+
+            if (pairOffset == ZERO_OFFSET)
+            {
+                final @ByteOffset short pageRelativeOffset = appendValue(value);
+                buffer.putShort(getCellIndexOffset(index), pageRelativeOffset);
+                buffer.putShort(getCellIndexKeyLength(index), StorageUnits.ZERO_SHORT_SIZE);
+                buffer.putShort(getCellIndexValueLength(index), (short)value.length);
+
+                recalculateFreeSpaceLeft();
+            }
+        }
+
+        final short pairOffset = buffer.getShort(getCellIndexOffset(index));
+        final short keyLength = buffer.getShort(getCellIndexKeyLength(index));
+        final @ByteOffset long valueIndexOffset = StorageUnits.offset(pairOffset + keyLength);
+
+        buffer.putBytes(valueIndexOffset, value);
     }
 
     void splitKeysAndValues(
-            final int aNumberOfKeys,
-            final int bNumberOfKeys,
+            final int aNumberOfPairs,
+            final int bNumberOfPairs,
             final BTreeNodeAbstract bNode)
     {
-        //copy keys
-        final int extraValues = numberOfValues - numberOfKeys;
-        final @ByteSize int lengthOfSplit =
-                StorageUnits.size((bNumberOfKeys + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-        MemoryCopy.copy(buffer, getKeyIndexOffset(numberOfKeys - bNumberOfKeys), bNode.buffer, getKeyIndexOffset(0), lengthOfSplit);
+        final int index = aNumberOfPairs;
+        for (int i = 0; i < bNumberOfPairs; i++)
+        {
+            final @ByteOffset short offset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(index)));
+            final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(index)));
+            final @ByteSize short valueLength = StorageUnits.offset(buffer.getShort(getCellIndexValueLength(index)));
 
-        numberOfValues = aNumberOfKeys + extraValues;
-        updateNumberOfValues(numberOfValues);
+            final byte[] key = new byte[keyLength];
+            final byte[] value = new byte[valueLength];
 
-        numberOfKeys = aNumberOfKeys;
-        updateNumberOfKeys(numberOfKeys);
+            buffer.getBytes(offset, keyLength, key);
+            buffer.getBytes(StorageUnits.offset(offset + keyLength), valueLength, value);
+
+            bNode.insert(key, value);
+
+            remove(index);
+        }
 
         recalculateFreeSpaceLeft();
         bNode.recalculateFreeSpaceLeft();
+    }
+
+    void splitKeysAndValuesNonLeaf(
+            final int aNumberOfPairs,
+            final int bNumberOfPairs,
+            final BTreeNodeAbstract bNode)
+    {
+        //copy keys
+        final int baseOffset = aNumberOfPairs;
+
+        //////set bnode rightmost value
+        final int rightmostIndex = (baseOffset + bNumberOfPairs) - 1;
+        final @ByteOffset short offsetR = StorageUnits.offset(buffer.getShort(getCellIndexOffset(rightmostIndex)));
+        final @ByteSize short valueLengthR = StorageUnits.size(buffer.getShort(getCellIndexValueLength(rightmostIndex)));
+        final byte[] valueR = new byte[valueLengthR];
+        buffer.getBytes(offsetR, valueLengthR, valueR);
+
+        bNode.setValue(0, valueR);
+        removeKeyAndValueWithCell(rightmostIndex, getPairCount());
+
+        for (int i = 0; i < bNumberOfPairs - 1; i++)
+        {
+            final @ByteOffset short offset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(baseOffset)));
+            final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(baseOffset)));
+            final @ByteSize short valueLength = StorageUnits.size(buffer.getShort(getCellIndexValueLength(baseOffset)));
+
+            final byte[] key = new byte[keyLength];
+            final byte[] value = new byte[valueLength];
+
+            buffer.getBytes(offset, keyLength, key);
+            buffer.getBytes(StorageUnits.offset(offset + keyLength), valueLength, value);
+
+            bNode.insert(key, value);
+
+            removeKeyAndValueWithCell(baseOffset, getPairCount());
+        }
+
+        final int mostRightPairIndex = aNumberOfPairs - 1;
+        final @ByteOffset short offset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(mostRightPairIndex)));
+        final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(mostRightPairIndex)));
+
+        final @ByteOffset int oldLogKeyValueIndexOffset = topKeyValueHeapOffset;
+        final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(topKeyValueHeapOffset + keyLength);
+        final @ByteSize int sizeToMove = StorageUnits.size(offset - oldLogKeyValueIndexOffset);
+
+        if (sizeToMove > ZERO_SIZE)
+        {
+            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, sizeToMove);
+            updateMovedCellOffsets(offset, keyLength);
+        }
+        else
+        {
+            final @ByteOffset short newOffset = StorageUnits.offset((short) (offset + keyLength));
+            buffer.putShort(getCellIndexOffset(mostRightPairIndex), newOffset);
+        }
+
+        buffer.putShort(getCellIndexKeyLength(mostRightPairIndex), ZERO_SIZE_SHORT);
+
+        popBytesFromKeyValueHeap(keyLength);
+
+        numberOfPairs = aNumberOfPairs;
+        updateNumberOfPairs(numberOfPairs);
+
+        recalculateFreeSpaceLeft();
+        bNode.recalculateFreeSpaceLeft();
+
+        setDirty();
     }
 
     void recalculateFreeSpaceLeft()
@@ -270,7 +454,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
-    abstract long calculateFreeSpaceLeft(long pageSize);
+    abstract @ByteSize long calculateFreeSpaceLeft(long pageSize);
 
     void setDirty()
     {
@@ -288,56 +472,112 @@ abstract class BTreeNodeAbstract implements BTreeNode
      *
      * @param gapIndex the index of the gap
      */
-    private void copyKeyValuesWithGap(final int gapIndex)
+    private void copyKeyValueCellsWithGap(final int gapIndex)
     {
         assert gapIndex >= 0;
 
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int pairsToMove = numberOfKeys - gapIndex;
+        final int pairsToMove = numberOfPairs - gapIndex;
 
-        assert extraValues >= 0;
         assert pairsToMove >= 0;
 
-        final @ByteOffset long oldIndexOffset = getKeyIndexOffset(gapIndex);
-        final @ByteOffset long newIndexOffset = getKeyIndexOffset(gapIndex + 1);
+        final @ByteOffset long oldIndexOffset = getCellIndexOffset(gapIndex);
+        final @ByteOffset long newIndexOffset = getCellIndexOffset(gapIndex + 1);
 
-        final @ByteSize int size =
-                StorageUnits.size((pairsToMove + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
+        final @ByteSize int size = StorageUnits.size(pairsToMove * CELL_SIZE);
         MemoryCopy.copy(buffer, oldIndexOffset, buffer, newIndexOffset, size);
+    }
+
+    private void copyKeyValueCellsExcept(final int removeIndex)
+    {
+        assert removeIndex >= 0;
+
+        final int pairsToMove = numberOfPairs - removeIndex - 1;
+
+        assert pairsToMove >= 0;
+
+        final @ByteOffset long oldIndexOffset = getCellIndexOffset(removeIndex);
+        final @ByteOffset long newIndexOffset = getCellIndexOffset(removeIndex + 1);
+
+        final @ByteSize int size = StorageUnits.size(pairsToMove * CELL_SIZE);
+        MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
     }
 
     private void copyKeyValuesExcept(final int removeIndex)
     {
-        assert removeIndex >= 0;
+        assert  (numberOfPairs > 0 && removeIndex <= (numberOfPairs - 1))
+                : String.format("invalid index to remove %d from range [0, %d]", removeIndex, numberOfPairs - 1);
 
-        final int extraValues = numberOfValues - numberOfKeys;
-        final int pairsToMove = numberOfKeys - removeIndex;
+        final @ByteOffset short offset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(removeIndex)));
+        final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(removeIndex)));
+        final @ByteSize short valueLength = StorageUnits.size(buffer.getShort(getCellIndexValueLength(removeIndex)));
+        final @ByteSize int totalRemoveLength = StorageUnits.size(keyLength + valueLength);
 
-        assert extraValues >= 0;
-        assert pairsToMove >= 0;
+        final @ByteOffset int oldLogKeyValueIndexOffset = topKeyValueHeapOffset;
+        final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(topKeyValueHeapOffset + totalRemoveLength);
 
-        final @ByteOffset long oldIndexOffset = getKeyIndexOffset(removeIndex);
-        final @ByteOffset long newIndexOffset = getKeyIndexOffset(removeIndex + 1);
+        final @ByteSize int sizeToMove = StorageUnits.size(offset - oldLogKeyValueIndexOffset);
 
-        final @ByteSize int size =
-                StorageUnits.size((pairsToMove + extraValues) * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-        MemoryCopy.copy(buffer, newIndexOffset, buffer, oldIndexOffset, size);
+        if (sizeToMove != 0)
+        {
+            MemoryCopy.copy(buffer, oldLogKeyValueIndexOffset, buffer, newLogKeyValueIndexOffset, sizeToMove);
+            updateMovedCellOffsets(offset, totalRemoveLength);
+        }
+
+        popBytesFromKeyValueHeap(totalRemoveLength);
+    }
+
+    private void updateMovedCellOffsets(final @ByteOffset short offsetMoved, final @ByteSize int totalRemoveLength)
+    {
+        for (int i = 0; i < numberOfPairs; i++)
+        {
+            final @ByteOffset long cellIndexOffset = getCellIndexOffset(i);
+            final short currentOffset = buffer.getShort(cellIndexOffset);
+
+            if (currentOffset <= offsetMoved)
+            {
+                buffer.putShort(cellIndexOffset, (short) (currentOffset + totalRemoveLength));
+            }
+        }
     }
 
     int binarySearch(final long key)
     {
-        return SearchUtils.binarySearch(key, numberOfKeys, this::getKey);
+        return binarySearch(BinaryHelper.longToBytes(key));
+    }
+
+    int binarySearch(final byte[] key)
+    {
+        return SearchUtils.binarySearch(
+                key,
+                numberOfPairs,
+                this::getKeyBytes,
+                ByteArrayComparator.INSTANCE);
+    }
+
+    int binarySearchNonLeaf(final long key)
+    {
+        return binarySearchNonLeaf(BinaryHelper.longToBytes(key));
+    }
+
+    int binarySearchNonLeaf(final byte[] key)
+    {
+        return SearchUtils.binarySearch(
+                key,
+                numberOfPairs - 1,
+                this::getKeyBytes,
+                ByteArrayComparator.INSTANCE);
     }
 
     @Override
     public String toString()
     {
-        if (buffer instanceof DirectMemory && ((DirectMemory) buffer).isUninitialized())
+        if (buffer instanceof DirectMemory && !((DirectMemory) buffer).isInitialized())
         {
             return "Node is Uninitialized.";
         }
 
         final StringBuilder contentBuilder = new StringBuilder();
+        Charset utf8 = Charset.forName("UTF-8");
 
         if (isRoot())
         {
@@ -349,19 +589,26 @@ abstract class BTreeNodeAbstract implements BTreeNode
         }
 
         contentBuilder.append(" keys : ");
-        for (int i = 0; i < numberOfKeys; i++)
+        for (int i = 0; i < numberOfPairs; i++)
         {
-            contentBuilder.append(getKey(i));
-            if (i + 1 != numberOfKeys)
+            if (i == (numberOfPairs - 1) && getNodeType() == BtreeNodeType.NonLeaf)
             {
-                contentBuilder.append(",");
+                contentBuilder.append("rightmost");
+            }
+            else
+            {
+                contentBuilder.append(new String(getKeyBytes(i), utf8));
+                if (i + 1 != numberOfPairs)
+                {
+                    contentBuilder.append(",");
+                }
             }
         }
         contentBuilder.append(" values : ");
-        for (int i = 0; i < numberOfValues; i++)
+        for (int i = 0; i < numberOfPairs; i++)
         {
-            contentBuilder.append(getValue(i));
-            if (i + 1 != numberOfValues)
+            contentBuilder.append(new String(getValueBytes(i), utf8));
+            if (i + 1 != numberOfPairs)
             {
                 contentBuilder.append(",");
             }
@@ -370,5 +617,39 @@ abstract class BTreeNodeAbstract implements BTreeNode
         return String.format("%s{ %s }",
                 getNodeType().name(),
                 contentBuilder.toString());
+    }
+
+    String printDebug()
+    {
+        final StringBuilder contentBuilder = new StringBuilder();
+
+        if (numberOfPairs > 0)
+        {
+            Charset utf8 = Charset.forName("UTF-8");
+            contentBuilder.append("KeyValueEntries : ");
+            for (int i = 0; i < numberOfPairs; i++)
+            {
+                final byte[] keyBytes = getKeyBytes(i);
+                final byte[] valueBytes = getValueBytes(i);
+
+                final String keyLong = keyBytes.length == LONG_BYTES_SIZE
+                        ? String.format("(%d)", BinaryHelper.bytesToLong(keyBytes))
+                        : "";
+
+                final String valueLong = valueBytes.length == LONG_BYTES_SIZE
+                        ? String.format("(%d)", BinaryHelper.bytesToLong(valueBytes))
+                        : "";
+
+                contentBuilder.append(System.lineSeparator())
+                        .append("Cell ").append(i)
+                        .append(", offset ").append(buffer.getShort(getCellIndexOffset(i)))
+                        .append(", keyLength ").append(buffer.getShort(getCellIndexKeyLength(i)))
+                        .append(", valueLength ").append(buffer.getShort(getCellIndexValueLength(i)))
+                        .append(", key ").append(new String(keyBytes, utf8)).append(keyLong)
+                        .append(", value ").append(new String(valueBytes, utf8)).append(valueLong);
+            }
+        }
+
+        return contentBuilder.toString();
     }
 }

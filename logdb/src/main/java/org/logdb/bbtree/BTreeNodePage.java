@@ -6,6 +6,7 @@ import org.logdb.storage.StorageUnits;
 
 import static org.logdb.storage.StorageUnits.INT_BYTES_SIZE;
 import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
+import static org.logdb.storage.StorageUnits.SHORT_BYTES_SIZE;
 
 /**
  * Index Page layout :
@@ -46,19 +47,16 @@ import static org.logdb.storage.StorageUnits.LONG_BYTES_SIZE;
  */
 class BTreeNodePage
 {
-    static final int PAGE_START_OFFSET = 0;
+    static final @ByteOffset int PAGE_START_OFFSET = StorageUnits.ZERO_OFFSET;
 
-    static final @ByteOffset long PAGE_TYPE_OFFSET = StorageUnits.ZERO_OFFSET;
+    static final @ByteOffset int PAGE_TYPE_OFFSET = PAGE_START_OFFSET;
     static final @ByteOffset int PAGE_IS_ROOT_OFFSET = StorageUnits.offset(1);
     static final @ByteSize int PAGE_FLAGS_SIZE = INT_BYTES_SIZE;
 
     static final @ByteOffset int PAGE_CHECKSUM_OFFSET = StorageUnits.offset(PAGE_START_OFFSET + PAGE_FLAGS_SIZE);
     static final @ByteSize int PAGE_CHECKSUM_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteOffset int PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET = StorageUnits.offset(PAGE_CHECKSUM_OFFSET + PAGE_CHECKSUM_SIZE);
-    static final @ByteSize int PAGE_LOG_KEY_VALUE_NUMBERS_SIZE = LONG_BYTES_SIZE;
-
-    static final @ByteOffset int PAGE_TIMESTAMP_OFFSET = StorageUnits.offset(PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET + PAGE_LOG_KEY_VALUE_NUMBERS_SIZE);
+    static final @ByteOffset int PAGE_TIMESTAMP_OFFSET = StorageUnits.offset(PAGE_CHECKSUM_OFFSET + PAGE_CHECKSUM_SIZE);
     static final @ByteSize int PAGE_TIMESTAMP_SIZE = LONG_BYTES_SIZE;
 
     static final @ByteOffset int PAGE_VERSION_OFFSET = StorageUnits.offset(PAGE_TIMESTAMP_OFFSET + PAGE_TIMESTAMP_SIZE);
@@ -70,19 +68,26 @@ class BTreeNodePage
     static final @ByteOffset int PAGE_HEADER_OFFSET = StorageUnits.offset(PAGE_START_OFFSET);
     static final @ByteSize int PAGE_HEADER_SIZE = PAGE_FLAGS_SIZE +
             PAGE_CHECKSUM_SIZE +
-            PAGE_LOG_KEY_VALUE_NUMBERS_SIZE +
             PAGE_TIMESTAMP_SIZE +
             PAGE_VERSION_SIZE +
             PAGE_PREV_SIZE;
 
-    static final @ByteOffset int NUMBER_OF_KEY_OFFSET = StorageUnits.offset(PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE);
-    static final @ByteSize int NUMBER_OF_KEY_SIZE = INT_BYTES_SIZE;
+    static final @ByteOffset int NUMBER_OF_PAIRS_OFFSET = StorageUnits.offset(PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE);
+    static final @ByteSize int NUMBER_OF_PAIRS_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteOffset int NUMBER_OF_VALUES_OFFSET = StorageUnits.offset(PAGE_START_OFFSET + PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE);
-    static final @ByteSize int NUMBER_OF_VALUES_SIZE = INT_BYTES_SIZE;
+    static final @ByteOffset int TOP_KEY_VALUES_HEAP_SIZE_OFFSET = StorageUnits.offset(NUMBER_OF_PAIRS_OFFSET + NUMBER_OF_PAIRS_SIZE);
+    static final @ByteSize int TOP_KEY_VALUES_HEAP_SIZE = SHORT_BYTES_SIZE;
 
-    static final @ByteSize int HEADER_SIZE_BYTES = PAGE_HEADER_SIZE + NUMBER_OF_KEY_SIZE + NUMBER_OF_VALUES_SIZE;
-    static final @ByteOffset int KEY_START_OFFSET = StorageUnits.offset(HEADER_SIZE_BYTES);
+    static final @ByteSize int HEADER_SIZE_BYTES = PAGE_HEADER_SIZE +
+            NUMBER_OF_PAIRS_SIZE +
+            TOP_KEY_VALUES_HEAP_SIZE;
+    static final @ByteOffset int CELL_START_OFFSET = StorageUnits.offset(HEADER_SIZE_BYTES);
+
+    static final @ByteSize int CELL_PAGE_OFFSET_SIZE = SHORT_BYTES_SIZE;
+    static final @ByteSize int CELL_KEY_LENGTH_SIZE = SHORT_BYTES_SIZE;
+    static final @ByteSize int CELL_VALUE_LENGTH_SIZE = SHORT_BYTES_SIZE;
+    static final @ByteSize int CELL_SIZE = CELL_PAGE_OFFSET_SIZE + CELL_KEY_LENGTH_SIZE + CELL_VALUE_LENGTH_SIZE;
+
 
     static final @ByteSize int KEY_SIZE = LONG_BYTES_SIZE;
     static final @ByteSize int VALUE_SIZE = LONG_BYTES_SIZE;

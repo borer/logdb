@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.ByteSize;
@@ -19,32 +20,34 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
             final @PageNumber long pageNumber,
             final HeapMemory memory,
             final @ByteSize int maxLogSize,
-            final int numberOfLogKeyValues,
-            final int numberOfKeys,
-            final int numberOfValues,
+            final int numberOfPairs,
             final BTreeNodeHeap[] children)
     {
-        super(pageNumber, memory, maxLogSize, numberOfLogKeyValues, numberOfKeys, numberOfValues);
+        super(pageNumber, memory, maxLogSize, numberOfPairs);
         this.children = children;
-    }
-
-    public static BTreeNodeNonLeaf load(final @PageNumber long pageNumber, final HeapMemory memory, final @ByteSize int maxLogSize)
-    {
-        return new BTreeNodeNonLeaf(
-                pageNumber,
-                memory,
-                maxLogSize,
-                memory.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET),
-                memory.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET),
-                memory.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET),
-                new BTreeNodeHeap[0]);
     }
 
     @Override
     public void insert(final long key, final long value)
     {
-        throw new RuntimeException(
-                String.format("Cannot insert elements in non leaf node. Key to insert %d, value %d", key, value));
+        insert(BinaryHelper.longToBytes(key), BinaryHelper.longToBytes(value));
+    }
+
+    @Override
+    public void insert(final byte[] key, final byte[] value)
+    {
+        final int index = binarySearchNonLeaf(key);
+        if (index < 0)
+        {
+            final int absIndex = -index - 1;
+            insertKeyAndValue(absIndex, key, value);
+        }
+        else
+        {
+            setValue(index, value);
+        }
+
+        setDirty();
     }
 
     @Override
@@ -67,12 +70,17 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     @Override
     public void insertChild(final int index, final long key, final BTreeNodeHeap child)
     {
-        final int rawChildPageCount = getNumberOfChildren();
-        //this will be replaced once we commit the child page
-        insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
+        insertChild(index, BinaryHelper.longToBytes(key), child);
+    }
 
-        BTreeNodeHeap[] newChildren = new BTreeNodeHeap[rawChildPageCount + 1];
-        copyWithGap(children, newChildren, rawChildPageCount, index);
+    public void insertChild(final int index, final byte[] key, final BTreeNodeHeap child)
+    {
+        //this will be replaced once we commit the child page
+        insertKeyAndValue(index, key, BinaryHelper.longToBytes(NON_COMMITTED_CHILD));
+        final int oldNumberOfPairs = numberOfPairs - 1;
+
+        BTreeNodeHeap[] newChildren = new BTreeNodeHeap[numberOfPairs];
+        copyWithGap(children, newChildren, oldNumberOfPairs, index);
         children = newChildren;
         children[index] = child;
 
@@ -80,21 +88,16 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     }
 
     @Override
-    public int getNumberOfChildren()
-    {
-        return getKeyCount() + 1;
-    }
-
-    @Override
     public void remove(final int index)
     {
-        final int keyCount = getKeyCount();
+        final int keyCount = getPairCount();
 
-        assert keyCount >= index && keyCount > 0
+        assert keyCount >= index && keyCount > 0 && index >= 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
-        removeKeyAndValue(index, keyCount);
+        removeKeyAndValueWithCell(index, keyCount);
 
+        //TODO: when removing children consider returning them to the cache
         removeChildReference(index);
 
         setDirty();
@@ -114,14 +117,24 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     @Override
     public long get(final long key)
     {
+        return BinaryHelper.bytesToLong(get(BinaryHelper.longToBytes(key)));
+    }
+
+    public byte[] get(final byte[] key)
+    {
         int index = getKeyIndex(key);
-        return getValue(index);
+        return getValueBytes(index);
     }
 
     @Override
     public int getKeyIndex(final long key)
     {
-        int index = binarySearch(key) + 1;
+        return getKeyIndex(BinaryHelper.longToBytes(key));
+    }
+
+    public int getKeyIndex(final byte[] key)
+    {
+        int index = binarySearchNonLeaf(key) + 1;
         if (index < 0)
         {
             index = -index;
@@ -136,6 +149,8 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         assert destinationNode instanceof BTreeNodeNonLeaf : "when copying a non leaf node, needs same type";
 
         MemoryCopy.copy(buffer, destinationNode.getBuffer());
+
+        destinationNode.getBuffer().putShort(BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
         destinationNode.initNodeFromBuffer();
 
         final BTreeNodeHeap[] copyChildren = new BTreeNodeHeap[children.length];
@@ -148,41 +163,35 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     @Override
     public void initNodeFromBuffer()
     {
-        numberOfKeys = buffer.getInt(BTreeNodePage.NUMBER_OF_KEY_OFFSET);
-        numberOfValues = buffer.getInt(BTreeNodePage.NUMBER_OF_VALUES_OFFSET);
-        numberOfLogKeyValues = buffer.getInt(BTreeNodePage.PAGE_LOG_KEY_VALUE_NUMBERS_OFFSET);
-
-        freeSizeLeftBytes = calculateFreeSpaceLeft(buffer.getCapacity());
+        reloadCacheValuesFromBuffer();
+        refreshKeyValueLog();
     }
 
     @Override
     public void split(final int at, final BTreeNodeHeap splitNode)
     {
-        assert getKeyCount() > 0 : "cannot split node with less than 2 nodes";
+        assert getPairCount() > 0 : "cannot split node with less than 2 nodes";
         assert splitNode instanceof BTreeNodeNonLeaf : "when splitting a non leaf node, needs same type";
 
-        final int aNumberOfValues = at + 1;
-        final int bNumberOfKeys = numberOfKeys - aNumberOfValues;
-        final int bNumberOfValues = numberOfValues - aNumberOfValues;
-
-        final BTreeNodeHeap[] aChildren = new BTreeNodeHeap[aNumberOfValues];
-        final BTreeNodeHeap[] bChildren = new BTreeNodeHeap[bNumberOfValues];
-        System.arraycopy(children, 0, aChildren, 0, aNumberOfValues);
-        System.arraycopy(children, aNumberOfValues, bChildren, 0, bNumberOfValues);
-        children = aChildren;
-
         final BTreeNodeNonLeaf bTreeNodeLeaf = (BTreeNodeNonLeaf) splitNode;
-        bTreeNodeLeaf.setChildren(bChildren);
-        bTreeNodeLeaf.updateNumberOfKeys(bNumberOfKeys);
-        bTreeNodeLeaf.updateNumberOfValues(bNumberOfValues);
-
-        splitKeysAndValues(at, bNumberOfKeys, bTreeNodeLeaf);
-
-        if (numberOfLogKeyValues > 0)
+        if (getNumberOfLogPairs() > 0)
         {
-            final long keyAt = getKey(at);
+            final byte[] keyAt = getKeyBytes(at);
             splitLog(keyAt, bTreeNodeLeaf);
         }
+
+        final int aNumberOfPairs = at + 1;
+        final int bNumberOfPairs = numberOfPairs - aNumberOfPairs;
+
+        final BTreeNodeHeap[] aChildren = new BTreeNodeHeap[aNumberOfPairs];
+        final BTreeNodeHeap[] bChildren = new BTreeNodeHeap[bNumberOfPairs];
+        System.arraycopy(children, 0, aChildren, 0, aNumberOfPairs);
+        System.arraycopy(children, aNumberOfPairs, bChildren, 0, bNumberOfPairs);
+        children = aChildren;
+
+        bTreeNodeLeaf.setChildren(bChildren);
+
+        splitKeysAndValuesNonLeaf(aNumberOfPairs, bNumberOfPairs, bTreeNodeLeaf);
 
         bTreeNodeLeaf.setDirty();
         setDirty();

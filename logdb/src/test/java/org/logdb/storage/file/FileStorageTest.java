@@ -2,6 +2,7 @@ package org.logdb.storage.file;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.logdb.bbtree.BTreeNodeHeap;
 import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
@@ -13,6 +14,7 @@ import org.logdb.bit.MemoryFactory;
 import org.logdb.checksum.ChecksumType;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteOffset;
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.support.TestUtils;
@@ -106,7 +108,7 @@ class FileStorageTest
     void shouldPersistAndLoadLeafNode() throws Exception
     {
         final int numKeys = 10;
-        final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
+        final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithLongKeys(numKeys, 0, new IdSupplier(0));
         final long timestamp = 1L;
         final long version = 2L;
         final int previousRootPageNumber = 1234;
@@ -136,7 +138,7 @@ class FileStorageTest
 
             final HeapMemory heapMemory = storage.allocateHeapPage();
             MemoryCopy.copy(persistedMemory, heapMemory);
-            final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemory);
+            final BTreeNodeLeaf loadedLeaf = loadLeaf(pageNumber, heapMemory);
 
             assertTrue(loadedLeaf.isRoot());
             assertEquals(previousRootPageNumber, loadedLeaf.getPreviousRoot());
@@ -154,7 +156,7 @@ class FileStorageTest
     void shouldPersistAndLoadLeafNonNode() throws Exception
     {
         final int numKeys = 10;
-        final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithKeys(numKeys, 0, new IdSupplier(0));
+        final BTreeNodeLeaf leaf = TestUtils.createLeafNodeWithLongKeys(numKeys, 0, new IdSupplier(0));
         final BTreeNodeNonLeaf nonLeaf = TestUtils.createNonLeafNodeWithChild(leaf);
         final long timestamp = 2L;
         final long version = 1L;
@@ -185,7 +187,7 @@ class FileStorageTest
 
             final HeapMemory heapMemory = storage.allocateHeapPage();
             MemoryCopy.copy(persistedMemory, heapMemory);
-            final BTreeNodeNonLeaf loadedNonLeaf = BTreeNodeNonLeaf.load(pageNumber, heapMemory, ZERO_NODE_LOG_SIZE);
+            final BTreeNodeNonLeaf loadedNonLeaf = loadNonLeaf(pageNumber, heapMemory, ZERO_NODE_LOG_SIZE);
 
             assertTrue(loadedNonLeaf.isRoot());
             assertEquals(previousRootPageNumber, loadedNonLeaf.getPreviousRoot());
@@ -198,7 +200,7 @@ class FileStorageTest
 
             final HeapMemory heapMemoryLeaf = storage.allocateHeapPage();
             MemoryCopy.copy(persistedMemoryLeaf, heapMemoryLeaf);
-            final BTreeNodeLeaf loadedLeaf = BTreeNodeLeaf.load(pageNumber, heapMemoryLeaf);
+            final BTreeNodeLeaf loadedLeaf = loadLeaf(pageNumber, heapMemoryLeaf);
 
             assertFalse(loadedLeaf.isRoot());
 
@@ -269,5 +271,15 @@ class FileStorageTest
             assertEquals("0-index.logdbIndex", storageFilesAfterRoll.get(0).getFileName().toString());
             assertEquals("1-index.logdbIndex", storageFilesAfterRoll.get(1).getFileName().toString());
         }
+    }
+
+    private static BTreeNodeLeaf loadLeaf(final @PageNumber long pageNumber, final HeapMemory memory)
+    {
+        return new BTreeNodeLeaf(pageNumber, memory, memory.getInt(32));
+    }
+
+    private static BTreeNodeNonLeaf loadNonLeaf(final @PageNumber long pageNumber, final HeapMemory memory, final @ByteSize int maxLogSize)
+    {
+        return new BTreeNodeNonLeaf(pageNumber, memory, maxLogSize, memory.getInt(32), new BTreeNodeHeap[0]);
     }
 }

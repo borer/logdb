@@ -1,5 +1,6 @@
 package org.logdb.support;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -16,5 +17,18 @@ public class Assertions
         {
             assertEquals(expectedMessage, e.getMessage());
         }
+    }
+
+    public static void assertArrayNotEquals(final byte[] expected, final byte[] actual)
+    {
+        try
+        {
+            assertArrayEquals(expected, actual);
+        }
+        catch (AssertionError e)
+        {
+            return;
+        }
+        fail("The arrays are equal");
     }
 }

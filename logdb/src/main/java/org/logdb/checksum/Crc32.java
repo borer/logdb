@@ -3,8 +3,8 @@ package org.logdb.checksum;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
-import static org.logdb.checksum.BinaryHelper.bytesToInt;
-import static org.logdb.checksum.BinaryHelper.longToBytes;
+import static org.logdb.bit.BinaryHelper.bytesToInt;
+import static org.logdb.bit.BinaryHelper.longToBytes;
 
 public class Crc32 implements Checksum
 {

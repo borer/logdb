@@ -128,10 +128,12 @@ public class NodesManager
                     idSupplier.getAsLong(),
                     storage.allocateHeapPage(),
                     maxLogSize,
-                    0,
-                    0,
                     1,
                     new BTreeNodeHeap[1]);
+        }
+        else
+        {
+            nonLeaf.reset();
         }
 
         return nonLeaf;
@@ -142,7 +144,12 @@ public class NodesManager
         BTreeNodeLeaf leaf = leafNodesCache.poll();
         if (leaf == null)
         {
-            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0, 0);
+            leaf = new BTreeNodeLeaf(idSupplier.getAsLong(), storage.allocateHeapPage(), 0);
+        }
+
+        else
+        {
+            leaf.reset();
         }
 
         return leaf;

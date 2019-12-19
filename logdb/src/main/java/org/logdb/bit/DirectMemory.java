@@ -6,5 +6,5 @@ public interface DirectMemory extends Memory
 {
     void setBaseAddress(@ByteOffset long baseAddress);
 
-    boolean isUninitialized();
+    boolean isInitialized();
 }

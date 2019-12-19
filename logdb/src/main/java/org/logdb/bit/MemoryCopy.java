@@ -2,6 +2,7 @@ package org.logdb.bit;
 
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
+import org.logdb.storage.StorageUnits;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -39,14 +40,17 @@ public class MemoryCopy
         }
         else
         {
+            final @ByteOffset long sourceRealOffset = StorageUnits.offset(sourceOffset + getBackingArrayOffset(sourceMemory));
+            final @ByteOffset long destinationRealOffset = StorageUnits.offset(destinationOffset + getBackingArrayOffset(destinationMemory));
+
             final byte[] sourceArray = getBackingArray(sourceMemory);
             final byte[] destinationArray = getBackingArray(destinationMemory);
 
             NativeMemoryAccess.copyBytes(
                     sourceArray,
-                    sourceMemory.getBaseAddress() + sourceOffset,
+                    sourceMemory.getBaseAddress() + sourceRealOffset,
                     destinationArray,
-                    destinationMemory.getBaseAddress() + destinationOffset,
+                    destinationMemory.getBaseAddress() + destinationRealOffset,
                     lengthBytes);
         }
     }
@@ -60,5 +64,16 @@ public class MemoryCopy
         return supportingByteBuffer != null && !supportingByteBuffer.isDirect()
                 ? supportingByteBuffer.array()
                 : null;
+    }
+
+    private static int getBackingArrayOffset(final Memory memory)
+    {
+        final ByteBuffer supportingByteBuffer = memory instanceof HeapMemory
+                ? ((HeapMemory) memory).getSupportByteBuffer()
+                : null;
+
+        return supportingByteBuffer != null
+                ? supportingByteBuffer.arrayOffset()
+                : 0;
     }
 }

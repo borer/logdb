@@ -114,8 +114,8 @@ abstract class BTreeAbstract implements BTree
         {
             while (node.getNodeType() == BtreeNodeType.NonLeaf)
             {
-                assert node.getKeyCount() > 0
-                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+                assert node.getPairCount() > 0
+                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getPairCount());
                 index = node.getKeyIndex(key);
                 cursor = createCursorPosition(node, index, cursor);
                 node = nodesManager.loadNode(index, node, mappedNode);
@@ -140,8 +140,8 @@ abstract class BTreeAbstract implements BTree
 
             while (node.getNodeType() == BtreeNodeType.NonLeaf)
             {
-                assert node.getKeyCount() > 0
-                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getKeyCount());
+                assert node.getPairCount() > 0
+                        : String.format("non leaf node should always have at least 1 key. Current node had %d", node.getPairCount());
                 index = node.getKeyIndex(key);
                 cursor = createCursorPosition(node, index, cursor);
                 node = nodesManager.loadNode(index, node, mappedNode);

@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
@@ -10,6 +11,8 @@ import java.util.function.BiConsumer;
 
 public class BTreeImpl extends BTreeAbstract
 {
+    private static final @ByteSize int REQUIRED_SPACE = StorageUnits.size(2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
+
     public BTreeImpl(
             final NodesManager nodesManager,
             final TimeSource timeSource,
@@ -37,27 +40,12 @@ public class BTreeImpl extends BTreeAbstract
             BTreeNode currentNode = cursorPosition.getNode(mappedNode);
             CursorPosition parentCursor = cursorPosition.parent;
 
-            if (currentNode.getKeyCount() == 1 && parentCursor != null)
+            while (currentNode.getPairCount() == 1 && parentCursor != null)
             {
                 this.nodesCount--;
                 index = parentCursor.index;
                 currentNode = parentCursor.getNode(mappedNode);
                 parentCursor = parentCursor.parent;
-
-                if (currentNode.getKeyCount() == 1)
-                {
-                    assert currentNode.getNodeType() == BtreeNodeType.NonLeaf
-                            : "Parent of the node that trying to remove is NOT non leaf";
-
-                    this.nodesCount--;
-                    assert index <= 1;
-                    currentNode = nodesManager.loadNode(1 - index, currentNode, mappedNode);
-
-                    final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode, newVersion);
-                    updatePathToRoot(parentCursor, targetNode);
-                    return;
-                }
-                assert currentNode.getKeyCount() > 1;
             }
 
             final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode, newVersion);
@@ -87,10 +75,10 @@ public class BTreeImpl extends BTreeAbstract
             BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
             currentNode.insert(key, value);
 
-            while (currentNode.shouldSplit())
+            while (currentNode.shouldSplit(REQUIRED_SPACE))
             {
                 this.nodesCount++;
-                int keyCount = currentNode.getKeyCount();
+                int keyCount = currentNode.getPairCount();
                 final int at = keyCount >> 1;
                 final long keyAt = currentNode.getKey(at);
                 final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at, newVersion);
@@ -296,7 +284,7 @@ public class BTreeImpl extends BTreeAbstract
             try (BTreeMappedNode  childNode = nodesManager.getOrCreateMappedNode())
             {
                 nonLeafNode.initNode(nonLeafPageNumber);
-                final int childPageCount = nonLeafNode.getNumberOfChildren();
+                final int childPageCount = nonLeafNode.getPairCount();
                 for (int i = 0; i < childPageCount; i++)
                 {
                     final BTreeNode childPage = nodesManager.loadNode(i, nonLeafNode, childNode);
@@ -319,7 +307,7 @@ public class BTreeImpl extends BTreeAbstract
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            final int childPageCount = nonLeaf.getNumberOfChildren();
+            final int childPageCount = nonLeaf.getPairCount();
             for (int i = 0; i < childPageCount; i++)
             {
                 final BTreeNode childPage = nodesManager.loadNode(i, nonLeaf, mappedNode);
@@ -343,7 +331,7 @@ public class BTreeImpl extends BTreeAbstract
         {
             mappedLeaf.initNode(leafPageNumber);
 
-            final int keyCount = mappedLeaf.getKeyCount();
+            final int keyCount = mappedLeaf.getPairCount();
             for (int i = 0; i < keyCount; i++)
             {
                 final long key = mappedLeaf.getKey(i);
@@ -358,7 +346,7 @@ public class BTreeImpl extends BTreeAbstract
     {
         assert leaf != null;
 
-        final int keyCount = leaf.getKeyCount();
+        final int keyCount = leaf.getPairCount();
         for (int i = 0; i < keyCount; i++)
         {
             final long key = leaf.getKey(i);

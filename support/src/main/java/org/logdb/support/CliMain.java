@@ -16,6 +16,7 @@ import java.util.Scanner;
 public class CliMain
 {
     private static final @ByteSize int PAGE_SIZE_BYTES = StorageUnits.size(4096);
+    private static final @ByteSize int PAGE_LOG_SIZE_BYTES = StorageUnits.size(512);
     private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN;
     private static final @ByteSize int FILE_SEGMENT_SIZE = StorageUnits.size(819200);
     private static final String EXIT_COMMAND = "exit";
@@ -48,6 +49,7 @@ public class CliMain
                                     .setByteOrder(BYTE_ORDER)
                                     .setSegmentFileSize(FILE_SEGMENT_SIZE)
                                     .useIndexWithLog(true)
+                                    .pageLogSize(PAGE_LOG_SIZE_BYTES)
                                     .build())
         {
             final Scanner scanner = new Scanner(System.in);

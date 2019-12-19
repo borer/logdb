@@ -30,6 +30,26 @@ public final class NativeMemoryAccess extends MemoryAccess
         return THE_UNSAFE.getInt(address);
     }
 
+    public static short getShort(final long address)
+    {
+        return THE_UNSAFE.getShort(address);
+    }
+
+    public static void putShort(final long address, final short value)
+    {
+        THE_UNSAFE.putShort(address, value);
+    }
+
+    static void putByte(final long address, final byte b)
+    {
+        THE_UNSAFE.putByte(address, b);
+    }
+
+    static byte getByte(final long address)
+    {
+        return THE_UNSAFE.getByte(address);
+    }
+
     public static void putBytes(final long destinationAddress, final byte[] sourceArray)
     {
         long srcAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;
@@ -96,15 +116,5 @@ public final class NativeMemoryAccess extends MemoryAccess
     static void fillBytes(final long baseAddress, final long capacity, final byte b)
     {
         THE_UNSAFE.setMemory(baseAddress, capacity, b);
-    }
-
-    static void putByte(final long address, final byte b)
-    {
-        THE_UNSAFE.putByte(address, b);
-    }
-
-    static byte getByte(final long address)
-    {
-        return THE_UNSAFE.getByte(address);
     }
 }

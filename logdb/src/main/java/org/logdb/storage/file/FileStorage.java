@@ -224,6 +224,13 @@ public final class FileStorage implements Storage
     }
 
     @Override
+    public void mapPage(final @PageNumber long pageNumber, final @ByteOffset short offset, final DirectMemory memory)
+    {
+        final @ByteOffset long baseOffset = getBaseOffset(pageNumber);
+        memory.setBaseAddress(baseOffset + offset);
+    }
+
+    @Override
     public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
     {
         final @ByteSize long lengthBytes = StorageUnits.size(buffer.capacity());

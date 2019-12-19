@@ -4,7 +4,7 @@ import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
 
-import static org.logdb.checksum.BinaryHelper.longToBytes;
+import static org.logdb.bit.BinaryHelper.longToBytes;
 import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
 
 public class ChecksumHelper

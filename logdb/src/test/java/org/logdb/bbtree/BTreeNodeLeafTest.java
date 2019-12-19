@@ -2,8 +2,11 @@ package org.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
+import org.logdb.support.KeyValueUtils;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.support.TestUtils.BYTE_ORDER;
 import static org.logdb.support.TestUtils.PAGE_SIZE_BYTES;
@@ -18,11 +21,8 @@ class BTreeNodeLeafTest
     {
         idSupplier = new IdSupplier(0);
 
-        bTreeLeaf = new BTreeNodeLeaf(
-                idSupplier.getAsLong(),
-                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
-                0,
-                0);
+        final HeapMemory memory = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
+        bTreeLeaf = new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0);
     }
 
     /////////////////////////////////Add/Update
@@ -30,24 +30,29 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToInsertNewValue()
     {
-        final int key = 1;
-        bTreeLeaf.insert(key, key);
+        final byte[] key = "key".getBytes();
+        final byte[] value = "value".getBytes();
+        bTreeLeaf.insert(key, value);
 
-        assertEquals(key, bTreeLeaf.getKey(0));
-        assertEquals(key, bTreeLeaf.getValue(0));
-        assertEquals(1, bTreeLeaf.getKeyCount());
+        assertArrayEquals(key, bTreeLeaf.getKeyBytes(0));
+        assertArrayEquals(value, bTreeLeaf.getValueBytes(0));
+        assertEquals(1, bTreeLeaf.getPairCount());
     }
 
     @Test
     void shouldBeAbleToInsertMultipleNewValues()
     {
-        for (int key = 10, i = 0; key < 100; i++,key+=10)
+        int usedBytes = 0;
+        for (int i = 0; i < 25; i++)
         {
-            bTreeLeaf.insert(key, key);
+            final KeyValueUtils.Pair pair = KeyValueUtils.generateKeyValuePair(i);
+            bTreeLeaf.insert(pair.key, pair.value);
 
-            assertEquals(key, bTreeLeaf.getKey(i));
-            assertEquals(key, bTreeLeaf.getValue(i));
-            assertEquals(i + 1, bTreeLeaf.getKeyCount());
+            usedBytes += pair.key.length + pair.value.length + BTreeNodePage.CELL_SIZE;
+
+            assertArrayEquals(pair.value, bTreeLeaf.get(pair.key));
+            assertEquals(i + 1, bTreeLeaf.getPairCount());
+            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
         }
     }
 
@@ -61,7 +66,7 @@ class BTreeNodeLeafTest
             bTreeLeaf.insert(i, i);
         }
 
-        assertEquals(count, bTreeLeaf.getKeyCount());
+        assertEquals(count, bTreeLeaf.getPairCount());
 
         for (int i = 0; i < count; i++)
         {
@@ -80,7 +85,7 @@ class BTreeNodeLeafTest
 
             assertEquals(key, bTreeLeaf.getKey(0));
             assertEquals(i, bTreeLeaf.getValue(0));
-            assertEquals(1, bTreeLeaf.getKeyCount());
+            assertEquals(1, bTreeLeaf.getPairCount());
         }
     }
 
@@ -92,15 +97,16 @@ class BTreeNodeLeafTest
         final long key = 99L;
         bTreeLeaf.insert(key, key);
 
-        assertEquals(1, bTreeLeaf.getKeyCount());
+        assertEquals(1, bTreeLeaf.getPairCount());
 
         try
         {
             bTreeLeaf.remove(0);
+            assertEquals(0, bTreeLeaf.getPairCount());
         }
         catch (final AssertionError e)
         {
-            assertEquals(0, bTreeLeaf.getKeyCount());
+            assertEquals(0, bTreeLeaf.getPairCount());
             assertEquals("removing index 0 when key count is 0", e.getMessage());
         }
     }
@@ -108,22 +114,27 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToRemoveEntriesFromFirstIndex()
     {
+        int usedBytes = 0;
         final int numberOfElements = 10;
         for (int i = 0; i < numberOfElements; i++)
         {
             bTreeLeaf.insert(i, i);
+            usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
 
             assertEquals(i, bTreeLeaf.getKey(i));
             assertEquals(i, bTreeLeaf.getValue(i));
-            assertEquals(i + 1, bTreeLeaf.getKeyCount());
+            assertEquals(i + 1, bTreeLeaf.getPairCount());
+            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
         }
 
         for (int i = 9; i >= 0; i--)
         {
             bTreeLeaf.remove(0);
-            assertEquals(i, bTreeLeaf.getKeyCount());
+            usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
+            assertEquals(i, bTreeLeaf.getPairCount());
+            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
 
-            for (int j = 0; j < bTreeLeaf.getKeyCount(); j++)
+            for (int j = 0; j < bTreeLeaf.getPairCount(); j++)
             {
                 final long expectedKey = numberOfElements - i + j;
                 assertEquals(expectedKey, bTreeLeaf.getKey(j));
@@ -142,15 +153,15 @@ class BTreeNodeLeafTest
 
             assertEquals(i, bTreeLeaf.getKey(i));
             assertEquals(i, bTreeLeaf.getValue(i));
-            assertEquals(i + 1, bTreeLeaf.getKeyCount());
+            assertEquals(i + 1, bTreeLeaf.getPairCount());
         }
 
         for (int i = 9; i >= 0; i--)
         {
             bTreeLeaf.remove(i);
-            assertEquals(i, bTreeLeaf.getKeyCount());
+            assertEquals(i, bTreeLeaf.getPairCount());
 
-            for (int j = 0; j < bTreeLeaf.getKeyCount(); j++)
+            for (int j = 0; j < bTreeLeaf.getPairCount(); j++)
             {
                 assertEquals(j, bTreeLeaf.getKey(j));
                 assertEquals(j, bTreeLeaf.getValue(j));
@@ -167,7 +178,7 @@ class BTreeNodeLeafTest
         }
         catch (final AssertionError e)
         {
-            assertEquals(0, bTreeLeaf.getKeyCount());
+            assertEquals(0, bTreeLeaf.getPairCount());
             assertEquals("removing index 0 when key count is 0", e.getMessage());
         }
     }
@@ -204,25 +215,22 @@ class BTreeNodeLeafTest
             bTreeLeaf.insert(i, i);
         }
 
-        assertEquals(totalElements, bTreeLeaf.getKeyCount());
+        assertEquals(totalElements, bTreeLeaf.getPairCount());
 
         final int at = totalElements >> 1;
 
-        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
-                idSupplier.getAsLong(),
-                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
-                0,
-                0);
+        final HeapMemory memory = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
+        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0);
         bTreeLeaf.split(at, newBtree);
 
-        assertEquals(at, bTreeLeaf.getKeyCount());
+        assertEquals(at, bTreeLeaf.getPairCount());
         for (int i = 0; i < at; i++)
         {
             assertEquals(i, bTreeLeaf.getKey(i));
             assertEquals(i, bTreeLeaf.getValue(i));
         }
 
-        assertEquals(at, newBtree.getKeyCount());
+        assertEquals(at, newBtree.getPairCount());
         for (int i = 0; i < at; i++)
         {
             final int key = i + at;
@@ -242,16 +250,13 @@ class BTreeNodeLeafTest
             bTreeLeaf.insert(i, i);
         }
 
-        assertEquals(totalElements, bTreeLeaf.getKeyCount());
+        assertEquals(totalElements, bTreeLeaf.getPairCount());
 
-        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(
-                idSupplier.getAsLong(),
-                MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
-                0,
-                0);
+        final HeapMemory memory = MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER);
+        final BTreeNodeLeaf newBtree = new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0);
         bTreeLeaf.split(at, newBtree);
 
-        assertEquals(at, bTreeLeaf.getKeyCount());
+        assertEquals(at, bTreeLeaf.getPairCount());
         for (int i = 0; i < at; i++)
         {
             assertEquals(i, bTreeLeaf.getKey(i));
@@ -259,7 +264,7 @@ class BTreeNodeLeafTest
         }
 
         final int newBtreeSize = at + 1;
-        assertEquals(newBtreeSize, newBtree.getKeyCount());
+        assertEquals(newBtreeSize, newBtree.getPairCount());
         for (int i = 0; i < newBtreeSize; i++)
         {
             final int key = i + at;
@@ -280,7 +285,6 @@ class BTreeNodeLeafTest
         final BTreeNodeLeaf copy = new BTreeNodeLeaf(
                 bTreeLeaf.getPageNumber(),
                 MemoryFactory.allocateHeap(PAGE_SIZE_BYTES, BYTE_ORDER),
-                0,
                 0
         );
         bTreeLeaf.copy(copy);
@@ -295,11 +299,5 @@ class BTreeNodeLeafTest
             assertEquals(i, copy.getKey(i));
             assertEquals(i, copy.getValue(i));
         }
-    }
-
-    @Test
-    void shouldCalculateFreeSpaceCorrectly()
-    {
-
     }
 }

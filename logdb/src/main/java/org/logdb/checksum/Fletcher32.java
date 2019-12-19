@@ -5,7 +5,7 @@ import org.logdb.storage.StorageUnits;
 
 import java.util.Arrays;
 
-import static org.logdb.checksum.BinaryHelper.longToBytes;
+import static org.logdb.bit.BinaryHelper.longToBytes;
 
 public class Fletcher32 extends Fletcher8
 {

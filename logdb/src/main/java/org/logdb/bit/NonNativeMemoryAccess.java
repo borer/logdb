@@ -30,6 +30,16 @@ public final class NonNativeMemoryAccess extends MemoryAccess
         return Integer.reverseBytes(THE_UNSAFE.getInt(address));
     }
 
+    public static short getShort(final long address)
+    {
+        return Short.reverseBytes(THE_UNSAFE.getShort(address));
+    }
+
+    public static void putShort(final long address, final short value)
+    {
+        THE_UNSAFE.putShort(address, Short.reverseBytes(value));
+    }
+
     public static void putBytes(final long destinationAddress, final byte[] sourceArray)
     {
         long srcAdd = Unsafe.ARRAY_BYTE_BASE_OFFSET;

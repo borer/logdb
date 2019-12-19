@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
@@ -23,6 +24,14 @@ public interface BTreeNode
     void insert(long key, long value);
 
     /**
+     * Inserts key/value pair in the current leaf.
+     * If the key already exits, its value is replaced.
+     * @param key Key that identifies the value
+     * @param value Value to persist
+     */
+    void insert(byte[] key, byte[] value);
+
+    /**
      * Remove the key and value at index.
      * @param index the index of the element to remove
      */
@@ -32,7 +41,7 @@ public interface BTreeNode
      * Get the number of entries in the leaf.
      * @return the number of entries.
      */
-    int getKeyCount();
+    int getPairCount();
 
     /**
      * Returns a key at the given index.
@@ -109,8 +118,6 @@ public interface BTreeNode
 
     void setChild(int index, BTreeNodeHeap child);
 
-    int getNumberOfChildren();
-
     void setVersion(@Version long newVersion);
 
     @Version long getVersion();
@@ -118,9 +125,10 @@ public interface BTreeNode
     /**
      * Calculates if the node needs splitting. This only considers the node key/value paris and ignores the buffer size.
      * So it's possible for the node to be full because the log is full.
+     * @param requiredSpace The space intended to store and should check if it's goign to fit before inserting
      * @return returns true if the node needs splitting, false other wise
      */
-    boolean shouldSplit();
+    boolean shouldSplit(@ByteSize int requiredSpace);
 
     void reset();
 }

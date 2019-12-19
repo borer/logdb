@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SearchUtilsTest
+class SearchUtilsLongBinarySearchTest
 {
     private MyKeyIndexSupplier keySupplier;
     private long[] keys;
@@ -21,10 +21,10 @@ public class SearchUtilsTest
     void shouldPerformBinarySearchInOneElementArray()
     {
         long[] singleton = new long[]{0};
-        assertEquals(0, SearchUtils.binarySearch(0, singleton.length, index -> 0));
-        assertEquals(-2, SearchUtils.binarySearch(1, singleton.length, index -> 0));
-        assertEquals(-1, SearchUtils.binarySearch(-1, singleton.length, index -> 0));
-        assertEquals(-1, SearchUtils.binarySearch(-2, singleton.length, index -> 0));
+        assertEquals(0, SearchUtils.binarySearch(0, singleton.length, index -> 0L));
+        assertEquals(-2, SearchUtils.binarySearch(1, singleton.length, index -> 0L));
+        assertEquals(-1, SearchUtils.binarySearch(-1, singleton.length, index -> 0L));
+        assertEquals(-1, SearchUtils.binarySearch(-2, singleton.length, index -> 0L));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class SearchUtilsTest
     }
 
     static final class MyKeyIndexSupplier implements
-            SearchUtils.KeyIndexSupplier,
+            SearchUtils.KeyIndexSupplier<Long>,
             SearchUtils.LongKeyIndexSupplier
     {
         final long[] keys;
@@ -110,15 +110,15 @@ public class SearchUtilsTest
         }
 
         @Override
-        public long getKey(int index)
-        {
-            return keys[index];
-        }
-
-        @Override
         public long getKey(long index)
         {
             return keys[(int)index];
+        }
+
+        @Override
+        public Long getKey(int index)
+        {
+            return keys[index];
         }
     }
 }
