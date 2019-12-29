@@ -89,7 +89,7 @@ abstract class BTreeAbstract implements BTree
         return committedRootPageNumber;
     }
 
-    CursorPosition getLastCursorPosition(final long key)
+    CursorPosition getLastCursorPosition(final byte[] key)
     {
         CursorPosition cursorPosition;
         final RootReference rootReference = uncommittedRoot.get();
@@ -104,7 +104,7 @@ abstract class BTreeAbstract implements BTree
         return cursorPosition;
     }
 
-    CursorPosition traverseDown(final BTreeNode root, final long key)
+    CursorPosition traverseDown(final BTreeNode root, final byte[] key)
     {
         BTreeNode node = root;
         CursorPosition cursor = null;
@@ -128,7 +128,7 @@ abstract class BTreeAbstract implements BTree
         return cursor;
     }
 
-    private CursorPosition traverseDown(final @PageNumber long rootPageNumber, final long key)
+    private CursorPosition traverseDown(final @PageNumber long rootPageNumber, final byte[] key)
     {
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {

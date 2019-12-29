@@ -1,13 +1,14 @@
 package org.logdb;
 
 import org.logdb.bbtree.BTree;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
@@ -16,7 +17,7 @@ public class LogDb implements AutoCloseable
     private final LogFile logFile;
     private final BTree index;
 
-    private ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
+    private byte[] buffer = new byte[Long.BYTES];
 
     public LogDb(final LogFile logFile, final BTree index)
     {
@@ -24,10 +25,11 @@ public class LogDb implements AutoCloseable
         this.index = index;
     }
 
-    public void put(final long key, final byte[] value) throws IOException
+    public void put(final byte[] key, final byte[] value) throws IOException
     {
-        final @ByteOffset long offset = logFile.put(longToBytes(key), value);
-        index.put(key, offset);
+        final @ByteOffset long offset = logFile.put(key, value);
+        BinaryHelper.longToBytes(offset, buffer);
+        index.put(key, buffer);
     }
 
     /**
@@ -35,15 +37,15 @@ public class LogDb implements AutoCloseable
      * @param key the key
      * @return the value for the given key or null if not found.
      */
-    public byte[] get(final long key)
+    public byte[] get(final byte[] key)
     {
-        final @ByteOffset long offset = StorageUnits.offset(index.get(key));
-        if (offset == KEY_NOT_FOUND_VALUE)
+        final @ByteOffset byte[] offset = StorageUnits.offset(index.get(key));
+        if (Arrays.equals(offset, KEY_NOT_FOUND_VALUE))
         {
             return null;
         }
 
-        return logFile.read(offset);
+        return logFile.read(StorageUnits.offset(BinaryHelper.bytesToLong(offset)));
     }
 
     /**
@@ -52,28 +54,22 @@ public class LogDb implements AutoCloseable
      * @param version the version to search in
      * @return the value for the given key or null if not found
      */
-    public byte[] get(final long key, final @Version long version)
+    public byte[] get(final byte[] key, final @Version long version)
     {
-        final @ByteOffset long offset = StorageUnits.offset(index.get(key, version));
+        final byte[] value = index.get(key, version);
+        final @ByteOffset long offset = StorageUnits.offset(BinaryHelper.bytesToLong(value));
         return logFile.read(offset);
     }
 
-    public void delete(final long key) throws IOException
+    public void delete(final byte[] key) throws IOException
     {
-        logFile.delete(longToBytes(key));
+        logFile.delete(key);
         index.remove(key);
     }
 
     public void commitIndex() throws IOException
     {
         index.commit();
-    }
-
-    private byte[] longToBytes(final long value)
-    {
-        keyBuffer.rewind();
-        keyBuffer.putLong(value);
-        return keyBuffer.array();
     }
 
     @Override

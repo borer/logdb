@@ -90,13 +90,8 @@ final class KeyValueLogImpl implements KeyValueLog
         return keyValuesBuffer;
     }
 
-    long getKeyAtIndex(final int index)
-    {
-        return BinaryHelper.bytesToLong(getKeyBytesAtIndex(index));
-    }
-
     @Override
-    public byte[] getKeyBytesAtIndex(final int index)
+    public byte[] getKeyAtIndex(final int index)
     {
         final @ByteOffset short logEntryOffset = StorageUnits.offset(keyValuesBuffer.getShort(getLogIndexOffset(index)));
         final @ByteSize short logEntryKeySize = StorageUnits.size(keyValuesBuffer.getShort(getLogKeyLengthOffset(index)));
@@ -108,13 +103,8 @@ final class KeyValueLogImpl implements KeyValueLog
         return keyBytes;
     }
 
-    long getValueAtIndex(final int index)
-    {
-        return BinaryHelper.bytesToLong(getValueBytesAtIndex(index));
-    }
-
     @Override
-    public byte[] getValueBytesAtIndex(final int index)
+    public byte[] getValueAtIndex(final int index)
     {
         final @ByteOffset short logEntryOffset = StorageUnits.offset(keyValuesBuffer.getShort(getLogIndexOffset(index)));
         final @ByteSize short logEntryKeySize = StorageUnits.size(keyValuesBuffer.getShort(getLogKeyLengthOffset(index)));
@@ -133,7 +123,7 @@ final class KeyValueLogImpl implements KeyValueLog
         final int index = binarySearchInLog(key);
         if (index >= 0)
         {
-            return getValueBytesAtIndex(index);
+            return getValueAtIndex(index);
         }
 
         return null;
@@ -150,8 +140,8 @@ final class KeyValueLogImpl implements KeyValueLog
         for (int i = 0; i < bLogKeyValues; i++)
         {
             //TODO: consider one function that returns both objects
-            final byte[] keyBytes = getKeyBytesAtIndex(index);
-            final byte[] valueBytes = getValueBytesAtIndex(index);
+            final byte[] keyBytes = getKeyAtIndex(index);
+            final byte[] valueBytes = getValueAtIndex(index);
 
             bKeyValueLog.putKeyValue(i, keyBytes, valueBytes);
 
@@ -364,7 +354,7 @@ final class KeyValueLogImpl implements KeyValueLog
     @Override
     public int binarySearchInLog(final byte[] key)
     {
-        return SearchUtils.binarySearch(key, numberOfLogEntries, this::getKeyBytesAtIndex, ByteArrayComparator.INSTANCE);
+        return SearchUtils.binarySearch(key, numberOfLogEntries, this::getKeyAtIndex, ByteArrayComparator.INSTANCE);
     }
 
     private void copyKeyValuesExcept(final int removeIndex)
@@ -471,9 +461,9 @@ final class KeyValueLogImpl implements KeyValueLog
             contentBuilder.append("KeyValueLog : ");
             for (int i = 0; i < numberOfLogEntries; i++)
             {
-                contentBuilder.append(new String(getKeyBytesAtIndex(i), utf8));
+                contentBuilder.append(new String(getKeyAtIndex(i), utf8));
                 contentBuilder.append("-");
-                contentBuilder.append(new String(getValueBytesAtIndex(i), utf8));
+                contentBuilder.append(new String(getValueAtIndex(i), utf8));
                 if (i + 1 != numberOfLogEntries)
                 {
                     contentBuilder.append(",");
@@ -493,8 +483,8 @@ final class KeyValueLogImpl implements KeyValueLog
             contentBuilder.append("KeyValueLog : ");
             for (int i = 0; i < numberOfLogEntries; i++)
             {
-                final byte[] keyBytes = getKeyBytesAtIndex(i);
-                final byte[] valueBytes = getValueBytesAtIndex(i);
+                final byte[] keyBytes = getKeyAtIndex(i);
+                final byte[] valueBytes = getValueAtIndex(i);
 
                 final String keyLong = keyBytes.length == LONG_BYTES_SIZE
                         ? String.format("(%d)", BinaryHelper.bytesToLong(keyBytes))

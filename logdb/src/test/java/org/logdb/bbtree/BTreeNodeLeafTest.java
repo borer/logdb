@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.support.KeyValueUtils;
@@ -34,8 +35,8 @@ class BTreeNodeLeafTest
         final byte[] value = "value".getBytes();
         bTreeLeaf.insert(key, value);
 
-        assertArrayEquals(key, bTreeLeaf.getKeyBytes(0));
-        assertArrayEquals(value, bTreeLeaf.getValueBytes(0));
+        assertArrayEquals(key, bTreeLeaf.getKey(0));
+        assertArrayEquals(value, bTreeLeaf.getValue(0));
         assertEquals(1, bTreeLeaf.getPairCount());
     }
 
@@ -63,28 +64,31 @@ class BTreeNodeLeafTest
 
         for (long i = count - 1; i >= 0; i--)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
         }
 
         assertEquals(count, bTreeLeaf.getPairCount());
 
         for (int i = 0; i < count; i++)
         {
-            assertEquals(i, bTreeLeaf.getKey(i));
-            assertEquals(i, bTreeLeaf.getValue(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, bTreeLeaf.getKey(i));
+            assertArrayEquals(bytes, bTreeLeaf.getValue(i));
         }
     }
 
     @Test
     void shouldBeAbleToUpdateValuesWithExistingKey()
     {
-        final long key = 99L;
+        final byte[] key = BinaryHelper.longToBytes(99L);
         for (long i = 0; i < 10; i++)
         {
-            bTreeLeaf.insert(key, i);
+            final byte[] value = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(key, value);
 
-            assertEquals(key, bTreeLeaf.getKey(0));
-            assertEquals(i, bTreeLeaf.getValue(0));
+            assertArrayEquals(key, bTreeLeaf.getKey(0));
+            assertArrayEquals(value, bTreeLeaf.getValue(0));
             assertEquals(1, bTreeLeaf.getPairCount());
         }
     }
@@ -94,14 +98,14 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToRemoveEntry()
     {
-        final long key = 99L;
+        final byte[] key = BinaryHelper.longToBytes(99L);
         bTreeLeaf.insert(key, key);
 
         assertEquals(1, bTreeLeaf.getPairCount());
 
         try
         {
-            bTreeLeaf.remove(0);
+            bTreeLeaf.removeAtIndex(0);
             assertEquals(0, bTreeLeaf.getPairCount());
         }
         catch (final AssertionError e)
@@ -118,27 +122,28 @@ class BTreeNodeLeafTest
         final int numberOfElements = 10;
         for (int i = 0; i < numberOfElements; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
             usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
 
-            assertEquals(i, bTreeLeaf.getKey(i));
-            assertEquals(i, bTreeLeaf.getValue(i));
+            assertArrayEquals(bytes, bTreeLeaf.getKey(i));
+            assertArrayEquals(bytes, bTreeLeaf.getValue(i));
             assertEquals(i + 1, bTreeLeaf.getPairCount());
             assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
         }
 
         for (int i = 9; i >= 0; i--)
         {
-            bTreeLeaf.remove(0);
+            bTreeLeaf.removeAtIndex(0);
             usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
             assertEquals(i, bTreeLeaf.getPairCount());
             assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
 
             for (int j = 0; j < bTreeLeaf.getPairCount(); j++)
             {
-                final long expectedKey = numberOfElements - i + j;
-                assertEquals(expectedKey, bTreeLeaf.getKey(j));
-                assertEquals(expectedKey, bTreeLeaf.getValue(j));
+                final byte[] expectedKey = BinaryHelper.longToBytes(numberOfElements - i + j);
+                assertArrayEquals(expectedKey, bTreeLeaf.getKey(j));
+                assertArrayEquals(expectedKey, bTreeLeaf.getValue(j));
             }
         }
     }
@@ -149,22 +154,24 @@ class BTreeNodeLeafTest
         final int numberOfElements = 10;
         for (int i = 0; i < numberOfElements; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
 
-            assertEquals(i, bTreeLeaf.getKey(i));
-            assertEquals(i, bTreeLeaf.getValue(i));
+            assertArrayEquals(bytes, bTreeLeaf.getKey(i));
+            assertArrayEquals(bytes, bTreeLeaf.getValue(i));
             assertEquals(i + 1, bTreeLeaf.getPairCount());
         }
 
         for (int i = 9; i >= 0; i--)
         {
-            bTreeLeaf.remove(i);
+            bTreeLeaf.removeAtIndex(i);
             assertEquals(i, bTreeLeaf.getPairCount());
 
             for (int j = 0; j < bTreeLeaf.getPairCount(); j++)
             {
-                assertEquals(j, bTreeLeaf.getKey(j));
-                assertEquals(j, bTreeLeaf.getValue(j));
+                final byte[] bytes = BinaryHelper.longToBytes(j);
+                assertArrayEquals(bytes, bTreeLeaf.getKey(j));
+                assertArrayEquals(bytes, bTreeLeaf.getValue(j));
             }
         }
     }
@@ -174,7 +181,7 @@ class BTreeNodeLeafTest
     {
         try
         {
-            bTreeLeaf.remove(0);
+            bTreeLeaf.removeAtIndex(0);
         }
         catch (final AssertionError e)
         {
@@ -188,20 +195,20 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToGetValueByKey()
     {
-        final long key = 99L;
+        final byte[] key = BinaryHelper.longToBytes(99L);
         bTreeLeaf.insert(key, key);
 
-        final long valueFound = bTreeLeaf.get(key);
+        final byte[] valueFound = bTreeLeaf.get(key);
 
-        assertEquals(key, valueFound);
+        assertArrayEquals(key, valueFound);
     }
 
     @Test
     void shouldGetNullForKeyNotFound()
     {
-        final long valueFound = bTreeLeaf.get(10L);
+        final byte[] valueFound = bTreeLeaf.get(BinaryHelper.longToBytes(10L));
 
-        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, valueFound);
+        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, valueFound);
     }
 
     /////////////////////////////////Split
@@ -212,7 +219,8 @@ class BTreeNodeLeafTest
         final int totalElements = 10;
         for (int i = 0; i < totalElements; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
         }
 
         assertEquals(totalElements, bTreeLeaf.getPairCount());
@@ -226,17 +234,19 @@ class BTreeNodeLeafTest
         assertEquals(at, bTreeLeaf.getPairCount());
         for (int i = 0; i < at; i++)
         {
-            assertEquals(i, bTreeLeaf.getKey(i));
-            assertEquals(i, bTreeLeaf.getValue(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+
+            assertArrayEquals(bytes, bTreeLeaf.getKey(i));
+            assertArrayEquals(bytes, bTreeLeaf.getValue(i));
         }
 
         assertEquals(at, newBtree.getPairCount());
         for (int i = 0; i < at; i++)
         {
-            final int key = i + at;
-            final int value = i + at;
-            assertEquals(key, newBtree.getKey(i));
-            assertEquals(value, newBtree.getValue(i));
+            final byte[] key = BinaryHelper.longToBytes(i + at);
+            final byte[] value = BinaryHelper.longToBytes(i + at);
+            assertArrayEquals(key, newBtree.getKey(i));
+            assertArrayEquals(value, newBtree.getValue(i));
         }
     }
 
@@ -247,7 +257,8 @@ class BTreeNodeLeafTest
         final int at = totalElements >> 1;
         for (int i = 0; i < totalElements; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
         }
 
         assertEquals(totalElements, bTreeLeaf.getPairCount());
@@ -259,18 +270,20 @@ class BTreeNodeLeafTest
         assertEquals(at, bTreeLeaf.getPairCount());
         for (int i = 0; i < at; i++)
         {
-            assertEquals(i, bTreeLeaf.getKey(i));
-            assertEquals(i, bTreeLeaf.getValue(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+
+            assertArrayEquals(bytes, bTreeLeaf.getKey(i));
+            assertArrayEquals(bytes, bTreeLeaf.getValue(i));
         }
 
         final int newBtreeSize = at + 1;
         assertEquals(newBtreeSize, newBtree.getPairCount());
         for (int i = 0; i < newBtreeSize; i++)
         {
-            final int key = i + at;
-            final int value = i + at;
-            assertEquals(key, newBtree.getKey(i));
-            assertEquals(value, newBtree.getValue(i));
+            final byte[] key = BinaryHelper.longToBytes(i + at);
+            final byte[] value = BinaryHelper.longToBytes(i + at);
+            assertArrayEquals(key, newBtree.getKey(i));
+            assertArrayEquals(value, newBtree.getValue(i));
         }
     }
 
@@ -279,7 +292,8 @@ class BTreeNodeLeafTest
     {
         for (int i = 0; i < 10; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
         }
 
         final BTreeNodeLeaf copy = new BTreeNodeLeaf(
@@ -291,13 +305,17 @@ class BTreeNodeLeafTest
 
         for (int i = 0; i < 10; i++)
         {
-            bTreeLeaf.insert(i, 99L);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+
+            bTreeLeaf.insert(bytes, BinaryHelper.longToBytes(99L));
         }
 
         for (int i = 0; i < 10; i++)
         {
-            assertEquals(i, copy.getKey(i));
-            assertEquals(i, copy.getValue(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+
+            assertArrayEquals(bytes, copy.getKey(i));
+            assertArrayEquals(bytes, copy.getValue(i));
         }
     }
 }

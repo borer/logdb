@@ -29,7 +29,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param key the key (may not be null)
      */
     @Override
-    public void remove(final long key)
+    public void remove(final byte[] key)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
         final @Version long newVersion = nextWriteVersion++;
@@ -49,7 +49,7 @@ public class BTreeImpl extends BTreeAbstract
             }
 
             final BTreeNodeHeap targetNode = nodesManager.copyNode(currentNode, newVersion);
-            targetNode.remove(index);
+            targetNode.removeAtIndex(index);
             updatePathToRoot(parentCursor, targetNode);
         }
     }
@@ -62,7 +62,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param value the value
      */
     @Override
-    public void put(final long key, final long value)
+    public void put(final byte[] key, final byte[] value)
     {
         final CursorPosition cursorPosition = getLastCursorPosition(key);
         final @Version long newVersion = nextWriteVersion++;
@@ -80,7 +80,7 @@ public class BTreeImpl extends BTreeAbstract
                 this.nodesCount++;
                 int keyCount = currentNode.getPairCount();
                 final int at = keyCount >> 1;
-                final long keyAt = currentNode.getKey(at);
+                final byte[] keyAt = currentNode.getKey(at);
                 final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at, newVersion);
 
                 if (parentCursor == null)
@@ -116,7 +116,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param version the version that we are interested. Must be &gt;= 0
      */
     @Override
-    public long get(final long key, final @Version long version)
+    public byte[] get(final byte[] key, final @Version long version)
     {
         assert version >= 0;
 
@@ -131,7 +131,7 @@ public class BTreeImpl extends BTreeAbstract
     }
 
     @Override
-    public long get(final long key)
+    public byte[] get(final byte[] key)
     {
         //TODO optimize, we don't need the whole path, just the end node.
         final CursorPosition cursorPosition = getLastCursorPosition(key);
@@ -142,7 +142,7 @@ public class BTreeImpl extends BTreeAbstract
     }
 
     @Override
-    public long getByTimestamp(final long key, final @Milliseconds long timestamp)
+    public byte[] getByTimestamp(final byte[] key, final @Milliseconds long timestamp)
     {
         assert timestamp >= 0;
 
@@ -160,7 +160,7 @@ public class BTreeImpl extends BTreeAbstract
      * Calls the consumer for all the key/value pairs in linear scan, from start to end.
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(final BiConsumer<Long, Long> consumer)
+    public void consumeAll(final BiConsumer<byte[], byte[]> consumer)
     {
         final RootReference rootReference = uncommittedRoot.get();
         if (rootReference != null)
@@ -202,7 +202,7 @@ public class BTreeImpl extends BTreeAbstract
      * @param version Version that we want to scan for
      * @param consumer A consumer that will accept the key/value pairs
      */
-    public void consumeAll(final @Version long version, final BiConsumer<Long, Long> consumer)
+    public void consumeAll(final @Version long version, final BiConsumer<byte[], byte[]> consumer)
     {
         assert version >= 0 : "version must be positive. Provided " + version;
 
@@ -275,7 +275,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final @PageNumber long nonLeafPageNumber)
+    private void consumeNonLeafNode(final BiConsumer<byte[], byte[]> consumer, final @PageNumber long nonLeafPageNumber)
     {
         assert nonLeafPageNumber > 0;
 
@@ -301,7 +301,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private void consumeNonLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNode nonLeaf)
+    private void consumeNonLeafNode(final BiConsumer<byte[], byte[]> consumer, final BTreeNode nonLeaf)
     {
         assert nonLeaf != null;
 
@@ -323,7 +323,7 @@ public class BTreeImpl extends BTreeAbstract
         }
     }
 
-    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final @PageNumber long leafPageNumber)
+    private void consumeLeafNode(final BiConsumer<byte[], byte[]> consumer, final @PageNumber long leafPageNumber)
     {
         assert leafPageNumber > 0;
 
@@ -334,23 +334,23 @@ public class BTreeImpl extends BTreeAbstract
             final int keyCount = mappedLeaf.getPairCount();
             for (int i = 0; i < keyCount; i++)
             {
-                final long key = mappedLeaf.getKey(i);
-                final long value = mappedLeaf.getValue(i);
+                final byte[] key = mappedLeaf.getKey(i);
+                final byte[] value = mappedLeaf.getValue(i);
 
                 consumer.accept(key, value);
             }
         }
     }
 
-    private void consumeLeafNode(final BiConsumer<Long, Long> consumer, final BTreeNode leaf)
+    private void consumeLeafNode(final BiConsumer<byte[], byte[]> consumer, final BTreeNode leaf)
     {
         assert leaf != null;
 
         final int keyCount = leaf.getPairCount();
         for (int i = 0; i < keyCount; i++)
         {
-            final long key = leaf.getKey(i);
-            final long value = leaf.getValue(i);
+            final byte[] key = leaf.getKey(i);
+            final byte[] value = leaf.getValue(i);
 
             consumer.accept(key, value);
         }

@@ -53,13 +53,13 @@ public final class KeyValueLogEmpty implements KeyValueLog
     }
 
     @Override
-    public byte[] getKeyBytesAtIndex(int index)
+    public byte[] getKeyAtIndex(int index)
     {
         throw new RuntimeException("Method not implemented.");
     }
 
     @Override
-    public byte[] getValueBytesAtIndex(int index)
+    public byte[] getValueAtIndex(int index)
     {
         throw new RuntimeException("Method not implemented.");
     }

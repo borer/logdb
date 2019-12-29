@@ -7,6 +7,7 @@ import org.logdb.bbtree.BTreeNodeLeaf;
 import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.DirectMemory;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
@@ -27,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -147,7 +149,8 @@ class FileStorageTest
 
             for (int i = 0; i < numKeys; i++)
             {
-                assertEquals(i, loadedLeaf.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedLeaf.get(bytes));
             }
         }
     }
@@ -194,7 +197,7 @@ class FileStorageTest
             assertEquals(version, loadedNonLeaf.getVersion());
             assertEquals(timestamp, loadedNonLeaf.getTimestamp());
 
-            final long pageNumberLeaf = loadedNonLeaf.getValue(0);
+            final long pageNumberLeaf = BinaryHelper.bytesToLong(loadedNonLeaf.getValue(0));
             final DirectMemory persistedMemoryLeaf = MemoryFactory.allocateDirect(PAGE_SIZE_BYTES, BYTE_ORDER);
             storage.mapPage(pageNumberLeaf, persistedMemoryLeaf);
 
@@ -206,7 +209,8 @@ class FileStorageTest
 
             for (int i = 0; i < numKeys; i++)
             {
-                assertEquals(i, loadedLeaf.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedLeaf.get(bytes));
             }
         }
     }

@@ -8,15 +8,15 @@ import java.io.IOException;
 
 public interface BTree extends AutoCloseable
 {
-    void remove(long key);
+    void remove(byte[] key);
 
-    void put(long key, long value);
+    void put(byte[] key, byte[] value);
 
-    long get(long key, @Version long version);
+    byte[] get(byte[] key, @Version long version);
 
-    long get(long key);
+    byte[] get(byte[] key);
 
-    long getByTimestamp(long key, @Milliseconds long timestamp);
+    byte[] getByTimestamp(byte[] key, @Milliseconds long timestamp);
 
     void commit() throws IOException;
 

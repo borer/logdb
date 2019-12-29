@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeHeap
 {
-    static final int NON_COMMITTED_CHILD = Integer.MIN_VALUE;
+    static final byte[] NON_COMMITTED_CHILD = BinaryHelper.longToBytes(Integer.MIN_VALUE);
 
     private BTreeNodeHeap[] children;
 
@@ -25,12 +25,6 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     {
         super(pageNumber, memory, maxLogSize, numberOfPairs);
         this.children = children;
-    }
-
-    @Override
-    public void insert(final long key, final long value)
-    {
-        insert(BinaryHelper.longToBytes(key), BinaryHelper.longToBytes(value));
     }
 
     @Override
@@ -68,15 +62,10 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     }
 
     @Override
-    public void insertChild(final int index, final long key, final BTreeNodeHeap child)
-    {
-        insertChild(index, BinaryHelper.longToBytes(key), child);
-    }
-
     public void insertChild(final int index, final byte[] key, final BTreeNodeHeap child)
     {
         //this will be replaced once we commit the child page
-        insertKeyAndValue(index, key, BinaryHelper.longToBytes(NON_COMMITTED_CHILD));
+        insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
         final int oldNumberOfPairs = numberOfPairs - 1;
 
         BTreeNodeHeap[] newChildren = new BTreeNodeHeap[numberOfPairs];
@@ -88,7 +77,7 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     }
 
     @Override
-    public void remove(final int index)
+    public void removeAtIndex(final int index)
     {
         final int keyCount = getPairCount();
 
@@ -115,23 +104,13 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     }
 
     @Override
-    public long get(final long key)
-    {
-        return BinaryHelper.bytesToLong(get(BinaryHelper.longToBytes(key)));
-    }
-
     public byte[] get(final byte[] key)
     {
         int index = getKeyIndex(key);
-        return getValueBytes(index);
+        return getValue(index);
     }
 
     @Override
-    public int getKeyIndex(final long key)
-    {
-        return getKeyIndex(BinaryHelper.longToBytes(key));
-    }
-
     public int getKeyIndex(final byte[] key)
     {
         int index = binarySearchNonLeaf(key) + 1;
@@ -176,7 +155,7 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         final BTreeNodeNonLeaf bTreeNodeLeaf = (BTreeNodeNonLeaf) splitNode;
         if (getNumberOfLogPairs() > 0)
         {
-            final byte[] keyAt = getKeyBytes(at);
+            final byte[] keyAt = getKey(at);
             splitLog(keyAt, bTreeNodeLeaf);
         }
 

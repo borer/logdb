@@ -39,7 +39,17 @@ public class StorageUnits
         return pageNumber;
     }
 
+    public static @PageNumber byte[] pageNumber(final byte[] pageNumber)
+    {
+        return pageNumber;
+    }
+
     public static @ByteOffset long offset(final long offset)
+    {
+        return offset;
+    }
+
+    public static @ByteOffset byte[] offset(final byte[] offset)
     {
         return offset;
     }

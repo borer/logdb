@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.LogDb;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.builder.LogDbBuilder;
 import org.logdb.storage.Version;
 import org.logdb.storage.file.FileStorageUtil;
@@ -58,7 +59,7 @@ abstract class LogDbBaseIntegrationTest
         final int numOfPairs = 10;
         for (int i = 0; i < numOfPairs; i++)
         {
-            final long key = (long)i;
+            final byte[] key = BinaryHelper.longToBytes(i);
             final String value = buildExpectedValue(i);
             final byte[] valueBytes = value.getBytes();
             logDB.put(key, valueBytes);
@@ -68,15 +69,16 @@ abstract class LogDbBaseIntegrationTest
         for (int i = 0; i < numOfPairs; i++)
         {
             final String expectedValue = buildExpectedValue(i);
-            final byte[] readBytes = logDB.get(i);
-            assertArrayEquals(expectedValue.getBytes(), readBytes);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            final byte[] value = logDB.get(key);
+            assertArrayEquals(expectedValue.getBytes(), value);
         }
     }
 
     @Test
     void shouldPersistsAndGetHistoricValuesFromDB() throws IOException
     {
-        final long key = 123123123L;
+        final byte[] key = BinaryHelper.longToBytes(123123123L);
         final int numOfPairs = 10;
         for (int i = 0; i < numOfPairs; i++)
         {
@@ -101,7 +103,7 @@ abstract class LogDbBaseIntegrationTest
         final int numOfPairs = 10;
         for (int i = 0; i < numOfPairs; i++)
         {
-            final long key = (long)i;
+            final byte[] key = BinaryHelper.longToBytes(i);
             final String value = buildExpectedValue(i);
             final byte[] valueBytes = value.getBytes();
             logDB.put(key, valueBytes);
@@ -110,12 +112,14 @@ abstract class LogDbBaseIntegrationTest
 
         for (int i = 0; i < numOfPairs; i++)
         {
-            logDB.delete(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            logDB.delete(key);
         }
 
         for (int i = 0; i < numOfPairs; i++)
         {
-            assertNull(logDB.get(i));
+            final byte[] key = BinaryHelper.longToBytes(i);
+            assertNull(logDB.get(key));
         }
     }
 
@@ -125,7 +129,7 @@ abstract class LogDbBaseIntegrationTest
         final int numOfPutPairs = 10;
         for (int i = 0; i < numOfPutPairs; i++)
         {
-            final long key = (long)i;
+            final byte[] key = BinaryHelper.longToBytes(i);
             final String value = buildExpectedValue(i);
             final byte[] valueBytes = value.getBytes();
             logDB.put(key, valueBytes);
@@ -135,7 +139,8 @@ abstract class LogDbBaseIntegrationTest
         final int numOfDeletePairs = 5;
         for (int i = 0; i < numOfDeletePairs; i++)
         {
-            logDB.delete(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            logDB.delete(key);
             logDB.commitIndex();
         }
 

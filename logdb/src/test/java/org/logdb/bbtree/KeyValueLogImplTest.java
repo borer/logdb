@@ -45,8 +45,8 @@ class KeyValueLogImplTest
         final byte[] valueBytes = "test".getBytes();
         keyValueLog.putKeyValue(0, keyBytes, valueBytes);
 
-        assertArrayEquals(keyBytes, keyValueLog.getKeyBytesAtIndex(0));
-        assertArrayEquals(valueBytes, keyValueLog.getValueBytesAtIndex(0));
+        assertArrayEquals(keyBytes, keyValueLog.getKeyAtIndex(0));
+        assertArrayEquals(valueBytes, keyValueLog.getValueAtIndex(0));
     }
 
     @Test
@@ -72,8 +72,8 @@ class KeyValueLogImplTest
         {
             final Pair pair = generateKeyValuePair(i);
 
-            assertArrayEquals(pair.key, keyValueLog.getKeyBytesAtIndex(i));
-            assertArrayEquals(pair.value, keyValueLog.getValueBytesAtIndex(i));
+            assertArrayEquals(pair.key, keyValueLog.getKeyAtIndex(i));
+            assertArrayEquals(pair.value, keyValueLog.getValueAtIndex(i));
         }
     }
 
@@ -115,7 +115,7 @@ class KeyValueLogImplTest
 
             final int expectedEntriesLeft = MAX_LOG_KEY_VALUES - (i + 1);
             final int totalCellsSize = expectedEntriesLeft * KeyValueLogImpl.CELL_SIZE;
-            usedBytes -= keyValueLog.getKeyBytesAtIndex(i).length + keyValueLog.getValueBytesAtIndex(i).length;
+            usedBytes -= keyValueLog.getKeyAtIndex(i).length + keyValueLog.getValueAtIndex(i).length;
             final int expectedUsedSize = usedBytes + totalCellsSize;
 
             assertTrue(keyValueLog.removeLogBytes(pair.key));
@@ -130,8 +130,8 @@ class KeyValueLogImplTest
             final int key = i + entriesToRemove;
             final Pair pair = generateKeyValuePair(key);
 
-            assertArrayEquals(pair.key, keyValueLog.getKeyBytesAtIndex(i));
-            assertArrayEquals(pair.value, keyValueLog.getValueBytesAtIndex(i));
+            assertArrayEquals(pair.key, keyValueLog.getKeyAtIndex(i));
+            assertArrayEquals(pair.value, keyValueLog.getValueAtIndex(i));
         }
     }
 
@@ -258,8 +258,8 @@ class KeyValueLogImplTest
 
         generateKeyValuePairs(MAX_LOG_KEY_VALUES, (index, pair) ->
         {
-            assertArrayEquals(pair.key, spillLog.getKeyBytesAtIndex(index));
-            assertArrayEquals(pair.value, spillLog.getValueBytesAtIndex(index));
+            assertArrayEquals(pair.key, spillLog.getKeyAtIndex(index));
+            assertArrayEquals(pair.value, spillLog.getValueAtIndex(index));
         });
 
         assertEquals(MAX_LOG_KEY_VALUES, spillLog.getNumberOfPairs());
@@ -279,7 +279,7 @@ class KeyValueLogImplTest
         final int splitIndex = 5;
         final int expectedPairsInOriginal = 6;
         final int expectedPairsInSplit = 4;
-        final byte[] splitKey = keyValueLog.getKeyBytesAtIndex(splitIndex);
+        final byte[] splitKey = keyValueLog.getKeyAtIndex(splitIndex);
         keyValueLog.splitLog(splitKey, splitLog);
 
         assertEquals(expectedPairsInOriginal, keyValueLog.getNumberOfPairs());
@@ -313,16 +313,16 @@ class KeyValueLogImplTest
         final int splitIndex = 5;
         final int expectedPairsInOriginal = 6;
         final int expectedPairsInSplit = 5;
-        final byte[] splitKey = keyValueLog.getKeyBytesAtIndex(splitIndex);
+        final byte[] splitKey = keyValueLog.getKeyAtIndex(splitIndex);
 
         for (int i = 0; i < expectedPairsInOriginal; i++)
         {
-            pairsOriginal.add(new Pair(keyValueLog.getKeyBytesAtIndex(i), keyValueLog.getValueBytesAtIndex(i)));
+            pairsOriginal.add(new Pair(keyValueLog.getKeyAtIndex(i), keyValueLog.getValueAtIndex(i)));
         }
         for (int i = 0; i < expectedPairsInSplit; i++)
         {
             final int index = expectedPairsInOriginal + i;
-            pairsSplit.add(new Pair(keyValueLog.getKeyBytesAtIndex(index), keyValueLog.getValueBytesAtIndex(index)));
+            pairsSplit.add(new Pair(keyValueLog.getKeyAtIndex(index), keyValueLog.getValueAtIndex(index)));
         }
 
         keyValueLog.splitLog(splitKey, splitLog);

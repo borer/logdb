@@ -49,19 +49,19 @@ class BTreeImplTest
     @Test
     void shouldBeAbleToGetElementsFromPast()
     {
-        final long key = 5L;
-        final long expectedValue1 = 1L;
-        final long expectedValue2 = 2L;
-        final long expectedValue3 = 3L;
+        final byte[] key = BinaryHelper.longToBytes(5L);
+        final byte[] expectedValue1 = BinaryHelper.longToBytes(1L);
+        final byte[] expectedValue2 = BinaryHelper.longToBytes(2L);
+        final byte[] expectedValue3 = BinaryHelper.longToBytes(3L);
 
         bTree.put(key, expectedValue1);
         bTree.put(key, expectedValue2);
         bTree.put(key, expectedValue3);
 
         //index for history is 0 based
-        assertEquals(expectedValue1, bTree.get(key, 0));
-        assertEquals(expectedValue2, bTree.get(key, 1));
-        assertEquals(expectedValue3, bTree.get(key, 2));
+        assertArrayEquals(expectedValue1, bTree.get(key, 0));
+        assertArrayEquals(expectedValue2, bTree.get(key, 1));
+        assertArrayEquals(expectedValue3, bTree.get(key, 2));
 
         try
         {
@@ -74,8 +74,8 @@ class BTreeImplTest
         }
 
         //get latest version by default
-        final long actualLatest = bTree.get(key);
-        assertEquals(expectedValue3, actualLatest);
+        final byte[] actualLatest = bTree.get(key);
+        assertArrayEquals(expectedValue3, actualLatest);
     }
 
     @Test
@@ -84,12 +84,14 @@ class BTreeImplTest
         final int maxElements = 600;
         for (long i = 0; i < maxElements; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         for (long i = 0; i < maxElements; i++)
         {
-            assertEquals(i, bTree.get(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, bTree.get(bytes));
         }
     }
 
@@ -99,14 +101,15 @@ class BTreeImplTest
         final List<byte[]> expectedOrder = new ArrayList<>();
         for (long i = 0; i < 500; i++)
         {
-            expectedOrder.add(BinaryHelper.longToBytes(i));
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            expectedOrder.add(bytes);
+            bTree.put(bytes, bytes);
         }
 
         expectedOrder.sort(ByteArrayComparator.INSTANCE);
 
         final LinkedList<byte[]> actualOrder = new LinkedList<>();
-        bTree.consumeAll((key, value) -> actualOrder.addLast(BinaryHelper.longToBytes(key)));
+        bTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
         assertEquals(expectedOrder.size(), actualOrder.size());
 
@@ -123,18 +126,19 @@ class BTreeImplTest
         final int version = 400;
         for (long i = 0; i < 500; i++)
         {
+            final byte[] bytes = BinaryHelper.longToBytes(i);
             if (i <= version)
             {
-                expectedOrder.add(BinaryHelper.longToBytes(i));
+                expectedOrder.add(bytes);
             }
 
-            bTree.put(i, i);
+            bTree.put(bytes, bytes);
         }
 
         expectedOrder.sort(ByteArrayComparator.INSTANCE);
 
         final LinkedList<byte[]> actualOrder = new LinkedList<>();
-        bTree.consumeAll(version, (key, value) -> actualOrder.addLast(BinaryHelper.longToBytes(key)));
+        bTree.consumeAll(version, (key, value) -> actualOrder.addLast(key));
 
         assertEquals(expectedOrder.size(), actualOrder.size());
 
@@ -150,12 +154,14 @@ class BTreeImplTest
         final int size = 600;
         for (int i = 0; i < size; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         for (int i = 0; i < size; i++)
         {
-            bTree.remove(i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.remove(bytes);
         }
 
         assertEquals(1L, bTree.getNodesCount());
@@ -166,7 +172,8 @@ class BTreeImplTest
     {
         for (int i = 0; i < 600; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         final String expectedTree = "digraph g {\n" +

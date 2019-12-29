@@ -1,6 +1,9 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.BinaryHelper;
 import org.logdb.storage.PageNumber;
+
+import java.util.Arrays;
 
 //TODO: extract into a visitor pattern
 public class BTreePrinter
@@ -80,9 +83,9 @@ public class BTreePrinter
 
         for (int i = 0; i < node.numberOfPairs; i++)
         {
-            final long key = node.getKey(i);
-            final long value = node.getValue(i);
-            printer.append(String.format(" <%d> |%d| ", key, value));
+            final byte[] key = node.getKey(i);
+            final byte[] value = node.getValue(i);
+            printer.append(String.format(" <%s> |%s| ", getReadableString(key), getReadableString(value)));
         }
 
         printer.append("\"];\n");
@@ -102,13 +105,16 @@ public class BTreePrinter
             printer.append("{ log | {");
             for (int i = 0; i < node.getNumberOfLogPairs(); i++)
             {
+                final byte[] logKey = node.getLogKey(i);
+                final byte[] logValue = node.getLogValueAtIndex(i);
+
                 if (i + 1 < node.getNumberOfLogPairs())
                 {
-                    printer.append(String.format(" %s-%s | ", node.getLogKey(i), node.getLogValueAtIndex(i)));
+                    printer.append(String.format(" %s-%s | ", getReadableString(logKey), getReadableString(logValue)));
                 }
                 else
                 {
-                    printer.append(String.format(" %s-%s ", node.getLogKey(i), node.getLogValueAtIndex(i)));
+                    printer.append(String.format(" %s-%s ", getReadableString(logKey), getReadableString(logValue)));
                 }
             }
             printer.append("}}|");
@@ -116,9 +122,9 @@ public class BTreePrinter
 
         for (int i = 0; i < rightmostIndex; i++)
         {
-            final long key = node.getKey(i);
+            final byte[] key = node.getKey(i);
             final String childId = getPageUniqueId(i, node);
-            printer.append(String.format(" <%s> |%d| ", childId, key));
+            printer.append(String.format(" <%s> |%s| ", childId, getReadableString(key)));
         }
         printer.append(" <lastChild> |Ls ");
         printer.append("\"];\n");
@@ -146,8 +152,20 @@ public class BTreePrinter
     private static String getPageUniqueId(final int index, BTreeNode node)
     {
         return String.valueOf(
-                node.getValue(index) == BTreeNodeNonLeaf.NON_COMMITTED_CHILD
-                ? node.getChildAt(index).getPageNumber()
-                : node.getValue(index));
+                Arrays.equals(node.getValue(index), BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
+                        ? node.getChildAt(index).getPageNumber()
+                        : getReadableString(node.getValue(index)));
+    }
+
+    private static String getReadableString(final byte[] array)
+    {
+        if (array.length == Long.BYTES)
+        {
+            return String.valueOf(BinaryHelper.bytesToLong(array));
+        }
+        else
+        {
+            return new String(array);
+        }
     }
 }

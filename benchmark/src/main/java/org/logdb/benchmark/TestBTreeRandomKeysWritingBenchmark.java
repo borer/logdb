@@ -3,6 +3,7 @@ package org.logdb.benchmark;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.checksum.ChecksumType;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.StorageUnits;
@@ -43,6 +44,7 @@ public class TestBTreeRandomKeysWritingBenchmark
         private NodesManager nodesManager;
         private BTree btree;
         private Random random;
+        private byte[] longBuffer;
 
         @Setup(Level.Trial)
         public void doSetup() throws IOException
@@ -74,6 +76,7 @@ public class TestBTreeRandomKeysWritingBenchmark
                     StorageUnits.INVALID_PAGE_NUMBER,
                     createInitialRootReference(nodesManager));
             random = new Random();
+            longBuffer = new byte[Long.BYTES];
         }
 
         @TearDown(Level.Trial)
@@ -85,7 +88,8 @@ public class TestBTreeRandomKeysWritingBenchmark
 
         void putKeyValue()
         {
-            btree.put(random.nextLong(), random.nextLong());
+            BinaryHelper.longToBytes(random.nextLong(), longBuffer);
+            btree.put(longBuffer, longBuffer);
         }
 
         void commit()

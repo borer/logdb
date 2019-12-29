@@ -190,12 +190,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public long getKey(final int index)
-    {
-        return BinaryHelper.bytesToLong(getKeyBytes(index));
-    }
-
-    public byte[] getKeyBytes(final int index)
+    public byte[] getKey(final int index)
     {
         final @ByteOffset short keyOffset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(index)));
         final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(index)));
@@ -212,12 +207,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
      * @param index Index inside the btree leaf
      * @return The value or null if it doesn't exist
      */
-    public long getValue(final int index)
-    {
-        return BinaryHelper.bytesToLong(getValueBytes(index));
-    }
-
-    public byte[] getValueBytes(final int index)
+    @Override
+    public byte[] getValue(final int index)
     {
         final short keyOffset = buffer.getShort(getCellIndexOffset(index));
         final short keyLength = buffer.getShort(getCellIndexKeyLength(index));
@@ -232,13 +223,13 @@ abstract class BTreeNodeAbstract implements BTreeNode
     }
 
     @Override
-    public long getMinKey()
+    public byte[] getMinKey()
     {
         return getKey(0);
     }
 
     @Override
-    public long getMaxKey()
+    public byte[] getMaxKey()
     {
         return getKey(numberOfPairs - 1);
     }
@@ -375,7 +366,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
 
             bNode.insert(key, value);
 
-            remove(index);
+            removeAtIndex(index);
         }
 
         recalculateFreeSpaceLeft();
@@ -540,32 +531,14 @@ abstract class BTreeNodeAbstract implements BTreeNode
         }
     }
 
-    int binarySearch(final long key)
-    {
-        return binarySearch(BinaryHelper.longToBytes(key));
-    }
-
     int binarySearch(final byte[] key)
     {
-        return SearchUtils.binarySearch(
-                key,
-                numberOfPairs,
-                this::getKeyBytes,
-                ByteArrayComparator.INSTANCE);
-    }
-
-    int binarySearchNonLeaf(final long key)
-    {
-        return binarySearchNonLeaf(BinaryHelper.longToBytes(key));
+        return SearchUtils.binarySearch(key, numberOfPairs, this::getKey, ByteArrayComparator.INSTANCE);
     }
 
     int binarySearchNonLeaf(final byte[] key)
     {
-        return SearchUtils.binarySearch(
-                key,
-                numberOfPairs - 1,
-                this::getKeyBytes,
-                ByteArrayComparator.INSTANCE);
+        return SearchUtils.binarySearch(key, numberOfPairs - 1, this::getKey, ByteArrayComparator.INSTANCE);
     }
 
     @Override
@@ -597,7 +570,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
             }
             else
             {
-                contentBuilder.append(new String(getKeyBytes(i), utf8));
+                contentBuilder.append(new String(getKey(i), utf8));
                 if (i + 1 != numberOfPairs)
                 {
                     contentBuilder.append(",");
@@ -607,7 +580,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
         contentBuilder.append(" values : ");
         for (int i = 0; i < numberOfPairs; i++)
         {
-            contentBuilder.append(new String(getValueBytes(i), utf8));
+            contentBuilder.append(new String(getValue(i), utf8));
             if (i + 1 != numberOfPairs)
             {
                 contentBuilder.append(",");
@@ -629,8 +602,8 @@ abstract class BTreeNodeAbstract implements BTreeNode
             contentBuilder.append("KeyValueEntries : ");
             for (int i = 0; i < numberOfPairs; i++)
             {
-                final byte[] keyBytes = getKeyBytes(i);
-                final byte[] valueBytes = getValueBytes(i);
+                final byte[] keyBytes = getKey(i);
+                final byte[] valueBytes = getValue(i);
 
                 final String keyLong = keyBytes.length == LONG_BYTES_SIZE
                         ? String.format("(%d)", BinaryHelper.bytesToLong(keyBytes))

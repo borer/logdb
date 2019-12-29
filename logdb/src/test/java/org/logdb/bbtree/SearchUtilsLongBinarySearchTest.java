@@ -95,7 +95,7 @@ class SearchUtilsLongBinarySearchTest
     @Test
     void shouldFindLessThanOrEqualBeforeAllElements()
     {
-        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, SearchUtils.binarySearchLessOrEqual(-1, keys.length, keySupplier));
+        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND, SearchUtils.binarySearchLessOrEqual(-1, keys.length, keySupplier));
     }
 
     static final class MyKeyIndexSupplier implements

@@ -37,7 +37,7 @@ class BTreeNodeNonLeafTest
     {
         final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(10, 0, new IdSupplier(0));
 
-        bTreeNonLeaf.insertChild(0, 0, bTreeNode);
+        bTreeNonLeaf.insertChild(0, BinaryHelper.longToBytes(0), bTreeNode);
     }
 
     @Test
@@ -46,12 +46,14 @@ class BTreeNodeNonLeafTest
         final int maxLogKeyValues = 6;
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            bTreeNonLeaf.insertLog(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeNonLeaf.insertLog(bytes, bytes);
         }
 
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            assertEquals(i, bTreeNonLeaf.getLogValueAtIndex(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, bTreeNonLeaf.getLogValueAtIndex(i));
         }
     }
 
@@ -61,11 +63,11 @@ class BTreeNodeNonLeafTest
         final int maxLogKeyValues = 6;
         generateKeyValuePairs(maxLogKeyValues, (index, pair) -> bTreeNonLeaf.insertLog(pair.key, pair.value));
 
-        generateKeyValuePairs(maxLogKeyValues, (index, pair) -> bTreeNonLeaf.removeLogBytes(pair.key));
+        generateKeyValuePairs(maxLogKeyValues, (index, pair) -> bTreeNonLeaf.removeLog(pair.key));
 
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            assertEquals(-1, bTreeNonLeaf.binarySearchInLog(i));
+            assertEquals(-1, bTreeNonLeaf.binarySearchInLog(BinaryHelper.longToBytes(i)));
         }
     }
 
@@ -77,7 +79,7 @@ class BTreeNodeNonLeafTest
         final int maxLogKeyValues = 10;
         for (int i = 0; i < maxLogKeyValues; i++)
         {
-            bTreeNonLeaf.removeLog(i);
+            bTreeNonLeaf.removeLog(BinaryHelper.longToBytes(i));
         }
 
         assertEquals(0, bTreeNonLeaf.getNumberOfLogPairs());
@@ -87,18 +89,18 @@ class BTreeNodeNonLeafTest
     void shouldTryToGetKeyForRightMostChild()
     {
         final int key = 5;
-        final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(5, key, new IdSupplier(key));
-
-        bTreeNonLeaf.insertChild(0, key, bTreeNode);
-
         final byte[] expectedInsertedChildKey = BinaryHelper.longToBytes(key);
         final byte[] expectedRightmostChildKey = new byte[0];
 
-        assertArrayEquals(expectedInsertedChildKey, bTreeNonLeaf.getKeyBytes(0));
-        assertEquals(NON_COMMITTED_CHILD, BinaryHelper.bytesToLong(bTreeNonLeaf.getValueBytes(0)));
+        final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(5, key, new IdSupplier(key));
 
-        assertArrayEquals(expectedRightmostChildKey, bTreeNonLeaf.getKeyBytes(1));
-        assertEquals(NON_COMMITTED_CHILD, BinaryHelper.bytesToLong(bTreeNonLeaf.getValueBytes(1)));
+        bTreeNonLeaf.insertChild(0, expectedInsertedChildKey, bTreeNode);
+
+        assertArrayEquals(expectedInsertedChildKey, bTreeNonLeaf.getKey(0));
+        assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(0));
+
+        assertArrayEquals(expectedRightmostChildKey, bTreeNonLeaf.getKey(1));
+        assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(1));
     }
 
     @Test
@@ -109,12 +111,13 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
+            final byte[] keyBytes = BinaryHelper.longToBytes(key);
             final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
             final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
 
-            bTreeNonLeaf.insertChild(i, key, bTreeNode);
+            bTreeNonLeaf.insertChild(i, keyBytes, bTreeNode);
 
             final int expectedPairs = i + 2;// +1 to convert index to number of and + 1 to account to the rightmost pair
             assertEquals(expectedPairs, bTreeNonLeaf.getPairCount());
@@ -126,12 +129,12 @@ class BTreeNodeNonLeafTest
             // the first value when crete bTreeNonLeaf is 0
             if (i == 10)
             {
-                assertArrayEquals(new byte[0], bTreeNonLeaf.getKeyBytes(i));
+                assertArrayEquals(new byte[0], bTreeNonLeaf.getKey(i));
             }
             else
             {
-                final int expectedValue = numKeysPerChild * i;
-                assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
+                final byte[] expectedValue = BinaryHelper.longToBytes(numKeysPerChild * i);
+                assertArrayEquals(expectedValue, bTreeNonLeaf.getKey(i));
             }
         }
     }
@@ -144,18 +147,19 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
+            final byte[] keyBytes = BinaryHelper.longToBytes(key);
             final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
             final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
 
-            bTreeNonLeaf.insertChild(i, key, bTreeNode);
+            bTreeNonLeaf.insertChild(i, keyBytes, bTreeNode);
 
             assertEquals(expectedFreeSize, bTreeNonLeaf.calculateFreeSpaceLeft(BIG_PAGE_SIZE_BYTES));
         }
 
         assertEquals(11, bTreeNonLeaf.getPairCount());
-        bTreeNonLeaf.remove(9); //remove last key item
+        bTreeNonLeaf.removeAtIndex(9); //remove last key item
         assertEquals(10, bTreeNonLeaf.getPairCount());
 
         usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
@@ -164,13 +168,13 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < 9; i++)
         {
-            final int expectedValue = numKeysPerChild * i;
-            assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
-            assertEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(i));
+            final byte[] expectedValue = BinaryHelper.longToBytes(numKeysPerChild * i);
+            assertArrayEquals(expectedValue, bTreeNonLeaf.getKey(i));
+            assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(i));
         }
-        assertEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(9));
+        assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(9));
 
-        bTreeNonLeaf.remove(2);
+        bTreeNonLeaf.removeAtIndex(2);
         assertEquals(9, bTreeNonLeaf.getPairCount());
 
         usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
@@ -179,10 +183,10 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < 8; i++)
         {
-            final int expectedValue = numKeysPerChild * ((i >= 2) ? i + 1 : i);
-            assertEquals(expectedValue, bTreeNonLeaf.getKey(i));
+            final byte[] expectedValue = BinaryHelper.longToBytes(numKeysPerChild * ((i >= 2) ? i + 1 : i));
+            assertArrayEquals(expectedValue, bTreeNonLeaf.getKey(i));
         }
-        assertEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(8));
+        assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(8));
     }
 
     @Test
@@ -190,7 +194,7 @@ class BTreeNodeNonLeafTest
     {
         try
         {
-            bTreeNonLeaf.remove(0);
+            bTreeNonLeaf.removeAtIndex(0);
         }
         catch (final AssertionError e)
         {
@@ -283,9 +287,10 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < 10; i++)
         {
             final int key = numKeysPerChild * i;
+            final byte[] keyBytes = BinaryHelper.longToBytes(numKeysPerChild * i);
             final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
-            bTreeNonLeaf.insertChild(i, key, bTreeNode);
+            bTreeNonLeaf.insertChild(i, keyBytes, bTreeNode);
 
             final int expectedPairs = i + 2;// +1 to convert index to number of and + 1 to account to the rightmost pair
             assertEquals(expectedPairs, bTreeNonLeaf.getPairCount());
@@ -304,16 +309,17 @@ class BTreeNodeNonLeafTest
         bTreeNonLeaf.copy(copy);
 
         final int key = numKeysPerChild * 10;
+        final byte[] keyBytes = BinaryHelper.longToBytes(key);
         final BTreeNodeLeaf child = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
-        bTreeNonLeaf.insertChild(8, key, child);
+        bTreeNonLeaf.insertChild(8, keyBytes, child);
 
         assertEquals(12, bTreeNonLeaf.getPairCount());
         assertEquals(11, copy.getPairCount());
 
         generateKeyValuePairs(maxLogKeyValuePairs, (i, pair) ->
         {
-            assertArrayEquals(pair.key, copy.getLogKeyBytes(i));
-            assertArrayEquals(pair.value, copy.getLogValueAtIndexBytes(i));
+            assertArrayEquals(pair.key, copy.getLogKey(i));
+            assertArrayEquals(pair.value, copy.getLogValueAtIndex(i));
         });
     }
 
@@ -323,7 +329,8 @@ class BTreeNodeNonLeafTest
         long maxLogKeyValuePairs = 0L;
         while (bTreeNonLeaf.logHasFreeSpace(2 * Long.BYTES))
         {
-            bTreeNonLeaf.insertLog(maxLogKeyValuePairs, maxLogKeyValuePairs);
+            final byte[] bytes = BinaryHelper.longToBytes(maxLogKeyValuePairs);
+            bTreeNonLeaf.insertLog(bytes, bytes);
             maxLogKeyValuePairs++;
         }
 
@@ -337,8 +344,9 @@ class BTreeNodeNonLeafTest
 
         for (int i = 0; i < maxLogKeyValuePairs; i++)
         {
-            assertEquals(i, keyValueLog.getKeyAtIndex(i));
-            assertEquals(i, keyValueLog.getValueAtIndex(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, keyValueLog.getKeyAtIndex(i));
+            assertArrayEquals(bytes, keyValueLog.getValueAtIndex(i));
         }
     }
 
@@ -373,15 +381,15 @@ class BTreeNodeNonLeafTest
 
             if (i == childrenToInsert)
             {
-                assertArrayEquals(new byte[0], bTreeNonLeaf.getKeyBytes(i));
+                assertArrayEquals(new byte[0], bTreeNonLeaf.getKey(i));
             }
             else
             {
                 final KeyValueUtils.Pair pair = generateKeyValuePair(expectedValue);
-                assertArrayEquals(pair.key, bTreeNonLeaf.getKeyBytes(i));
+                assertArrayEquals(pair.key, bTreeNonLeaf.getKey(i));
             }
 
-            assertArrayEquals(BinaryHelper.longToBytes(NON_COMMITTED_CHILD), bTreeNonLeaf.getValueBytes(i));
+            assertArrayEquals(NON_COMMITTED_CHILD, bTreeNonLeaf.getValue(i));
         }
     }
 
@@ -421,22 +429,22 @@ class BTreeNodeNonLeafTest
         final List<KeyValueUtils.Pair> pairsLogSplit = new ArrayList<>();
         for (int i = 0; i < expectedPairsInCurrent; i++)
         {
-            pairsCurrent.add(new KeyValueUtils.Pair(bTreeNonLeaf.getKeyBytes(i), bTreeNonLeaf.getValueBytes(i)));
+            pairsCurrent.add(new KeyValueUtils.Pair(bTreeNonLeaf.getKey(i), bTreeNonLeaf.getValue(i)));
         }
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
-            pairsLogCurrent.add(new KeyValueUtils.Pair(bTreeNonLeaf.getLogKeyBytes(i), bTreeNonLeaf.getLogValueAtIndexBytes(i)));
+            pairsLogCurrent.add(new KeyValueUtils.Pair(bTreeNonLeaf.getLogKey(i), bTreeNonLeaf.getLogValueAtIndex(i)));
         }
 
         for (int i = 0; i < expectedPairsInSplit; i++)
         {
             final int index = i + expectedPairsInCurrent;
-            pairsSplit.add(new KeyValueUtils.Pair(bTreeNonLeaf.getKeyBytes(index), bTreeNonLeaf.getValueBytes(index)));
+            pairsSplit.add(new KeyValueUtils.Pair(bTreeNonLeaf.getKey(index), bTreeNonLeaf.getValue(index)));
         }
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final int index = i + expectedLogKeysInCurrent;
-            pairsLogSplit.add(new KeyValueUtils.Pair(bTreeNonLeaf.getLogKeyBytes(index), bTreeNonLeaf.getLogValueAtIndexBytes(index)));
+            pairsLogSplit.add(new KeyValueUtils.Pair(bTreeNonLeaf.getLogKey(index), bTreeNonLeaf.getLogValueAtIndex(index)));
         }
 
         final int at = pairsToInsert >> 1;
@@ -457,36 +465,36 @@ class BTreeNodeNonLeafTest
         for (int i = 0; i < expectedKeysInCurrent; i++)
         {
             final KeyValueUtils.Pair pair = pairsCurrent.get(i);
-            assertArrayEquals(pair.key, bTreeNonLeaf.getKeyBytes(i));
-            assertArrayEquals(pair.value, bTreeNonLeaf.getValueBytes(i));
+            assertArrayEquals(pair.key, bTreeNonLeaf.getKey(i));
+            assertArrayEquals(pair.value, bTreeNonLeaf.getValue(i));
         }
-        assertArrayEquals(new byte[0], bTreeNonLeaf.getKeyBytes(expectedKeysInCurrent));
-        assertArrayEquals(pairsCurrent.get(expectedKeysInCurrent).value, bTreeNonLeaf.getValueBytes(expectedKeysInCurrent));
+        assertArrayEquals(new byte[0], bTreeNonLeaf.getKey(expectedKeysInCurrent));
+        assertArrayEquals(pairsCurrent.get(expectedKeysInCurrent).value, bTreeNonLeaf.getValue(expectedKeysInCurrent));
 
         //find the log key/values in current
         for (int i = 0; i < expectedLogKeysInCurrent; i++)
         {
             final KeyValueUtils.Pair pair = pairsLogCurrent.get(i);
-            assertArrayEquals(pair.key, bTreeNonLeaf.getLogKeyBytes(i));
-            assertArrayEquals(pair.value, bTreeNonLeaf.getLogValueAtIndexBytes(i));
+            assertArrayEquals(pair.key, bTreeNonLeaf.getLogKey(i));
+            assertArrayEquals(pair.value, bTreeNonLeaf.getLogValueAtIndex(i));
         }
 
         ////////////////find the key/values in split
         for (int i = 0; i < expectedKeysInSplit; i++)
         {
             final KeyValueUtils.Pair pair = pairsSplit.get(i);
-            assertArrayEquals(pair.key, split.getKeyBytes(i));
-            assertArrayEquals(pair.value, split.getValueBytes(i));
+            assertArrayEquals(pair.key, split.getKey(i));
+            assertArrayEquals(pair.value, split.getValue(i));
         }
-        assertArrayEquals(new byte[0], split.getKeyBytes(expectedKeysInSplit));
-        assertArrayEquals(pairsSplit.get(expectedKeysInSplit).value, split.getValueBytes(expectedKeysInSplit));
+        assertArrayEquals(new byte[0], split.getKey(expectedKeysInSplit));
+        assertArrayEquals(pairsSplit.get(expectedKeysInSplit).value, split.getValue(expectedKeysInSplit));
 
         //find the log key/values in current
         for (int i = 0; i < expectedLogKeysInSplit; i++)
         {
             final KeyValueUtils.Pair pair = pairsLogSplit.get(i);
-            assertArrayEquals(pair.key, split.getLogKeyBytes(i));
-            assertArrayEquals(pair.value, split.getLogValueAtIndexBytes(i));
+            assertArrayEquals(pair.key, split.getLogKey(i));
+            assertArrayEquals(pair.value, split.getLogValueAtIndex(i));
         }
     }
 }

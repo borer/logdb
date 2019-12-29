@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryCopy;
 import org.logdb.storage.ByteSize;
@@ -21,26 +20,21 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public long get(final long key)
-    {
-        return BinaryHelper.bytesToLong(get(BinaryHelper.longToBytes(key)));
-    }
-
     public byte[] get(final byte[] key)
     {
         final int index = binarySearch(key);
         if (index < 0)
         {
-            return BinaryHelper.longToBytes(KEY_NOT_FOUND_VALUE);
+            return KEY_NOT_FOUND_VALUE;
         }
 
-        return getValueBytes(index);
+        return getValue(index);
     }
 
     @Override
-    public int getKeyIndex(final long key)
+    public int getKeyIndex(final byte[] key)
     {
-        final int index = binarySearch(BinaryHelper.longToBytes(key));
+        final int index = binarySearch(key);
         if (index < 0)
         {
             //TODO: make this return KEY_NOT_FOUND_VALUE instead of min_value
@@ -84,7 +78,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public void remove(final int index)
+    public void removeAtIndex(final int index)
     {
         final int keyCount = getPairCount();
 
@@ -94,12 +88,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         removeKeyAndValueWithCell(index, keyCount);
 
         setDirty();
-    }
-
-    @Override
-    public void insert(final long key, final long value)
-    {
-        insert(BinaryHelper.longToBytes(key), BinaryHelper.longToBytes(value));
     }
 
     @Override
@@ -149,7 +137,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public void insertChild(final int index, final long key, final BTreeNodeHeap child)
+    public void insertChild(final int index, final byte[] key, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Leaf nodes don't have children.");
     }

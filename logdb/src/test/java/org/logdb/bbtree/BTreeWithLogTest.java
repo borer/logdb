@@ -2,6 +2,7 @@ package org.logdb.bbtree;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
@@ -9,6 +10,7 @@ import org.logdb.storage.memory.MemoryStorage;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
@@ -45,7 +47,8 @@ class BTreeWithLogTest
     {
         for (long i = 0; i < 10; i++)
         {
-            assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(bytes));
         }
     }
 
@@ -53,14 +56,17 @@ class BTreeWithLogTest
     void shouldBeAbleToRetrievePastVersionsForElementsWithLog()
     {
         final long key = 123L;
+        final byte[] keyBytes = BinaryHelper.longToBytes(key);
         for (long i = 0; i < 200; i++)
         {
-            bTree.put(key, i);
+            final byte[] value = BinaryHelper.longToBytes(i);
+            bTree.put(keyBytes, value);
         }
 
         for (long i = 0; i < 200; i++)
         {
-            assertEquals(i, bTree.get(key, (int)i));
+            final byte[] value = BinaryHelper.longToBytes(i);
+            assertArrayEquals(value, bTree.get(keyBytes, (int)i));
         }
     }
 
@@ -69,7 +75,8 @@ class BTreeWithLogTest
     {
         for (long i = 0; i < 600; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         final String expectedTree = "digraph g {\n" +
@@ -314,31 +321,33 @@ class BTreeWithLogTest
         final int size = 500;
         for (long i = 0; i < size; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         for (long i = 0; i < size; i++)
         {
-            assertEquals(i, bTree.get(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+             assertArrayEquals(bytes, bTree.get(bytes));
         }
     }
 
     @Test
     void shouldBeAbleToGetElementsFromPast()
     {
-        final long key = 5L;
-        final long expectedValue1 = 1L;
-        final long expectedValue2 = 2L;
-        final long expectedValue3 = 3L;
+        final byte[] key = BinaryHelper.longToBytes(5L);
+        final byte[] expectedValue1 = BinaryHelper.longToBytes(1L);
+        final byte[] expectedValue2 = BinaryHelper.longToBytes(2L);
+        final byte[] expectedValue3 = BinaryHelper.longToBytes(3L);
 
         bTree.put(key, expectedValue1);
         bTree.put(key, expectedValue2);
         bTree.put(key, expectedValue3);
 
         //index for history is 0 based
-        assertEquals(expectedValue1, bTree.get(key, 0));
-        assertEquals(expectedValue2, bTree.get(key, 1));
-        assertEquals(expectedValue3, bTree.get(key, 2));
+        assertArrayEquals(expectedValue1, bTree.get(key, 0));
+        assertArrayEquals(expectedValue2, bTree.get(key, 1));
+        assertArrayEquals(expectedValue3, bTree.get(key, 2));
 
         try
         {
@@ -351,8 +360,8 @@ class BTreeWithLogTest
         }
 
         //get latest version by default
-        final long actualLatest = bTree.get(key);
-        assertEquals(expectedValue3, actualLatest);
+        final byte[] actualLatest = bTree.get(key);
+        assertArrayEquals(expectedValue3, actualLatest);
     }
 
     @Test
@@ -363,27 +372,32 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithoutFalsePositives(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            bTree.removeWithoutFalsePositives(key);
         }
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        bTree.removeWithoutFalsePositives(200);
-        bTree.removeWithoutFalsePositives(-20);
+        final byte[] key200 = BinaryHelper.longToBytes(200);
+        final byte[] keyMinus20 = BinaryHelper.longToBytes(-20);
+        bTree.removeWithoutFalsePositives(key200);
+        bTree.removeWithoutFalsePositives(keyMinus20);
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(200));
-        assertEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(-20));
+        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(key200));
+        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(keyMinus20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            assertEquals(i, bTree.get(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, bTree.get(bytes));
         }
     }
 
@@ -393,21 +407,24 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.removeWithoutFalsePositives(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            bTree.removeWithoutFalsePositives(key);
 
             //verify that we still have the rest of the key/values
             if (i + 1 < numberOfPairs)
             {
                 for (int j = i + 1; j < numberOfPairs; j++)
                 {
-                    assertEquals(j, bTree.get(j));
+                    final byte[] bytes = BinaryHelper.longToBytes(j);
+                    assertArrayEquals(bytes, bTree.get(bytes));
                 }
             }
         }
@@ -430,27 +447,32 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.remove(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            bTree.remove(key);
         }
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        bTree.remove(200);
-        bTree.remove(-20);
+        final byte[] key200 = BinaryHelper.longToBytes(200);
+        final byte[] keyMinus20 = BinaryHelper.longToBytes(-20);
+        bTree.remove(key200);
+        bTree.remove(keyMinus20);
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(200));
-        assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(-20));
+        assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(key200));
+        assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(keyMinus20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {
-            assertEquals(i, bTree.get(i));
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            assertArrayEquals(bytes, bTree.get(bytes));
         }
     }
 
@@ -460,12 +482,14 @@ class BTreeWithLogTest
         final int numberOfPairs = 200;
         for (long i = 0; i < numberOfPairs; i++)
         {
-            bTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTree.put(bytes, bytes);
         }
 
         for (int i = 0; i < numberOfPairs; i++)
         {
-            bTree.remove(i);
+            final byte[] key = BinaryHelper.longToBytes(i);
+            bTree.remove(key);
         }
 
         assertEquals(1, bTree.getNodesCount());

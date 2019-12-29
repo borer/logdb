@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.Memory;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
@@ -106,19 +105,14 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public boolean hasKeyLog(final long key)
+    public boolean hasKeyLog(final byte[] key)
     {
-        final int logIndex = keyValueLog.binarySearchInLog(BinaryHelper.longToBytes(key));
+        final int logIndex = keyValueLog.binarySearchInLog(key);
         return logIndex >= 0;
     }
 
     @Override
-    public long getLogValue(final long key)
-    {
-        return getLogValue(BinaryHelper.longToBytes(key));
-    }
-
-    public long getLogValue(final byte[] key)
+    public byte[] getLogValue(final byte[] key)
     {
         final int logIndex = keyValueLog.binarySearchInLog(key);
         if (logIndex >= 0)
@@ -132,39 +126,19 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public long getLogValueAtIndex(final int index)
+    public byte[] getLogValueAtIndex(final int index)
     {
-        return BinaryHelper.bytesToLong(getLogValueAtIndexBytes(index));
+        return keyValueLog.getValueAtIndex(index);
     }
 
-    public byte[] getLogValueAtIndexBytes(final int index)
+    byte[] getLogKey(final int index)
     {
-        return keyValueLog.getValueBytesAtIndex(index);
-    }
-
-    long getLogKey(final int index)
-    {
-        return BinaryHelper.bytesToLong(getLogKeyBytes(index));
-    }
-
-    byte[] getLogKeyBytes(final int index)
-    {
-        return keyValueLog.getKeyBytesAtIndex(index);
-    }
-
-    int binarySearchInLog(final long key)
-    {
-        return binarySearchInLog(BinaryHelper.longToBytes(key));
+        return keyValueLog.getKeyAtIndex(index);
     }
 
     int binarySearchInLog(final byte[] key)
     {
         return keyValueLog.binarySearchInLog(key);
-    }
-
-    void insertLog(final long key, final long value)
-    {
-        insertLog(BinaryHelper.longToBytes(key), BinaryHelper.longToBytes(value));
     }
 
     void insertLog(final byte[] key, final byte[] value)
@@ -176,12 +150,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
     }
 
     @Override
-    public void removeLog(final long key)
-    {
-        removeLogBytes(BinaryHelper.longToBytes(key));
-    }
-
-    public void removeLogBytes(final byte[] key)
+    public void removeLog(final byte[] key)
     {
         final boolean hasRemoved = keyValueLog.removeLogBytes(key);
         if (hasRemoved)
@@ -203,9 +172,9 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
             contentBuilder.append(" log KV : ");
             for (int i = 0; i < numberOfLogPairs; i++)
             {
-                contentBuilder.append(new String(getLogKeyBytes(i), utf8));
+                contentBuilder.append(new String(getLogKey(i), utf8));
                 contentBuilder.append("-");
-                contentBuilder.append(new String(getLogValueAtIndexBytes(i), utf8));
+                contentBuilder.append(new String(getLogValueAtIndex(i), utf8));
                 if (i + 1 != numberOfLogPairs)
                 {
                     contentBuilder.append(",");

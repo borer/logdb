@@ -6,6 +6,7 @@ import org.logdb.bbtree.BTreeNodeNonLeaf;
 import org.logdb.bbtree.IdSupplier;
 import org.logdb.bbtree.NodesManager;
 import org.logdb.bbtree.RootReference;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.HeapMemory;
 import org.logdb.bit.MemoryFactory;
 import org.logdb.root.index.RootIndex;
@@ -100,7 +101,7 @@ public class TestUtils
         final BTreeNodeLeaf bTreeNode = new BTreeNodeLeaf(idSupplier.getAsLong(), memory, 0);
         for (int i = 0; i < numKeys; i++)
         {
-            final int key = startKey + i;
+            final byte[] key = BinaryHelper.longToBytes(startKey + i);
             bTreeNode.insert(key, key);
         }
 

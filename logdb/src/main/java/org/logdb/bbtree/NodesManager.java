@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.HeapMemory;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.ByteOffset;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
@@ -243,15 +245,16 @@ public class NodesManager
     {
         assert parentNode.getNodeType() == BtreeNodeType.NonLeaf : "node must be non leaf";
 
-        final @PageNumber long childPageNumber = StorageUnits.pageNumber(parentNode.getValue(index));
-        if (childPageNumber != BTreeNodeNonLeaf.NON_COMMITTED_CHILD)
+        final @PageNumber byte[] childPageNumberBytes = StorageUnits.pageNumber(parentNode.getValue(index));
+        if (Arrays.equals(childPageNumberBytes, BTreeNodeNonLeaf.NON_COMMITTED_CHILD))
         {
-            mappedNode.initNode(childPageNumber);
-            return mappedNode;
+            return parentNode.getChildAt(index);
         }
         else
         {
-            return parentNode.getChildAt(index);
+            final @PageNumber long pageNumber = StorageUnits.pageNumber(BinaryHelper.bytesToLong(childPageNumberBytes));
+            mappedNode.initNode(pageNumber);
+            return mappedNode;
         }
     }
 

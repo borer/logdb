@@ -1,6 +1,7 @@
 package org.logdb.support;
 
 import org.logdb.LogDb;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.builder.LogDbBuilder;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
@@ -105,7 +106,7 @@ public class CliMain
             System.out.println("Invalid instruction : " + command);
             return;
         }
-        final long keyDelete = Long.parseLong(commandParts[1]);
+        final byte[] keyDelete = parseKey(commandParts[1]);
         logDb.delete(keyDelete);
         System.out.println("Ok.");
     }
@@ -117,7 +118,7 @@ public class CliMain
             System.out.println("Invalid instruction : " + command);
             return;
         }
-        final long keyPut = Long.parseLong(commandParts[1]);
+        final byte[] keyPut = parseKey(commandParts[1]);
         final byte[] valuePut = commandParts[2].getBytes();
         logDb.put(keyPut, valuePut);
         logDb.commitIndex();
@@ -131,15 +132,28 @@ public class CliMain
             System.out.println("Invalid instruction : " + command);
             return;
         }
-        final long keyGet = Long.parseLong(commandParts[1]);
+        final String commandArgument = commandParts[1];
+        final byte[] keyGet = parseKey(commandArgument);
         final byte[] value = logDb.get(keyGet);
         if (value == null)
         {
-            System.out.println("Key " + keyGet + " not found.");
+            System.out.println("Key " + commandArgument + " not found.");
         }
         else
         {
             System.out.println(new String(value));
+        }
+    }
+
+    private static byte[] parseKey(String commandPart)
+    {
+        try
+        {
+            return BinaryHelper.longToBytes(Long.parseLong(commandPart));
+        }
+        catch (final NumberFormatException e)
+        {
+            return commandPart.getBytes();
         }
     }
 }

@@ -1,6 +1,7 @@
 package org.logdb.benchmark;
 
 import org.logdb.LogDb;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.builder.LogDbBuilder;
 import org.logdb.time.SystemTimeSource;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -38,6 +39,7 @@ public class TestRandomReadingBenchmark
         private Path rootDirectory;
         private LogDb logDb;
         private Random random;
+        private byte[] longBuffer;
 
         @Setup(Level.Trial)
         public void doSetup() throws IOException
@@ -57,13 +59,15 @@ public class TestRandomReadingBenchmark
                     .build();
 
             final byte[] valueBuffer = new byte[Long.BYTES];
+            final byte[] keyBuffer = new byte[Long.BYTES];
             random = new Random();
+            longBuffer = new byte[Long.BYTES];
 
             LOGGER.info("===================Creating Database...");
 
             for (int i = 0; i < NUMBER_OF_PAIRS; i++)
             {
-                insert(i, i, valueBuffer);
+                insert(i, i, keyBuffer, valueBuffer);
 
                 if (i % 100_000 == 0)
                 {
@@ -86,39 +90,16 @@ public class TestRandomReadingBenchmark
 
         long getValue(final long key)
         {
-            final byte[] bytes = logDb.get(key);
-            return bytesToLong(bytes);
+            BinaryHelper.longToBytes(key, longBuffer);
+            final byte[] value = logDb.get(longBuffer);
+            return BinaryHelper.bytesToLong(value);
         }
 
-        private void insert(final long key, final long value, final byte[] valueBuffer) throws IOException
+        private void insert(final long key, final long value, final byte[] keyBuffer, final byte[] valueBuffer) throws IOException
         {
-            longToBytes(value, valueBuffer);
-            logDb.put(key, valueBuffer);
-        }
-
-        private long bytesToLong(final byte[] bytes)
-        {
-            return ((long) bytes[7] << 56) |
-                    ((long) bytes[6] & 0xff) << 48 |
-                    ((long) bytes[5] & 0xff) << 40 |
-                    ((long) bytes[4] & 0xff) << 32 |
-                    ((long) bytes[3] & 0xff) << 24 |
-                    ((long) bytes[2] & 0xff) << 16 |
-                    ((long) bytes[1] & 0xff) << 8 |
-                    ((long) bytes[0] & 0xff);
-        }
-
-
-        private void longToBytes(final long value, final byte[] bytes)
-        {
-            bytes[0] = (byte) value;
-            bytes[1] = (byte) (value >> 8);
-            bytes[2] = (byte) (value >> 16);
-            bytes[3] = (byte) (value >> 24);
-            bytes[4] = (byte) (value >> 32);
-            bytes[5] = (byte) (value >> 40);
-            bytes[6] = (byte) (value >> 48);
-            bytes[7] = (byte) (value >> 56);
+            BinaryHelper.longToBytes(key, keyBuffer);
+            BinaryHelper.longToBytes(value, valueBuffer);
+            logDb.put(keyBuffer, valueBuffer);
         }
 
         private void commit()

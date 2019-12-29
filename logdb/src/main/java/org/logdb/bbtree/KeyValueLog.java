@@ -17,9 +17,9 @@ public interface KeyValueLog
 
     int binarySearchInLog(byte[] key);
 
-    byte[] getKeyBytesAtIndex(int index);
+    byte[] getKeyAtIndex(int index);
 
-    byte[] getValueBytesAtIndex(int index);
+    byte[] getValueAtIndex(int index);
 
     void insertLog(byte[] key, byte[] value);
 

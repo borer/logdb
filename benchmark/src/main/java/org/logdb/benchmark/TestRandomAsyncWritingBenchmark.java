@@ -1,6 +1,7 @@
 package org.logdb.benchmark;
 
 import org.logdb.LogDb;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.builder.LogDbBuilder;
 import org.logdb.time.SystemTimeSource;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -32,7 +33,7 @@ public class TestRandomAsyncWritingBenchmark
         private Path rootDirectory;
         private LogDb logDb;
         private Random random;
-        private byte[] valueBuffer;
+        private byte[] longBuffer;
 
         @Setup(Level.Trial)
         public void doSetup() throws IOException
@@ -52,7 +53,7 @@ public class TestRandomAsyncWritingBenchmark
                     .shouldSyncWrite(false)
                     .build();
 
-            valueBuffer = new byte[Long.BYTES];
+            longBuffer = new byte[Long.BYTES];
             random = new Random();
         }
 
@@ -63,25 +64,13 @@ public class TestRandomAsyncWritingBenchmark
             BenchmarkUtils.removeAllFilesFromDirectory(rootDirectory);
         }
 
-        private void longToBytes(final long value, final byte[] bytes)
-        {
-            bytes[0] = (byte) value;
-            bytes[1] = (byte) (value >> 8);
-            bytes[2] = (byte) (value >> 16);
-            bytes[3] = (byte) (value >> 24);
-            bytes[4] = (byte) (value >> 32);
-            bytes[5] = (byte) (value >> 40);
-            bytes[6] = (byte) (value >> 48);
-            bytes[7] = (byte) (value >> 56);
-        }
-
         void insertRandom()
         {
             final int randomNumber = random.nextInt(NUMBER_OF_PAIRS);
-            longToBytes(randomNumber, valueBuffer);
+            BinaryHelper.longToBytes(randomNumber, longBuffer);
             try
             {
-                logDb.put(randomNumber, valueBuffer);
+                logDb.put(longBuffer, longBuffer);
                 logDb.commitIndex();
             }
             catch (IOException e)

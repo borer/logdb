@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.logdb.bbtree.BTreeImpl;
 import org.logdb.bbtree.BTreePrinter;
 import org.logdb.bbtree.NodesManager;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
@@ -40,7 +41,8 @@ class MemoryStorageTest
 
         for (int i = 0; i < 100; i++)
         {
-            originalBTree.put(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            originalBTree.put(bytes, bytes);
         }
 
         originalBTree.commit();

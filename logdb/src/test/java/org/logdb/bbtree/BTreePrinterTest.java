@@ -1,6 +1,7 @@
 package org.logdb.bbtree;
 
 import org.junit.jupiter.api.Test;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.root.index.RootIndex;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.memory.MemoryStorage;
@@ -23,7 +24,8 @@ class BTreePrinterTest
 
         for (int i = 0; i < 10; i++)
         {
-            bTreeLeaf.insert(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeLeaf.insert(bytes, bytes);
         }
 
         final String expectedDotString = "digraph g {\n" +
@@ -47,12 +49,13 @@ class BTreePrinterTest
             final int keyStart = numKeysPerChild * i;
             final BTreeNodeHeap child = createLeafNodeWithLongKeys(numKeysPerChild, keyStart, idSupplier);
 
-            bTreeNonLeaf.insertChild(i, keyStart, child);
+            bTreeNonLeaf.insertChild(i, BinaryHelper.longToBytes(keyStart), child);
         }
 
         for (int i = 0; i < 5; i++)
         {
-            bTreeNonLeaf.insertLog(i, i);
+            final byte[] bytes = BinaryHelper.longToBytes(i);
+            bTreeNonLeaf.insertLog(bytes, bytes);
         }
 
         final String expectedDotString = "digraph g {\n" +

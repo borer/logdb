@@ -21,21 +21,13 @@ public interface BTreeNode
      * @param key Key that identifies the value
      * @param value Value to persist
      */
-    void insert(long key, long value);
-
-    /**
-     * Inserts key/value pair in the current leaf.
-     * If the key already exits, its value is replaced.
-     * @param key Key that identifies the value
-     * @param value Value to persist
-     */
     void insert(byte[] key, byte[] value);
 
     /**
      * Remove the key and value at index.
      * @param index the index of the element to remove
      */
-    void remove(int index);
+    void removeAtIndex(int index);
 
     /**
      * Get the number of entries in the leaf.
@@ -48,25 +40,25 @@ public interface BTreeNode
      * @param index has to be between 0...getKeyCount()
      * @return the key
      */
-    long getKey(int index);
+    byte[] getKey(int index);
 
-    long getMinKey();
+    byte[] getMinKey();
 
-    long getMaxKey();
+    byte[] getMaxKey();
 
     /**
      * Get the value corresponding to the key.
      * @param key key to search for
      * @return the value corresponding to that key or null if not found
      */
-    long get(long key);
+    byte[] get(byte[] key);
 
     /**
      * Get the key index corresponding to this key or -1.
      * @param key key whose index to search for
      * @return the index corresponding to that key -1. It's >= 0 if found and  negative if not found
      */
-    int getKeyIndex(long key);
+    int getKeyIndex(byte[] key);
 
     /**
      * Splits the current node into 2 nodes.
@@ -105,7 +97,7 @@ public interface BTreeNode
      * @param index the index to get the value at
      * @return the value at index
      */
-    long getValue(int index);
+    byte[] getValue(int index);
 
     /**
      * Gets the child at index.
@@ -114,7 +106,7 @@ public interface BTreeNode
      */
     BTreeNode getChildAt(int index);
 
-    void insertChild(int index, long key, BTreeNodeHeap child);
+    void insertChild(int index, byte[] key, BTreeNodeHeap child);
 
     void setChild(int index, BTreeNodeHeap child);
 

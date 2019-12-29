@@ -15,7 +15,7 @@ public class AsyncWriteDelegatingBTree implements BTree
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(AsyncWriteDelegatingBTree.class);
 
-    private static final int INVALID_VALUE = Integer.MIN_VALUE;
+    private static final byte[] INVALID_VALUE = new byte[0];
     private final ManyToOneConcurrentArrayQueue<Command> queue;
     private final ThreadFactory threadFactory;
     private final BTree delegate;
@@ -58,13 +58,13 @@ public class AsyncWriteDelegatingBTree implements BTree
     }
 
     @Override
-    public void remove(final long key)
+    public void remove(final byte[] key)
     {
         sendCommandToQueue(new Command(CommandType.DELETE, key, INVALID_VALUE));
     }
 
     @Override
-    public void put(final long key, final long value)
+    public void put(final byte[] key, final byte[] value)
     {
         sendCommandToQueue(new Command(CommandType.ADD, key, value));
     }
@@ -79,19 +79,19 @@ public class AsyncWriteDelegatingBTree implements BTree
     }
 
     @Override
-    public long get(final long key, final @Version long version)
+    public byte[] get(final byte[] key, final @Version long version)
     {
         return delegate.get(key, version);
     }
 
     @Override
-    public long get(final long key)
+    public byte[] get(final byte[] key)
     {
         return delegate.get(key);
     }
 
     @Override
-    public long getByTimestamp(long key, @Milliseconds long timestamp)
+    public byte[] getByTimestamp(final byte[] key, @Milliseconds long timestamp)
     {
         return delegate.getByTimestamp(key, timestamp);
     }

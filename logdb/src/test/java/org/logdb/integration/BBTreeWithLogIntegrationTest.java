@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeWithLog;
+import org.logdb.bit.BinaryHelper;
 import org.logdb.support.StubTimeSource;
 import org.logdb.support.TestUtils;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedLogBtree;
@@ -28,88 +30,95 @@ class BBTreeWithLogIntegrationTest
     @Test
     void shouldNotFindKeyLowerThatAnyOtherKey() throws Exception
     {
-        final long nonExistingKeyValuePair = -1919191919L;
+        final byte[] nonExistingKeyValuePair = BinaryHelper.longToBytes( -1919191919L);
 
         try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
-            bTree.put(1, 1);
+            final byte[] bytes = BinaryHelper.longToBytes(1);
+            bTree.put(bytes, bytes);
             bTree.commit();
-            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
         }
     }
 
     @Test
     void shouldNotFindKeyBiggerThatAnyOtherKey() throws Exception
     {
-        final long nonExistingKeyValuePair = 1919191919L;
+        final byte[] nonExistingKeyValuePair = BinaryHelper.longToBytes(1919191919L);
 
         try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
-            bTree.put(1, 1);
+            final byte[] bytes = BinaryHelper.longToBytes(1);
+            bTree.put(bytes, bytes);
             bTree.commit();
-            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
         }
     }
 
     @Test
     void shouldBeABleToCreateNewDBWithLogFileAndReadLeafNodeWithBigEndianEncoding() throws Exception
     {
-        final long nonExistingKeyValuePair = 1919191919L;
+        final byte[] nonExistingKeyValuePair = BinaryHelper.longToBytes(1919191919L);
+        final byte[] keyOne = BinaryHelper.longToBytes(1);
+        final byte[] keyFive = BinaryHelper.longToBytes(5);
+        final byte[] keyTen = BinaryHelper.longToBytes(10);
 
         try (final BTree bTree = createNewPersistedLogBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
-            bTree.put(1, 1);
-            bTree.put(10, 10);
-            bTree.put(5, 5);
+            bTree.put(keyOne, keyOne);
+            bTree.put(keyTen, keyTen);
+            bTree.put(keyFive, keyFive);
 
-            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
 
         try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
-            assertEquals(1, readBTree.get(1));
-            assertEquals(10, readBTree.get(10));
-            assertEquals(5, readBTree.get(5));
+            assertArrayEquals(keyOne, readBTree.get(keyOne));
+            assertArrayEquals(keyTen, readBTree.get(keyTen));
+            assertArrayEquals(keyFive, readBTree.get(keyFive));
 
-            assertEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
     @Test
     void shouldGetHistoricValuesFromOpenDBWithLog() throws Exception
     {
-        final long key = 123L;
+        final byte[] key = BinaryHelper.longToBytes(123L);
         final int maxVersions = 100;
-        final long nonExistingKey = 964L;
+        final byte[] nonExistingKey = BinaryHelper.longToBytes(964L);
 
         try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory))
         {
             for (long i = 0; i < maxVersions; i++)
             {
-                originalBTree.put(key, i);
+                final byte[] value = BinaryHelper.longToBytes(i);
+                originalBTree.put(key, value);
                 originalBTree.commit();
             }
 
-            assertEquals(KEY_NOT_FOUND_VALUE, originalBTree.get(nonExistingKey));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, originalBTree.get(nonExistingKey));
         }
 
         try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
         {
             for (int i = 0; i < maxVersions; i++)
             {
-                assertEquals(i, loadedBTree.get(key, i));
+                final byte[] value = BinaryHelper.longToBytes(i);
+                assertArrayEquals(value, loadedBTree.get(key, i));
             }
 
-            assertEquals(KEY_NOT_FOUND_VALUE, loadedBTree.get(nonExistingKey));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, loadedBTree.get(nonExistingKey));
         }
     }
 
     @Test
     void shouldGetHistoricValuesByTimestampFromOpenDB() throws Exception
     {
-        final long key = 123L;
+        final byte[] key = BinaryHelper.longToBytes(123L);
         final int maxVersions = 100;
 
         final StubTimeSource timeSource = new StubTimeSource();
@@ -118,7 +127,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = 0; i < maxVersions; i++)
             {
-                originalBTree.put(key, i);
+                final byte[] value = BinaryHelper.longToBytes(i);
+                originalBTree.put(key, value);
             }
 
             originalBTree.commit();
@@ -128,7 +138,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (int i = 0; i < timeSource.getCurrentTimeWithoutIncrementing(); i++)
             {
-                assertEquals(i, loadedBTree.getByTimestamp(key, i));
+                final byte[] value = BinaryHelper.longToBytes(i);
+                assertArrayEquals(value, loadedBTree.get(key, i));
             }
         }
     }
@@ -141,10 +152,10 @@ class BBTreeWithLogIntegrationTest
         final String original;
         try (final BTreeWithLog originalBTree = createNewPersistedLogBtree(tempDirectory))
         {
-
             for (long i = 0; i < numberOfPairs; i++)
             {
-                originalBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                originalBTree.put(bytes, bytes);
                 originalBTree.commit();
             }
 
@@ -160,7 +171,8 @@ class BBTreeWithLogIntegrationTest
 
             for (int i = 0; i < numberOfPairs; i++)
             {
-                assertEquals(i, loadedBTree.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedBTree.get(bytes));
             }
         }
     }
@@ -175,7 +187,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = 0; i < numberOfPairs; i++)
             {
-                originalBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                originalBTree.put(bytes, bytes);
                 originalBTree.commit();
             }
             originalBTree.commit();
@@ -186,7 +199,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = numberOfPairs; i < numberOfPairs * 2; i++)
             {
-                loadedBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                loadedBTree.put(bytes, bytes);
                 loadedBTree.commit();
             }
         }
@@ -196,7 +210,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (int i = 0; i < numberOfPairs * 2; i++)
             {
-                assertEquals(i, loadedBTree2.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedBTree2.get(bytes));
             }
         }
     }
@@ -213,7 +228,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = 0; i < numberOfPairsToInsert; i++)
             {
-                originalTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                originalTree.put(bytes, bytes);
                 originalTree.commit();
             }
             originalTree.commit();
@@ -224,7 +240,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = startOffset; i < endDeletionOffset; i++)
             {
-                loadedTree.remove(i);
+                final byte[] key = BinaryHelper.longToBytes(i);
+                loadedTree.remove(key);
                 loadedTree.commit();
             }
         }
@@ -316,14 +333,15 @@ class BBTreeWithLogIntegrationTest
         {
             for (int i = 0; i < numberOfPairsToInsert; i++)
             {
+                final byte[] bytes = BinaryHelper.longToBytes(i);
                 //delete range,don't assert on it
                 if (i >= startOffset && i < endDeletionOffset)
                 {
-                    assertEquals(KEY_NOT_FOUND_VALUE, loadedTree.get(i));
+                    assertArrayEquals(KEY_NOT_FOUND_VALUE, loadedTree.get(bytes));
                 }
                 else
                 {
-                    assertEquals(i, loadedTree.get(i));
+                    assertArrayEquals(bytes, loadedTree.get(bytes));
                 }
             }
 
@@ -343,7 +361,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = 0; i < numberOfPairsToInsert; i++)
             {
-                newTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                newTree.put(bytes, bytes);
                 newTree.commit();
             }
             newTree.commit();
@@ -353,7 +372,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (long i = startOffset; i < endDeletionOffset; i++)
             {
-                loadedTree.remove(i);
+                final byte[] key = BinaryHelper.longToBytes(i);
+                loadedTree.remove(key);
                 loadedTree.commit();
             }
         }
@@ -362,7 +382,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (int i = startOffset; i < endDeletionOffset; i++)
             {
-                loadedTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                loadedTree.put(bytes, bytes);
                 loadedTree.commit();
             }
         }
@@ -371,7 +392,8 @@ class BBTreeWithLogIntegrationTest
         {
             for (int i = 0; i < numberOfPairsToInsert; i++)
             {
-                assertEquals(i, loadedTree.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedTree.get(bytes));
             }
         }
     }

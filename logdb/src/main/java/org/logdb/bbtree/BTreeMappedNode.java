@@ -69,25 +69,19 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     }
 
     @Override
-    public void insert(final long key, final long value)
+    public void insert(final byte[] key, final byte[] value)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support insertion");
     }
 
     @Override
-    public void insert(byte[] key, byte[] value)
-    {
-        throw new UnsupportedOperationException("Mapped node doesn't support insertion");
-    }
-
-    @Override
-    public void remove(final int index)
+    public void removeAtIndex(final int index)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support removal");
     }
 
     @Override
-    public long get(final long key)
+    public byte[] get(final byte[] key)
     {
         int index = getKeyIndex(key);
         if (getNodeType() == BtreeNodeType.Leaf)
@@ -101,7 +95,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     }
 
     @Override
-    public int getKeyIndex(final long key)
+    public int getKeyIndex(final byte[] key)
     {
         final boolean isNonLeaf = getNodeType() == BtreeNodeType.NonLeaf;
         int index = isNonLeaf ? binarySearchNonLeaf(key) + 1 : binarySearch(key);
@@ -150,7 +144,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     }
 
     @Override
-    public void insertChild(final int index, final long key, final BTreeNodeHeap child)
+    public void insertChild(final int index, final byte[] key, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support insertion of children");
     }

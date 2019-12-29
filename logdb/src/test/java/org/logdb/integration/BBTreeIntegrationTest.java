@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.logdb.bbtree.BTree;
 import org.logdb.bbtree.BTreeImpl;
+import org.logdb.bit.BinaryHelper;
+import org.logdb.bit.ByteArrayComparator;
 import org.logdb.support.StubTimeSource;
 
 import java.nio.ByteOrder;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedBtree;
@@ -25,52 +28,58 @@ class BBTreeIntegrationTest
     @Test
     void shouldBeABleToCreateNewDbFileAndReadLeafNode() throws Exception
     {
-        final long nonExistingKeyValuePair = 1919191919L;
+        final byte[] nonExistingKeyValuePair = BinaryHelper.longToBytes(1919191919L);
+        final byte[] bytesOne = BinaryHelper.longToBytes(1);
+        final byte[] bytesFive = BinaryHelper.longToBytes(5);
+        final byte[] bytesTen = BinaryHelper.longToBytes(10);
 
         try (final BTree bTree = createNewPersistedBtree(tempDirectory))
         {
-            bTree.put(1, 1);
-            bTree.put(10, 10);
-            bTree.put(5, 5);
+            bTree.put(bytesOne, bytesOne);
+            bTree.put(bytesTen, bytesTen);
+            bTree.put(bytesFive, bytesFive);
 
-            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
 
         try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
-            assertEquals(1, readBTree.get(1));
-            assertEquals(10, readBTree.get(10));
-            assertEquals(5, readBTree.get(5));
+            assertArrayEquals(bytesOne, readBTree.get(bytesOne));
+            assertArrayEquals(bytesTen, readBTree.get(bytesTen));
+            assertArrayEquals(bytesFive, readBTree.get(bytesFive));
 
-            assertEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
     @Test
     void shouldBeABleToCreateNewDbFileAndReadLeafNodeWithBigEndianEncoding() throws Exception
     {
-        final long nonExistingKeyValuePair = 1919191919L;
+        final byte[] nonExistingKeyValuePair = BinaryHelper.longToBytes(1919191919L);
+        final byte[] bytesOne = BinaryHelper.longToBytes(1);
+        final byte[] bytesFive = BinaryHelper.longToBytes(5);
+        final byte[] bytesTen = BinaryHelper.longToBytes(10);
 
         try (final BTree bTree = createNewPersistedBtree(tempDirectory, ByteOrder.BIG_ENDIAN))
         {
-            bTree.put(1, 1);
-            bTree.put(10, 10);
-            bTree.put(5, 5);
+            bTree.put(bytesOne, bytesOne);
+            bTree.put(bytesTen, bytesTen);
+            bTree.put(bytesFive, bytesFive);
 
-            assertEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
 
         try (final BTree readBTree = loadPersistedBtree(tempDirectory))
         {
-            assertEquals(1, readBTree.get(1));
-            assertEquals(10, readBTree.get(10));
-            assertEquals(5, readBTree.get(5));
+            assertArrayEquals(bytesOne, readBTree.get(bytesOne));
+            assertArrayEquals(bytesTen, readBTree.get(bytesTen));
+            assertArrayEquals(bytesFive, readBTree.get(bytesFive));
 
-            assertEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
@@ -83,7 +92,8 @@ class BBTreeIntegrationTest
         {
             for (int i = 0; i < numKeys; i++)
             {
-                originalBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                originalBTree.put(bytes, bytes);
             }
 
             originalBTree.commit();
@@ -119,7 +129,8 @@ class BBTreeIntegrationTest
 
             for (int i = 0; i < numKeys; i++)
             {
-                assertEquals(i, loadedBTree.get(i));
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                assertArrayEquals(bytes, loadedBTree.get(bytes));
             }
         }
     }
@@ -128,33 +139,34 @@ class BBTreeIntegrationTest
     void shouldBeABleToCommitMultipleTimes() throws Exception
     {
         final int numberOfPairs = 100;
-        final List<Long> expectedOrder = new ArrayList<>();
+        final List<byte[]> expectedOrder = new ArrayList<>();
 
         try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < numberOfPairs; i++)
             {
-                expectedOrder.add(i);
-                originalBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+
+                expectedOrder.add(bytes);
+                originalBTree.put(bytes, bytes);
                 originalBTree.commit();
             }
 
             originalBTree.commit();
         }
 
-        expectedOrder.sort(Long::compareTo);
+        expectedOrder.sort(ByteArrayComparator.INSTANCE);
 
-        final LinkedList<Long> actualOrder = new LinkedList<>();
+        final LinkedList<byte[]> actualOrder = new LinkedList<>();
         try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
-
             loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
 
             assertEquals(expectedOrder.size(), actualOrder.size());
 
             for (int i = 0; i < expectedOrder.size(); i++)
             {
-                assertEquals(expectedOrder.get(i), actualOrder.get(i));
+                assertArrayEquals(expectedOrder.get(i), actualOrder.get(i));
             }
         }
     }
@@ -162,22 +174,23 @@ class BBTreeIntegrationTest
     @Test
     void shouldConsumeKeyValuesInOrderAfterCommit() throws Exception
     {
-        final List<Long> expectedOrder = new ArrayList<>();
+        final List<byte[]> expectedOrder = new ArrayList<>();
 
         try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < 100; i++)
             {
-                expectedOrder.add(i);
-                originalBTree.put(i, i);
+                final byte[] bytes = BinaryHelper.longToBytes(i);
+                expectedOrder.add(bytes);
+                originalBTree.put(bytes, bytes);
             }
 
             originalBTree.commit();
         }
 
-        expectedOrder.sort(Long::compareTo);
+        expectedOrder.sort(ByteArrayComparator.INSTANCE);
 
-        final LinkedList<Long> actualOrder = new LinkedList<>();
+        final LinkedList<byte[]> actualOrder = new LinkedList<>();
         try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
             loadedBTree.consumeAll((key, value) -> actualOrder.addLast(key));
@@ -186,7 +199,7 @@ class BBTreeIntegrationTest
 
             for (int i = 0; i < expectedOrder.size(); i++)
             {
-                assertEquals(expectedOrder.get(i), actualOrder.get(i));
+                assertArrayEquals(expectedOrder.get(i), actualOrder.get(i));
             }
         }
     }
@@ -194,14 +207,15 @@ class BBTreeIntegrationTest
     @Test
     void shouldGetHistoricValuesFromOpenDB() throws Exception
     {
-        final long key = 123L;
+        final byte[] key = BinaryHelper.longToBytes(123L);
         final int maxVersions = 100;
 
         try (final BTree originalBTree = createNewPersistedBtree(tempDirectory))
         {
             for (long i = 0; i < maxVersions; i++)
             {
-                originalBTree.put(key, i);
+                final byte[] value = BinaryHelper.longToBytes(i);
+                originalBTree.put(key, value);
             }
 
             originalBTree.commit();
@@ -209,13 +223,14 @@ class BBTreeIntegrationTest
 
         try (final BTreeImpl loadedBTree = loadPersistedBtree(tempDirectory))
         {
-            final int[] index = new int[1]; //ugh... lambdas
-            for (index[0] = 0; index[0] < maxVersions; index[0]++)
+            final int[] version = new int[1]; //ugh... lambdas
+            for (version[0] = 0; version[0] < maxVersions; version[0]++)
             {
-                loadedBTree.consumeAll(index[0], (k, value) ->
+                loadedBTree.consumeAll(version[0], (k, value) ->
                 {
-                    assertEquals(key, k);
-                    assertEquals(index[0], value);
+                    final byte[] expectedValue = BinaryHelper.longToBytes(version[0]);
+                    assertArrayEquals(key, k);
+                    assertArrayEquals(expectedValue, value);
                 });
             }
         }
@@ -224,7 +239,7 @@ class BBTreeIntegrationTest
     @Test
     void shouldGetHistoricValuesByTimestampFromOpenDB() throws Exception
     {
-        final long key = 123L;
+        final byte[] key = BinaryHelper.longToBytes(123L);
         final int maxVersions = 100;
 
         final StubTimeSource timeSource = new StubTimeSource();
@@ -233,7 +248,8 @@ class BBTreeIntegrationTest
         {
             for (long i = 0; i < maxVersions; i++)
             {
-                originalBTree.put(key, i);
+                final byte[] value = BinaryHelper.longToBytes(i);
+                originalBTree.put(key, value);
             }
 
             originalBTree.commit();
@@ -243,7 +259,8 @@ class BBTreeIntegrationTest
         {
             for (int i = 0; i < timeSource.getCurrentTimeWithoutIncrementing(); i++)
             {
-                assertEquals(i, loadedBTree.getByTimestamp(key, i));
+                final byte[] expectedValue = BinaryHelper.longToBytes(i);
+                assertArrayEquals(expectedValue, loadedBTree.getByTimestamp(key, i));
             }
         }
     }

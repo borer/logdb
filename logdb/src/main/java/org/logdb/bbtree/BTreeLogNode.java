@@ -4,15 +4,15 @@ public interface BTreeLogNode extends BTreeNode
 {
     int getLogKeyValuesCount();
 
-    boolean hasKeyLog(long key);
+    boolean hasKeyLog(byte[] key);
 
-    long getLogValue(long key);
+    byte[] getLogValue(byte[] key);
 
-    long getLogValueAtIndex(int index);
+    byte[] getLogValueAtIndex(int index);
 
     /**
      * try to remove a key/value pair for this node log.
      * @param key the key that identifies the key/value pair to remove from the node log
      */
-    void removeLog(long key);
+    void removeLog(byte[] key);
 }

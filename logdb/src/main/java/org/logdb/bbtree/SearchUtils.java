@@ -153,13 +153,13 @@ public final class SearchUtils
 
         if (index < 0)
         {
-            return InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+            return InvalidBTreeValues.KEY_NOT_FOUND;
         }
 
         final long existingKey = keyIndexSupplier.getKey(index);
         final int compare = Long.compare(key, existingKey);
 
-        return compare > 0 ? index : InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
+        return compare > 0 ? index : InvalidBTreeValues.KEY_NOT_FOUND;
     }
 
     interface KeyIndexSupplier<T>
