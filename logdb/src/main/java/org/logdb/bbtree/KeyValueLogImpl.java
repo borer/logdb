@@ -21,11 +21,11 @@ import static org.logdb.storage.StorageUnits.ZERO_SIZE;
 
 final class KeyValueLogImpl implements KeyValueLog
 {
-    static final @ByteOffset int NUMBER_LOG_ENTRIES_OFFSET = ZERO_OFFSET;
+    private static final @ByteOffset int NUMBER_LOG_ENTRIES_OFFSET = ZERO_OFFSET;
     static final @ByteSize int NUMBER_LOG_ENTRIES_SIZE = INT_BYTES_SIZE;
 
-    static final @ByteOffset int TOP_LOG_HEAP_SIZE_OFFSET = StorageUnits.offset(NUMBER_LOG_ENTRIES_OFFSET + NUMBER_LOG_ENTRIES_SIZE);
-    static final @ByteSize int TOP_LOG_HEAP_SIZE = SHORT_BYTES_SIZE;
+    private static final @ByteOffset int TOP_LOG_HEAP_SIZE_OFFSET = StorageUnits.offset(NUMBER_LOG_ENTRIES_OFFSET + NUMBER_LOG_ENTRIES_SIZE);
+    private static final @ByteSize int TOP_LOG_HEAP_SIZE = SHORT_BYTES_SIZE;
 
     private static final @ByteOffset int LOG_CELL_OFFSET = StorageUnits.offset(TOP_LOG_HEAP_SIZE_OFFSET + TOP_LOG_HEAP_SIZE);
 
@@ -211,22 +211,22 @@ final class KeyValueLogImpl implements KeyValueLog
                 : String.format("Index %d outside of the range of pairs [0, %d]", index, numberOfLogEntries - 1);
 
         final @ByteSize short existingValueLength = StorageUnits.size(keyValuesBuffer.getShort(getLogValueLengthOffset(index)));
-        final @ByteSize int lengthDifferenceFromExistingPerpective = StorageUnits.size(existingValueLength - newValueLength);
+        final @ByteSize short lengthDifferenceFromExistingPerspective = StorageUnits.size((short)(existingValueLength - newValueLength));
 
-        assert lengthDifferenceFromExistingPerpective < keyValuesBuffer.getCapacity() - getUsedSize()
+        assert lengthDifferenceFromExistingPerspective < keyValuesBuffer.getCapacity() - getUsedSize()
                 : String.format("cannot insert pair due to insufficient capacity. Current Max Capacity : %d Used Capacity: %d, Required: %d",
                         keyValuesBuffer.getCapacity(),
                         getUsedSize(),
                         newValueLength);
 
-        if (lengthDifferenceFromExistingPerpective != 0)
+        if (lengthDifferenceFromExistingPerspective != 0)
         {
             final @ByteOffset short originalOffset = StorageUnits.offset(keyValuesBuffer.getShort(getLogIndexOffset(index)));
             final @ByteSize short keyLength = StorageUnits.size(keyValuesBuffer.getShort(getLogKeyLengthOffset(index)));
             final @ByteOffset int valueOriginalOffset = StorageUnits.offset(originalOffset + keyLength);
 
             final @ByteOffset int oldLogKeyValueIndexOffset = getTopHeapOffset();
-            final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(getTopHeapOffset() + lengthDifferenceFromExistingPerpective);
+            final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(getTopHeapOffset() + lengthDifferenceFromExistingPerspective);
 
             final @ByteSize int sizeToMove = StorageUnits.size(valueOriginalOffset - oldLogKeyValueIndexOffset);
 
@@ -234,13 +234,13 @@ final class KeyValueLogImpl implements KeyValueLog
 
             final @ByteSize int lengthDifferenceSize = StorageUnits.size(newValueLength - existingValueLength);
             updateCellOffsetByDifference(index, ZERO_OFFSET, ZERO_SIZE, lengthDifferenceSize);
-            updateCellOffsetsByDifferenceFromIndex(originalOffset, lengthDifferenceFromExistingPerpective, ZERO_SIZE, ZERO_SIZE);
+            updateCellOffsetsByDifferenceFromIndex(originalOffset, lengthDifferenceFromExistingPerspective, ZERO_SIZE, ZERO_SIZE);
 
             final @ByteOffset int newOffset = StorageUnits.offset(keyValuesBuffer.getShort(getLogIndexOffset(index)));
             final @ByteOffset int newValueOffset = StorageUnits.offset(newOffset + keyLength);
             keyValuesBuffer.putBytes(newValueOffset, value);
 
-            popBytesFromLogHeap(lengthDifferenceFromExistingPerpective);
+            popBytesFromLogHeap(lengthDifferenceFromExistingPerspective);
         }
     }
 
@@ -249,7 +249,7 @@ final class KeyValueLogImpl implements KeyValueLog
         assert key.length <= Short.MAX_VALUE : "Key size must be below " + Short.MAX_VALUE + ", provided " + key.length;
         assert value.length <= Short.MAX_VALUE : "Value size must be below " + Short.MAX_VALUE + ", provided " + value.length;
 
-        final @ByteSize int keyValueTotalSize = StorageUnits.size(key.length + value.length);
+        final @ByteSize short keyValueTotalSize = StorageUnits.size((short)(key.length + value.length));
         pushBytesToLogHeap(keyValueTotalSize);
 
         final @ByteOffset short topLogHeapOffset = getTopHeapOffset();
@@ -260,7 +260,7 @@ final class KeyValueLogImpl implements KeyValueLog
         return topLogHeapOffset;
     }
 
-    private void popBytesFromLogHeap(final @ByteSize int length)
+    private void popBytesFromLogHeap(final @ByteSize short length)
     {
         @ByteOffset short topKeyValueHeapOffset = getTopHeapOffset();
 
@@ -269,7 +269,7 @@ final class KeyValueLogImpl implements KeyValueLog
         keyValuesBuffer.putShort(TOP_LOG_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
     }
 
-    private void pushBytesToLogHeap(final @ByteSize int length)
+    private void pushBytesToLogHeap(final @ByteSize short length)
     {
         @ByteOffset short topKeyValueHeapOffset = getTopHeapOffset();
 
@@ -363,9 +363,9 @@ final class KeyValueLogImpl implements KeyValueLog
                 : String.format("invalid index to remove %d from range [0, %d]", removeIndex, numberOfLogEntries - 1);
 
         final @ByteOffset short offset = StorageUnits.offset(keyValuesBuffer.getShort(getLogIndexOffset(removeIndex)));
-        final @ByteSize int keyLength = StorageUnits.size(keyValuesBuffer.getShort(getLogKeyLengthOffset(removeIndex)));
-        final @ByteSize int valueLength = StorageUnits.size(keyValuesBuffer.getShort(getLogValueLengthOffset(removeIndex)));
-        final @ByteSize int totalRemoveLength = StorageUnits.size(keyLength + valueLength);
+        final @ByteSize short keyLength = StorageUnits.size(keyValuesBuffer.getShort(getLogKeyLengthOffset(removeIndex)));
+        final @ByteSize short valueLength = StorageUnits.size(keyValuesBuffer.getShort(getLogValueLengthOffset(removeIndex)));
+        final @ByteSize short totalRemoveLength = StorageUnits.size((short)(keyLength + valueLength));
 
         final @ByteOffset int oldLogKeyValueIndexOffset = getTopHeapOffset();
         final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(getTopHeapOffset() + totalRemoveLength);

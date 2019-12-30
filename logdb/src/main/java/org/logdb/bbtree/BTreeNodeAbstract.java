@@ -93,13 +93,13 @@ abstract class BTreeNodeAbstract implements BTreeNode
         isDirty = false;
     }
 
-    private void popBytesFromKeyValueHeap(final @ByteSize int length)
+    private void popBytesFromKeyValueHeap(final @ByteSize short length)
     {
         topKeyValueHeapOffset += StorageUnits.offset(length);
         buffer.putShort(TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
     }
 
-    private void pushBytesToKeyValueHeap(final @ByteSize int length)
+    private void pushBytesToKeyValueHeap(final @ByteSize short length)
     {
         topKeyValueHeapOffset -= StorageUnits.offset(length);
         buffer.putShort(TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
@@ -273,8 +273,9 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         assert key.length <= Short.MAX_VALUE : "Key size must be below " + Short.MAX_VALUE + ", provided " + key.length;
         assert value.length <= Short.MAX_VALUE : "Value size must be below " + Short.MAX_VALUE + ", provided " + value.length;
+        assert key.length + value.length <= Short.MAX_VALUE : "Key and value total size must be less than " + Short.MAX_VALUE;
 
-        final @ByteSize int keyValueTotalSize = StorageUnits.size(key.length + value.length);
+        final @ByteSize short keyValueTotalSize = StorageUnits.size((short)(key.length + value.length));
         pushBytesToKeyValueHeap(keyValueTotalSize);
 
         buffer.putBytes(topKeyValueHeapOffset, key);
@@ -287,7 +288,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     {
         assert value.length <= Short.MAX_VALUE : "Value size must be below " + Short.MAX_VALUE + ", provided " + value.length;
 
-        final @ByteSize int valueSize = StorageUnits.size(value.length);
+        final @ByteSize short valueSize = StorageUnits.size((short)value.length);
         pushBytesToKeyValueHeap(valueSize);
 
         buffer.putBytes(topKeyValueHeapOffset, value);
@@ -501,7 +502,10 @@ abstract class BTreeNodeAbstract implements BTreeNode
         final @ByteOffset short offset = StorageUnits.offset(buffer.getShort(getCellIndexOffset(removeIndex)));
         final @ByteSize short keyLength = StorageUnits.size(buffer.getShort(getCellIndexKeyLength(removeIndex)));
         final @ByteSize short valueLength = StorageUnits.size(buffer.getShort(getCellIndexValueLength(removeIndex)));
-        final @ByteSize int totalRemoveLength = StorageUnits.size(keyLength + valueLength);
+
+        assert (short)(keyLength + valueLength) < Short.MAX_VALUE;
+
+        final @ByteSize short totalRemoveLength = StorageUnits.size((short)(keyLength + valueLength));
 
         final @ByteOffset int oldLogKeyValueIndexOffset = topKeyValueHeapOffset;
         final @ByteOffset int newLogKeyValueIndexOffset = StorageUnits.offset(topKeyValueHeapOffset + totalRemoveLength);
