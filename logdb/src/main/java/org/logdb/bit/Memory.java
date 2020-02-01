@@ -17,6 +17,8 @@ public interface Memory extends ReadMemory, WriteMemory
 
     Memory slice(@ByteOffset int startOffset);
 
+    Memory sliceRange(@ByteOffset int startOffset, @ByteOffset int endOffset);
+
     void assertBounds(@ByteOffset long requestOffset, @ByteSize int requestLength);
 
     void assertBounds(@ByteOffset long requestOffset, @ByteSize long requestLength);

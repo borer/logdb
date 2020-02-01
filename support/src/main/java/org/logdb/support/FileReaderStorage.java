@@ -129,15 +129,6 @@ final class FileReaderStorage implements Storage
     }
 
     @Override
-    public void mapPage(final @PageNumber long pageNumber, final @ByteOffset short offset, final DirectMemory memory)
-    {
-        assert pageNumber > 0 : "page number must be > 0, provided " + pageNumber;
-
-        final @ByteOffset long pageOffset = MemoryFactory.getPageOffset(mappedByteBuffer, getOffset(pageNumber));
-        memory.setBaseAddress(pageOffset + offset);
-    }
-
-    @Override
     public void readBytes(@ByteOffset long offset, ByteBuffer buffer)
     {
         mappedByteBuffer.position((int)offset);

@@ -123,7 +123,7 @@ public class BTreeWithLog extends BTreeAbstract
 
     private void spillLogForRemove(final BTreeNodeNonLeaf node)
     {
-        final KeyValueLogImpl keyValueLog = node.spillLog();
+        final KeyValueHeapImpl keyValueLog = node.spillLog();
         for (int i = 0; i < keyValueLog.getNumberOfPairs(); ++i)
         {
             final byte[] logKey = keyValueLog.getKeyAtIndex(i);
@@ -417,7 +417,7 @@ public class BTreeWithLog extends BTreeAbstract
 
     private void spillLogForPut(final BTreeNodeNonLeaf nonLeaf)
     {
-        final KeyValueLogImpl keyValueLog = nonLeaf.spillLog();
+        final KeyValueHeapImpl keyValueLog = nonLeaf.spillLog();
         for (int i = 0; i < keyValueLog.getNumberOfPairs(); ++i)
         {
             final byte[] logKey = keyValueLog.getKeyAtIndex(i);

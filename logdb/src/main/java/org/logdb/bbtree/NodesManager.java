@@ -197,7 +197,7 @@ public class NodesManager
             rootIndex.append(
                     dirtyRootNode.version,
                     dirtyRootNode.timestamp,
-                    storage.getOffset(pageNumber)); //FIX: actually pass the offset
+                    storage.getOffset(pageNumber));
         }
 
         if (shouldSyncWrite)

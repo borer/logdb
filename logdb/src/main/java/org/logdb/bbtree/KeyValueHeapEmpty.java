@@ -5,17 +5,17 @@ import org.logdb.storage.ByteSize;
 
 import static org.logdb.storage.StorageUnits.ZERO_SIZE;
 
-public final class KeyValueLogEmpty implements KeyValueLog
+public final class KeyValueHeapEmpty implements KeyValueHeap
 {
-    public static final KeyValueLogEmpty INSTANCE = new KeyValueLogEmpty();
+    public static final KeyValueHeapEmpty INSTANCE = new KeyValueHeapEmpty();
 
-    private KeyValueLogEmpty()
+    private KeyValueHeapEmpty()
     {
 
     }
 
     @Override
-    public void resetLog()
+    public void reset(final short numberOfEntries)
     {
 
     }
@@ -27,10 +27,24 @@ public final class KeyValueLogEmpty implements KeyValueLog
     }
 
     @Override
-    public boolean removeLogBytes(byte[] key)
+    public boolean removeKeyValue(byte[] key)
     {
         throw new RuntimeException(
                 String.format("Method not implemented. Key to remove %s", new String(key)));
+    }
+
+    @Override
+    public boolean removeKeyValueAtIndex(final int index)
+    {
+        throw new RuntimeException(
+                String.format("Method not implemented. Key index to remove %d", index));
+    }
+
+    @Override
+    public void removeOnlyKey(final int index)
+    {
+        throw new RuntimeException(
+                String.format("Method not implemented. Key index to remove %d", index));
     }
 
     @Override
@@ -46,7 +60,7 @@ public final class KeyValueLogEmpty implements KeyValueLog
     }
 
     @Override
-    public int binarySearchInLog(byte[] key)
+    public int binarySearch(byte[] key)
     {
         throw new RuntimeException(
                 String.format("Method not implemented. Key to search %s", new String(key)));
@@ -65,27 +79,45 @@ public final class KeyValueLogEmpty implements KeyValueLog
     }
 
     @Override
-    public void putKeyValue(int i, byte[] keyBytes, byte[] valueBytes)
+    public void insertAtIndex(int i, byte[] keyBytes, byte[] valueBytes)
     {
         throw new RuntimeException(
                 String.format("Method not implemented. Key to put %s, value %s", new String(keyBytes), new String(valueBytes)));
     }
 
     @Override
-    public void insertLog(byte[] key, byte[] value)
+    public void setValue(int index, byte[] value)
+    {
+        throw new RuntimeException("Method not implemented.");
+    }
+
+    @Override
+    public void putValue(int index, byte[] value)
+    {
+        throw new RuntimeException("Method not implemented.");
+    }
+
+    @Override
+    public void insert(byte[] key, byte[] value)
     {
         throw new RuntimeException(
                 String.format("Method not implemented. value to set %s", new String(value)));
     }
 
     @Override
-    public KeyValueLogImpl spillLog()
+    public KeyValueHeapImpl spill()
     {
         throw new RuntimeException("Method not implemented.");
     }
 
     @Override
-    public void splitLog(byte[] key, KeyValueLog keyValueLog)
+    public void split(byte[] key, KeyValueHeap newKeyValueHeap)
+    {
+        throw new RuntimeException("Method not implemented.");
+    }
+
+    @Override
+    public void split(final int index, final int newLogKeyValues, final KeyValueHeap newKeyValueHeap)
     {
         throw new RuntimeException("Method not implemented.");
     }
@@ -94,5 +126,11 @@ public final class KeyValueLogEmpty implements KeyValueLog
     public Memory getMemory()
     {
         throw new RuntimeException("Method not implemented.");
+    }
+
+    @Override
+    public String printDebug()
+    {
+        return "Empty";
     }
 }

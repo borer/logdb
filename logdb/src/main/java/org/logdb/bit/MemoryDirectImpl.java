@@ -19,8 +19,7 @@ public class MemoryDirectImpl implements DirectMemory
 {
     private static final @ByteOffset long UNINITIALIZED_ADDRESS = StorageUnits.offset(Long.MIN_VALUE);
 
-    private final @ByteSize long capacity;
-
+    private @ByteSize long capacity;
     private @ByteOffset long baseAddress;
     private @ByteOffset long position;
     private boolean isInitialized;
@@ -83,7 +82,18 @@ public class MemoryDirectImpl implements DirectMemory
     @Override
     public Memory slice(final @ByteOffset int startOffset)
     {
-        final @ByteSize long newCapacity = StorageUnits.size(capacity - startOffset);
+        return sliceRangeInternal(startOffset, StorageUnits.offset(capacity));
+    }
+
+    @Override
+    public Memory sliceRange(final @ByteOffset int startOffset, final @ByteOffset int endOffset)
+    {
+        return sliceRangeInternal(startOffset, endOffset);
+    }
+
+    private  Memory sliceRangeInternal(final @ByteOffset int startOffset, final @ByteOffset long endOffset)
+    {
+        final @ByteSize long newCapacity = StorageUnits.size(endOffset - startOffset);
 
         return new MemoryDirectImpl(baseAddress + startOffset, newCapacity, isInitialized);
     }

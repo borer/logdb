@@ -51,7 +51,6 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 
         MemoryCopy.copy(buffer, destinationNode.getBuffer());
 
-        destinationNode.getBuffer().putShort(BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
         destinationNode.initNodeFromBuffer();
     }
 
@@ -62,16 +61,23 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
+    public void reset()
+    {
+        super.reset();
+        entries.reset((short)0);
+    }
+
+    @Override
     public void split(final int at, final BTreeNodeHeap splitNode)
     {
         assert getPairCount() > 0 : "cannot split node with less than 2 nodes";
         assert splitNode instanceof BTreeNodeLeaf : "when splitting a leaf node, needs same type";
 
-        final int bNumberOfPairs = numberOfPairs - at;
+        final int bNumberOfPairs = entries.getNumberOfPairs() - at;
 
         final BTreeNodeLeaf bTreeNodeLeaf = (BTreeNodeLeaf) splitNode;
 
-        splitKeysAndValues(at, bNumberOfPairs, bTreeNodeLeaf);
+        entries.split(at, bNumberOfPairs, bTreeNodeLeaf.entries);
 
         bTreeNodeLeaf.setDirty();
         setDirty();
@@ -85,7 +91,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         assert keyCount > index && keyCount > 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
-        removeKeyAndValueWithCell(index, keyCount);
+        entries.removeKeyValueAtIndex(index);
 
         setDirty();
     }
@@ -93,17 +99,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     @Override
     public void insert(final byte[] key, final byte[] value)
     {
-        final int index = binarySearch(key);
-        if (index < 0)
-        {
-            final int absIndex = -index - 1;
-            insertKeyAndValue(absIndex, key, value);
-        }
-        else
-        {
-            setValue(index, value);
-        }
-
+        entries.insert(key, value);
         setDirty();
     }
 
@@ -149,24 +145,15 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
-    public boolean shouldSplit(int requiredSpace)
-    {
-        final int minimumFreeSpaceBeforeOperatingOnNode = 2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
-        return minimumFreeSpaceBeforeOperatingOnNode > freeSizeLeftBytes;
-    }
-
-    @Override
     public HeapMemory getBuffer()
     {
         return (HeapMemory)buffer;
     }
 
     @Override
-    @ByteSize long calculateFreeSpaceLeft(final long pageSize)
+    @ByteSize long calculateFreeSpaceLeft(final @ByteSize long pageSize)
     {
-        final @ByteSize int sizeForKeyValuesCells = StorageUnits.size(numberOfPairs * BTreeNodePage.CELL_SIZE);
-        final @ByteSize long logHeapSize = StorageUnits.size(pageSize - topKeyValueHeapOffset);
-        final long usedBytes = BTreeNodePage.HEADER_SIZE_BYTES + sizeForKeyValuesCells + logHeapSize;
+        final @ByteSize long usedBytes = StorageUnits.size(BTreeNodePage.PAGE_HEADER_SIZE + entries.getUsedSize());
         return StorageUnits.size(pageSize - usedBytes);
     }
 }

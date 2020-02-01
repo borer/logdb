@@ -80,4 +80,70 @@ class MemoryByteBufferImplTest
 
         assertEquals(expectedMsg, new String(actual));
     }
+
+    @Test
+    void shouldCreateSliceMemoryFromOffset()
+    {
+        final int originalSize = 128;
+        final int halfSize = originalSize / 2;
+        final ByteBuffer buffer = ByteBuffer.allocate(originalSize);
+        final Memory memory = new MemoryByteBufferImpl(buffer);
+        final long expectedZeroPosition = 123456L;
+        final long expectedHalfPosition = 987654L;
+
+        memory.putLong(0, expectedZeroPosition);
+        memory.putLong(halfSize, expectedHalfPosition);
+        final Memory slice = memory.slice(halfSize);
+
+        assertEquals(expectedZeroPosition, memory.getLong(0));
+        assertEquals(expectedHalfPosition, memory.getLong(halfSize));
+        assertEquals(originalSize, memory.getCapacity());
+
+        assertEquals(halfSize, slice.getCapacity());
+        assertEquals(expectedHalfPosition, slice.getLong(0));
+    }
+
+    @Test
+    void shouldCreateSliceMemoryUpperHalf()
+    {
+        final int originalSize = 128;
+        final int halfSize = originalSize / 2;
+        final ByteBuffer buffer = ByteBuffer.allocate(originalSize);
+        final Memory memory = new MemoryByteBufferImpl(buffer);
+        final long expectedZeroPosition = 123456L;
+        final long expectedHalfPosition = 987654L;
+
+        memory.putLong(0, expectedZeroPosition);
+        memory.putLong(halfSize, expectedHalfPosition);
+        final Memory sliceUpperHalf = memory.sliceRange(halfSize, originalSize);
+
+        assertEquals(expectedZeroPosition, memory.getLong(0));
+        assertEquals(expectedHalfPosition, memory.getLong(halfSize));
+        assertEquals(originalSize, memory.getCapacity());
+
+        assertEquals(halfSize, sliceUpperHalf.getCapacity());
+        assertEquals(expectedHalfPosition, sliceUpperHalf.getLong(0));
+    }
+
+    @Test
+    void shouldCreateSliceMemoryBottomHalf()
+    {
+        final int originalSize = 128;
+        final int halfSize = originalSize / 2;
+        final ByteBuffer buffer = ByteBuffer.allocate(originalSize);
+        final Memory memory = new MemoryByteBufferImpl(buffer);
+        final long expectedZeroPosition = 123456L;
+        final long expectedHalfPosition = 987654L;
+
+        memory.putLong(0, expectedZeroPosition);
+        memory.putLong(halfSize, expectedHalfPosition);
+        final Memory sliceUpperHalf = memory.sliceRange(0, halfSize);
+
+        assertEquals(expectedZeroPosition, memory.getLong(0));
+        assertEquals(expectedHalfPosition, memory.getLong(halfSize));
+        assertEquals(originalSize, memory.getCapacity());
+
+        assertEquals(halfSize, sliceUpperHalf.getCapacity());
+        assertEquals(expectedZeroPosition, sliceUpperHalf.getLong(0));
+    }
 }

@@ -46,11 +46,21 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
         this.pageNumber = pageNumber;
         storage.mapPage(pageNumber, (DirectMemory) buffer);
 
-        final Memory memory = keyValueLog.getMemory();
-        if (memory instanceof DirectMemory)
+        final Memory logMemory = logHeap.getMemory();
+        if (logMemory instanceof DirectMemory)
         {
             final @ByteOffset short logStartOffset = StorageUnits.offset((short)getLogStartOffset(buffer, maxLogSize));
-            storage.mapPage(pageNumber, logStartOffset, (DirectMemory) memory);
+            final @ByteOffset long newBaseAddress = StorageUnits.offset(buffer.getBaseAddress() + logStartOffset);
+            final DirectMemory directMemory = (DirectMemory) logMemory;
+            directMemory.setBaseAddress(newBaseAddress);
+        }
+
+        final Memory entriesMemory = entries.getMemory();
+        if (entriesMemory instanceof DirectMemory)
+        {
+            final DirectMemory directMemory = (DirectMemory) entriesMemory;
+            final @ByteOffset long baseAddress = StorageUnits.offset(buffer.getBaseAddress() + BTreeNodePage.PAGE_HEADER_SIZE);
+            directMemory.setBaseAddress(baseAddress);
         }
 
         initNodeFromBuffer();
@@ -123,7 +133,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
 
         if (destinationNode.getNodeType() == BtreeNodeType.NonLeaf && (destinationNode instanceof BTreeNodeNonLeaf))
         {
-            ((BTreeNodeNonLeaf) destinationNode).setChildren(new BTreeNodeHeap[numberOfPairs]);
+            ((BTreeNodeNonLeaf) destinationNode).setChildren(new BTreeNodeHeap[entries.getNumberOfPairs()]);
         }
     }
 

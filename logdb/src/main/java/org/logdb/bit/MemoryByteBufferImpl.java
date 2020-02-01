@@ -61,12 +61,22 @@ public class MemoryByteBufferImpl implements HeapMemory
     @Override
     public Memory slice(final @ByteOffset int startOffset)
     {
+        return sliceRange(startOffset, StorageUnits.offset(buffer.limit()));
+    }
+
+    @Override
+    public Memory sliceRange(final @ByteOffset int startOffset, final @ByteOffset int endOffset)
+    {
+        final int originalLimit = buffer.limit();
         buffer.mark();
+
         buffer.position(startOffset);
+        buffer.limit(endOffset);
 
         final ByteBuffer sliceBuffer = buffer.slice();
         sliceBuffer.order(buffer.order());
 
+        buffer.limit(originalLimit);
         buffer.reset();
 
         return new MemoryByteBufferImpl(sliceBuffer);

@@ -81,7 +81,7 @@ public class BTreePrinter
         printer.append(String.format("\"%s\"", id));
         printer.append("[label = \"");
 
-        for (int i = 0; i < node.numberOfPairs; i++)
+        for (int i = 0; i < node.entries.getNumberOfPairs(); i++)
         {
             final byte[] key = node.getKey(i);
             final byte[] value = node.getValue(i);
@@ -94,7 +94,7 @@ public class BTreePrinter
     private static void printNonLeaf(final StringBuilder printer, final BTreeLogNodeAbstract node, final NodesManager nodesManager)
     {
         final String id = String.valueOf(node.getPageNumber());
-        final int rightmostIndex = node.numberOfPairs - 1;
+        final int rightmostIndex = node.entries.getNumberOfPairs() - 1;
         final String lastChildId = getPageUniqueId(rightmostIndex, node);
 
         printer.append(String.format("\"%s\"", id));
@@ -141,7 +141,7 @@ public class BTreePrinter
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            for (int i = 0; i < node.numberOfPairs; i++)
+            for (int i = 0; i < node.entries.getNumberOfPairs(); i++)
             {
                 final BTreeNode child = nodesManager.loadNode(i, node, mappedNode);
                 print(printer, child, nodesManager);

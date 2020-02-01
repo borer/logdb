@@ -34,7 +34,7 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         if (index < 0)
         {
             final int absIndex = -index - 1;
-            insertKeyAndValue(absIndex, key, value);
+            entries.insertAtIndex(absIndex, key, value);
         }
         else
         {
@@ -65,10 +65,10 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
     public void insertChild(final int index, final byte[] key, final BTreeNodeHeap child)
     {
         //this will be replaced once we commit the child page
-        insertKeyAndValue(index, key, NON_COMMITTED_CHILD);
-        final int oldNumberOfPairs = numberOfPairs - 1;
+        entries.insertAtIndex(index, key, NON_COMMITTED_CHILD);
+        final int oldNumberOfPairs = entries.getNumberOfPairs() - 1;
 
-        BTreeNodeHeap[] newChildren = new BTreeNodeHeap[numberOfPairs];
+        BTreeNodeHeap[] newChildren = new BTreeNodeHeap[entries.getNumberOfPairs()];
         copyWithGap(children, newChildren, oldNumberOfPairs, index);
         children = newChildren;
         children[index] = child;
@@ -84,7 +84,7 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         assert keyCount >= index && keyCount > 0 && index >= 0
                 : String.format("removing index %d when key count is %d", index, keyCount);
 
-        removeKeyAndValueWithCell(index, keyCount);
+        entries.removeKeyValueAtIndex(index);
 
         //TODO: when removing children consider returning them to the cache
         removeChildReference(index);
@@ -129,7 +129,6 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
 
         MemoryCopy.copy(buffer, destinationNode.getBuffer());
 
-        destinationNode.getBuffer().putShort(BTreeNodePage.TOP_KEY_VALUES_HEAP_SIZE_OFFSET, topKeyValueHeapOffset);
         destinationNode.initNodeFromBuffer();
 
         final BTreeNodeHeap[] copyChildren = new BTreeNodeHeap[children.length];
@@ -160,7 +159,7 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         }
 
         final int aNumberOfPairs = at + 1;
-        final int bNumberOfPairs = numberOfPairs - aNumberOfPairs;
+        final int bNumberOfPairs = entries.getNumberOfPairs() - aNumberOfPairs;
 
         final BTreeNodeHeap[] aChildren = new BTreeNodeHeap[aNumberOfPairs];
         final BTreeNodeHeap[] bChildren = new BTreeNodeHeap[bNumberOfPairs];

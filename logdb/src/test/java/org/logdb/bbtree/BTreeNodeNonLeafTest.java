@@ -106,7 +106,9 @@ class BTreeNodeNonLeafTest
     @Test
     void shouldBeAbleToInsertMultipleChildren()
     {
-        int usedBytes = Long.BYTES + BTreeNodePage.CELL_SIZE; // nonLeaf nodes always start with a long value and initial entry in the cell arrays.
+        int usedBytes = BTreeNodePage.PAGE_HEADER_SIZE +
+                        KeyValueHeapImpl.HEADER_SIZE +
+                Long.BYTES + BTreeNodePage.CELL_SIZE; // nonLeaf nodes always start with a long value and initial entry in the cell arrays.
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
@@ -115,7 +117,7 @@ class BTreeNodeNonLeafTest
             final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
-            final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
+            final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes;
 
             bTreeNonLeaf.insertChild(i, keyBytes, bTreeNode);
 
@@ -142,7 +144,9 @@ class BTreeNodeNonLeafTest
     @Test
     void shouldBeAbleToDeleteChildren()
     {
-        int usedBytes = Long.BYTES + BTreeNodePage.CELL_SIZE; // nonLeaf nodes always start with a long value and initial entry in the cell arrays.
+        int usedBytes = BTreeNodePage.PAGE_HEADER_SIZE +
+                        KeyValueHeapImpl.HEADER_SIZE +
+                        Long.BYTES + BTreeNodePage.CELL_SIZE; // nonLeaf nodes always start with a long value and initial entry in the cell arrays.
         final int numKeysPerChild = 5;
         for (int i = 0; i < 10; i++)
         {
@@ -151,7 +155,7 @@ class BTreeNodeNonLeafTest
             final BTreeNodeLeaf bTreeNode = TestUtils.createLeafNodeWithKeys(numKeysPerChild, key, new IdSupplier(key));
 
             usedBytes += (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
-            final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
+            final int expectedFreeSize = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes;
 
             bTreeNonLeaf.insertChild(i, keyBytes, bTreeNode);
 
@@ -163,7 +167,7 @@ class BTreeNodeNonLeafTest
         assertEquals(10, bTreeNonLeaf.getPairCount());
 
         usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
-        final int expectedFreeSizeAfterDelete = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE- usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
+        final int expectedFreeSizeAfterDelete = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes;
         assertEquals(expectedFreeSizeAfterDelete, bTreeNonLeaf.calculateFreeSpaceLeft(BIG_PAGE_SIZE_BYTES));
 
         for (int i = 0; i < 9; i++)
@@ -178,7 +182,7 @@ class BTreeNodeNonLeafTest
         assertEquals(9, bTreeNonLeaf.getPairCount());
 
         usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
-        final int expectedFreeSizeAnotherDelete = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES;
+        final int expectedFreeSizeAnotherDelete = BIG_PAGE_SIZE_BYTES - BIG_NODE_LOG_SIZE - usedBytes;
         assertEquals(expectedFreeSizeAnotherDelete, bTreeNonLeaf.calculateFreeSpaceLeft(BIG_PAGE_SIZE_BYTES));
 
         for (int i = 0; i < 8; i++)
@@ -337,7 +341,7 @@ class BTreeNodeNonLeafTest
         assertFalse(bTreeNonLeaf.logHasFreeSpace(2 * Long.BYTES));
         assertEquals(maxLogKeyValuePairs, bTreeNonLeaf.getLogKeyValuesCount());
 
-        final KeyValueLogImpl keyValueLog = bTreeNonLeaf.spillLog();
+        final KeyValueHeapImpl keyValueLog = bTreeNonLeaf.spillLog();
 
         assertTrue(bTreeNonLeaf.logHasFreeSpace(2 * Long.BYTES));
         assertEquals(0, bTreeNonLeaf.getLogKeyValuesCount());

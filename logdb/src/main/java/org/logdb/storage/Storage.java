@@ -66,13 +66,6 @@ public interface Storage extends AutoCloseable
     void mapPage(@PageNumber long pageNumber, DirectMemory memory);
 
     /**
-     * Maps the page specified by pageNumber into memory object.
-     * @param pageNumber the page number to map
-     * @param memory the memory that is going to point to the start of the page
-     */
-    void mapPage(@PageNumber long pageNumber, @ByteOffset short offset, DirectMemory memory);
-
-    /**
      * Reads from offset the byte buffer amount of bytes.
      * @param offset the logical offset in the storage to start reading
      * @param buffer t=this buffer is going to be populated with content form the storage bytes

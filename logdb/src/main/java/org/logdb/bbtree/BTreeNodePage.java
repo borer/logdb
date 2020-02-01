@@ -66,31 +66,20 @@ class BTreeNodePage
     static final @ByteSize int PAGE_PREV_SIZE = LONG_BYTES_SIZE;
 
     static final @ByteOffset int PAGE_HEADER_OFFSET = StorageUnits.offset(PAGE_START_OFFSET);
-    static final @ByteSize int PAGE_HEADER_SIZE = PAGE_FLAGS_SIZE +
+    static final @ByteSize int PAGE_HEADER_SIZE =
+            PAGE_FLAGS_SIZE +
             PAGE_CHECKSUM_SIZE +
             PAGE_TIMESTAMP_SIZE +
             PAGE_VERSION_SIZE +
             PAGE_PREV_SIZE;
 
-    static final @ByteOffset int NUMBER_OF_PAIRS_OFFSET = StorageUnits.offset(PAGE_HEADER_OFFSET + PAGE_HEADER_SIZE);
-    static final @ByteSize int NUMBER_OF_PAIRS_SIZE = INT_BYTES_SIZE;
-
-    static final @ByteOffset int TOP_KEY_VALUES_HEAP_SIZE_OFFSET = StorageUnits.offset(NUMBER_OF_PAIRS_OFFSET + NUMBER_OF_PAIRS_SIZE);
-    static final @ByteSize int TOP_KEY_VALUES_HEAP_SIZE = SHORT_BYTES_SIZE;
-
-    static final @ByteSize int HEADER_SIZE_BYTES = PAGE_HEADER_SIZE +
-            NUMBER_OF_PAIRS_SIZE +
-            TOP_KEY_VALUES_HEAP_SIZE;
-    static final @ByteOffset int CELL_START_OFFSET = StorageUnits.offset(HEADER_SIZE_BYTES);
+    static final @ByteOffset int CELL_START_OFFSET = StorageUnits.offset(PAGE_HEADER_SIZE);
 
     static final @ByteSize int CELL_PAGE_OFFSET_SIZE = SHORT_BYTES_SIZE;
     static final @ByteSize int CELL_KEY_LENGTH_SIZE = SHORT_BYTES_SIZE;
     static final @ByteSize int CELL_VALUE_LENGTH_SIZE = SHORT_BYTES_SIZE;
     static final @ByteSize int CELL_SIZE = CELL_PAGE_OFFSET_SIZE + CELL_KEY_LENGTH_SIZE + CELL_VALUE_LENGTH_SIZE;
 
-
     static final @ByteSize int KEY_SIZE = LONG_BYTES_SIZE;
     static final @ByteSize int VALUE_SIZE = LONG_BYTES_SIZE;
-
-    static final int MINIMUM_PAGE_SIZE = HEADER_SIZE_BYTES + (2 * (KEY_SIZE + VALUE_SIZE));
 }

@@ -43,7 +43,7 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToInsertMultipleNewValues()
     {
-        int usedBytes = 0;
+        int usedBytes = BTreeNodePage.PAGE_HEADER_SIZE + KeyValueHeapImpl.HEADER_SIZE;
         for (int i = 0; i < 25; i++)
         {
             final KeyValueUtils.Pair pair = KeyValueUtils.generateKeyValuePair(i);
@@ -53,7 +53,7 @@ class BTreeNodeLeafTest
 
             assertArrayEquals(pair.value, bTreeLeaf.get(pair.key));
             assertEquals(i + 1, bTreeLeaf.getPairCount());
-            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
+            assertEquals(PAGE_SIZE_BYTES - usedBytes, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
         }
     }
 
@@ -118,7 +118,7 @@ class BTreeNodeLeafTest
     @Test
     void shouldBeAbleToRemoveEntriesFromFirstIndex()
     {
-        int usedBytes = 0;
+        int usedBytes = BTreeNodePage.PAGE_HEADER_SIZE + KeyValueHeapImpl.HEADER_SIZE;
         final int numberOfElements = 10;
         for (int i = 0; i < numberOfElements; i++)
         {
@@ -129,7 +129,7 @@ class BTreeNodeLeafTest
             assertArrayEquals(bytes, bTreeLeaf.getKey(i));
             assertArrayEquals(bytes, bTreeLeaf.getValue(i));
             assertEquals(i + 1, bTreeLeaf.getPairCount());
-            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
+            assertEquals(PAGE_SIZE_BYTES - usedBytes, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
         }
 
         for (int i = 9; i >= 0; i--)
@@ -137,7 +137,7 @@ class BTreeNodeLeafTest
             bTreeLeaf.removeAtIndex(0);
             usedBytes -= (Long.BYTES * 2) + BTreeNodePage.CELL_SIZE;
             assertEquals(i, bTreeLeaf.getPairCount());
-            assertEquals(PAGE_SIZE_BYTES - usedBytes - BTreeNodePage.HEADER_SIZE_BYTES, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
+            assertEquals(PAGE_SIZE_BYTES - usedBytes, bTreeLeaf.calculateFreeSpaceLeft(PAGE_SIZE_BYTES));
 
             for (int j = 0; j < bTreeLeaf.getPairCount(); j++)
             {
