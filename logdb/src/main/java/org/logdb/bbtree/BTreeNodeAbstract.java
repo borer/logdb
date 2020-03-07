@@ -242,7 +242,7 @@ abstract class BTreeNodeAbstract implements BTreeNode
     @Override
     public boolean shouldSplit(final @ByteSize int requiredSpace)
     {
-        return requiredSpace > calculateFreeSpaceLeft(buffer.getCapacity());
+        return requiredSpace + BTreeNodePage.CELL_SIZE >= calculateFreeSpaceLeft(buffer.getCapacity());
     }
 
     void setDirty()

@@ -43,7 +43,7 @@ final class KeyValueHeapImpl implements KeyValueHeap
     private KeyValueHeapImpl(final Memory keyValuesBuffer, final short numberOfEntries)
     {
         assert keyValuesBuffer.getCapacity() <= Short.MAX_VALUE
-                : "ke value log cannot be bigger than " + Short.MAX_VALUE + ", provided " + keyValuesBuffer.getCapacity();
+                : "key value log cannot be bigger than " + Short.MAX_VALUE + ", provided " + keyValuesBuffer.getCapacity();
 
         this.keyValuesBuffer = keyValuesBuffer;
         this.numberOfEntries = numberOfEntries;
@@ -195,7 +195,7 @@ final class KeyValueHeapImpl implements KeyValueHeap
         assert key.length < Short.MAX_VALUE;
         assert value.length < Short.MAX_VALUE;
 
-        assert key.length + value.length + CELL_SIZE < keyValuesBuffer.getCapacity() - getUsedSize()
+        assert key.length + value.length + CELL_SIZE <= keyValuesBuffer.getCapacity() - getUsedSize()
                 :
                 String.format("cannot insert pair due to insufficient capacity. Current Max Capacity : %d Used Capacity: %d, Required: %d",
                         keyValuesBuffer.getCapacity(),

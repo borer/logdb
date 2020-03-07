@@ -143,6 +143,12 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
     }
 
     @Override
+    public void insertChild(final byte[] key, final BTreeNodeHeap child)
+    {
+        throw new UnsupportedOperationException("Leaf nodes don't have children.");
+    }
+
+    @Override
     public HeapMemory getBuffer()
     {
         return (HeapMemory)buffer;

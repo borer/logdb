@@ -1,5 +1,6 @@
 package org.logdb.bbtree;
 
+import org.logdb.bit.ByteArrayComparator;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
 import org.logdb.storage.StorageUnits;
@@ -73,36 +74,91 @@ public class BTreeImpl extends BTreeAbstract
             CursorPosition parentCursor = cursorPosition.parent;
 
             BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
-            currentNode.insert(key, value);
+            @ByteSize int requiredSpace = StorageUnits.size(key.length + value.length);
 
-            while (currentNode.shouldSplit(REQUIRED_SPACE))
+            assert (BtreeNodeType.Leaf.equals(currentNode.getNodeType()));
+            BTreeNodeHeap split = null;
+            byte[] splitKey = null;
+
+            if (currentNode.shouldSplit(requiredSpace))
             {
                 this.nodesCount++;
-                int keyCount = currentNode.getPairCount();
+                final int keyCount = currentNode.getPairCount();
                 final int at = keyCount >> 1;
-                final byte[] keyAt = currentNode.getKey(at);
-                final BTreeNodeHeap split = nodesManager.splitNode(currentNode, at, newVersion);
+                splitKey = currentNode.getKey(at);
+                split = nodesManager.splitNode(currentNode, at, newVersion);
 
+                final int compare = ByteArrayComparator.INSTANCE.compare(splitKey, key);
+                if (compare <= 0)
+                {
+                    split.insert(key, value);
+                }
+                else
+                {
+                    currentNode.insert(key, value);
+                }
+            }
+            else
+            {
+                currentNode.insert(key, value);
+            }
+
+            while (split != null)
+            {
                 if (parentCursor == null)
                 {
                     this.nodesCount++;
                     final BTreeNodeHeap temp = nodesManager.createEmptyNonLeafNode();
                     temp.setVersion(newVersion);
 
-                    temp.insertChild(0, keyAt, currentNode);
+                    temp.insertChild(0, splitKey, currentNode);
                     temp.setChild(1, split);
 
                     currentNode = temp;
 
-                    break;
+                    split = null;
+                    splitKey = null;
                 }
+                else
+                {
+                    requiredSpace = StorageUnits.size(splitKey.length + Long.BYTES); //page number size
+                    final BTreeNodeHeap parentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode), newVersion);
+                    if (parentNode.shouldSplit(requiredSpace))
+                    {
+                        parentNode.setChild(parentCursor.index, split);
 
-                final BTreeNodeHeap parentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode), newVersion);
-                parentNode.setChild(parentCursor.index, split);
-                parentNode.insertChild(parentCursor.index, keyAt, currentNode);
+                        this.nodesCount++;
+                        final int keyCount = parentNode.getPairCount();
+                        final int at = keyCount >> 1;
+                        final byte[] splitKeyNonLeaf = parentNode.getKey(at);
+                        final BTreeNodeHeap splitNonLeaf = nodesManager.splitNode(parentNode, at, newVersion);
 
-                parentCursor = parentCursor.parent;
-                currentNode = parentNode;
+                        final int compare = ByteArrayComparator.INSTANCE.compare(splitKeyNonLeaf, splitKey);
+                        if (compare <= 0)
+                        {
+                            splitNonLeaf.insertChild(splitKey, currentNode);
+                        }
+                        else
+                        {
+                             parentNode.insertChild(splitKey, currentNode);
+                        }
+
+                        split = splitNonLeaf;
+                        splitKey = splitKeyNonLeaf;
+                    }
+                    else
+                    {
+                        //no more splitting required
+                        parentNode.insertChild(parentCursor.index, splitKey, currentNode);
+                        parentNode.setChild(parentCursor.index + 1, split);
+
+                        split = null;
+                        splitKey = null;
+                    }
+
+                    parentCursor = parentCursor.parent;
+                    currentNode = parentNode;
+                }
             }
 
             updatePathToRoot(parentCursor, currentNode);

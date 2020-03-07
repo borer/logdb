@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeHeap
 {
-    static final byte[] NON_COMMITTED_CHILD = BinaryHelper.longToBytes(Integer.MIN_VALUE);
+    static final byte[] NON_COMMITTED_CHILD = BinaryHelper.longToBytes(Long.MIN_VALUE);
 
     private BTreeNodeHeap[] children;
 
@@ -74,6 +74,18 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
         children[index] = child;
 
         setDirty();
+    }
+
+    @Override
+    public void insertChild(final byte[] key, final BTreeNodeHeap child)
+    {
+        int index = binarySearchNonLeaf(key);
+        if (index < 0)
+        {
+            index  = -index - 1;
+        }
+
+        insertChild(index, key, child);
     }
 
     @Override
