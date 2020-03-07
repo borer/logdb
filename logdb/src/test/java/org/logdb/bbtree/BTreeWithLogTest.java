@@ -12,8 +12,8 @@ import org.logdb.support.TestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.support.TestUtils.INITIAL_VERSION;
 import static org.logdb.support.TestUtils.MEMORY_CHUNK_SIZE;
 import static org.logdb.support.TestUtils.createInitialRootReference;
@@ -48,7 +48,7 @@ class BTreeWithLogTest
         for (long i = 0; i < 10; i++)
         {
             final byte[] bytes = BinaryHelper.longToBytes(i);
-            assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(bytes));
+            assertArrayEquals(null, bTree.get(bytes));
         }
     }
 
@@ -391,8 +391,8 @@ class BTreeWithLogTest
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(key200));
-        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, bTree.get(keyMinus20));
+        assertArrayEquals(null, bTree.get(key200));
+        assertArrayEquals(null, bTree.get(keyMinus20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {
@@ -466,8 +466,8 @@ class BTreeWithLogTest
 
         assertEquals(EXPECTED_NODES, bTree.getNodesCount());
 
-        assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(key200));
-        assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(keyMinus20));
+        assertNull(bTree.get(key200));
+        assertNull(bTree.get(keyMinus20));
 
         for (long i = 0; i < numberOfPairs; i++)
         {

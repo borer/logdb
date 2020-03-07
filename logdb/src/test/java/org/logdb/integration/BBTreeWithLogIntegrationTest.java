@@ -15,7 +15,6 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedLogBtree;
 import static org.logdb.integration.TestIntegrationUtils.loadPersistedBtree;
 import static org.logdb.integration.TestIntegrationUtils.loadPersistedLogBtree;
@@ -37,7 +36,7 @@ class BBTreeWithLogIntegrationTest
             final byte[] bytes = BinaryHelper.longToBytes(1);
             bTree.put(bytes, bytes);
             bTree.commit();
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, bTree.get(nonExistingKeyValuePair));
         }
     }
 
@@ -51,7 +50,7 @@ class BBTreeWithLogIntegrationTest
             final byte[] bytes = BinaryHelper.longToBytes(1);
             bTree.put(bytes, bytes);
             bTree.commit();
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, bTree.get(nonExistingKeyValuePair));
         }
     }
 
@@ -69,7 +68,7 @@ class BBTreeWithLogIntegrationTest
             bTree.put(keyTen, keyTen);
             bTree.put(keyFive, keyFive);
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
@@ -80,7 +79,7 @@ class BBTreeWithLogIntegrationTest
             assertArrayEquals(keyTen, readBTree.get(keyTen));
             assertArrayEquals(keyFive, readBTree.get(keyFive));
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
@@ -100,7 +99,7 @@ class BBTreeWithLogIntegrationTest
                 originalBTree.commit();
             }
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, originalBTree.get(nonExistingKey));
+            assertArrayEquals(null, originalBTree.get(nonExistingKey));
         }
 
         try (final BTreeWithLog loadedBTree = loadPersistedLogBtree(tempDirectory))
@@ -111,7 +110,7 @@ class BBTreeWithLogIntegrationTest
                 assertArrayEquals(value, loadedBTree.get(key, i));
             }
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, loadedBTree.get(nonExistingKey));
+            assertArrayEquals(null, loadedBTree.get(nonExistingKey));
         }
     }
 
@@ -337,7 +336,7 @@ class BBTreeWithLogIntegrationTest
                 //delete range,don't assert on it
                 if (i >= startOffset && i < endDeletionOffset)
                 {
-                    assertArrayEquals(KEY_NOT_FOUND_VALUE, loadedTree.get(bytes));
+                    assertArrayEquals(null, loadedTree.get(bytes));
                 }
                 else
                 {

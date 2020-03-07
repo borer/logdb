@@ -11,8 +11,6 @@ import org.logdb.time.TimeSource;
 
 import java.util.Arrays;
 
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
-
 public class BTreeWithLog extends BTreeAbstract
 {
     private static final byte[] LOG_VALUE_TO_REMOVE_SENTINEL = BinaryHelper.longToBytes(-1);
@@ -523,7 +521,7 @@ public class BTreeWithLog extends BTreeAbstract
                         final byte[] logValue = bTreeLogNode.getLogValue(key);
                         if (Arrays.equals(logValue, LOG_VALUE_TO_REMOVE_SENTINEL))
                         {
-                            return KEY_NOT_FOUND_VALUE;
+                            return null;
                         }
                         else
                         {

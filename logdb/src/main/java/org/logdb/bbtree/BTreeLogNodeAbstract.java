@@ -8,8 +8,6 @@ import org.logdb.storage.StorageUnits;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
-
 public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements BTreeLogNode
 {
     KeyValueHeap logHeap;
@@ -109,7 +107,7 @@ public abstract class BTreeLogNodeAbstract extends BTreeNodeAbstract implements 
         }
         else
         {
-            return KEY_NOT_FOUND_VALUE;
+            return null;
         }
     }
 

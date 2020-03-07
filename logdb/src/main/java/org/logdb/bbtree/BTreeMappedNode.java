@@ -14,8 +14,6 @@ import org.logdb.time.Milliseconds;
 
 import java.util.function.Consumer;
 
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
-
 public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseable
 {
     private final Consumer<BTreeMappedNode> closeHandler;
@@ -98,7 +96,7 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
         {
             if (index < 0)
             {
-                return KEY_NOT_FOUND_VALUE;
+                return null;
             }
         }
         return getValue(index);

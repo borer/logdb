@@ -10,8 +10,6 @@ import org.logdb.time.Milliseconds;
 
 import java.io.IOException;
 
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
-
 public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
 {
     public BTreeNodeLeaf(final @PageNumber long pageNumber, final HeapMemory memory, final int numberOfKeys)
@@ -25,7 +23,7 @@ public class BTreeNodeLeaf extends BTreeNodeAbstract implements BTreeNodeHeap
         final int index = binarySearch(key);
         if (index < 0)
         {
-            return KEY_NOT_FOUND_VALUE;
+            return null;
         }
 
         return getValue(index);

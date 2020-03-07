@@ -8,9 +8,6 @@ import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
 
 import java.io.IOException;
-import java.util.Arrays;
-
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 
 public class LogDb implements AutoCloseable
 {
@@ -40,7 +37,7 @@ public class LogDb implements AutoCloseable
     public byte[] get(final byte[] key)
     {
         final @ByteOffset byte[] offset = StorageUnits.offset(index.get(key));
-        if (Arrays.equals(offset, KEY_NOT_FOUND_VALUE))
+        if (offset == null)
         {
             return null;
         }

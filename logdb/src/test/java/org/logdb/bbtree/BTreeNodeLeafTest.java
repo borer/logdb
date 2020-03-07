@@ -208,7 +208,7 @@ class BTreeNodeLeafTest
     {
         final byte[] valueFound = bTreeLeaf.get(BinaryHelper.longToBytes(10L));
 
-        assertArrayEquals(InvalidBTreeValues.KEY_NOT_FOUND_VALUE, valueFound);
+        assertArrayEquals(null, valueFound);
     }
 
     /////////////////////////////////Split

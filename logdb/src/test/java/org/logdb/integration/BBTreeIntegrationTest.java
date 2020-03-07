@@ -16,7 +16,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.logdb.bbtree.InvalidBTreeValues.KEY_NOT_FOUND_VALUE;
 import static org.logdb.integration.TestIntegrationUtils.createNewPersistedBtree;
 import static org.logdb.integration.TestIntegrationUtils.loadPersistedBtree;
 
@@ -39,7 +38,7 @@ class BBTreeIntegrationTest
             bTree.put(bytesTen, bytesTen);
             bTree.put(bytesFive, bytesFive);
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
@@ -50,7 +49,7 @@ class BBTreeIntegrationTest
             assertArrayEquals(bytesTen, readBTree.get(bytesTen));
             assertArrayEquals(bytesFive, readBTree.get(bytesFive));
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
@@ -68,7 +67,7 @@ class BBTreeIntegrationTest
             bTree.put(bytesTen, bytesTen);
             bTree.put(bytesFive, bytesFive);
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, bTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, bTree.get(nonExistingKeyValuePair));
 
             bTree.commit();
         }
@@ -79,7 +78,7 @@ class BBTreeIntegrationTest
             assertArrayEquals(bytesTen, readBTree.get(bytesTen));
             assertArrayEquals(bytesFive, readBTree.get(bytesFive));
 
-            assertArrayEquals(KEY_NOT_FOUND_VALUE, readBTree.get(nonExistingKeyValuePair));
+            assertArrayEquals(null, readBTree.get(nonExistingKeyValuePair));
         }
     }
 
