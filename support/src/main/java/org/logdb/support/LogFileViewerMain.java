@@ -61,12 +61,9 @@ public class LogFileViewerMain
             fileChannel.position(fileHeaderOffsetToSkip);
 
             long lastRecordSize = 0;
-            final ByteBuffer keyBuffer = ByteBuffer.allocate(Long.BYTES);
-            keyBuffer.order(fileByteOrder);
             for (long i = fileHeaderOffsetToSkip; i <= lastPersistedOffset; i += lastRecordSize)
             {
                 headerBuffer.rewind();
-                keyBuffer.rewind();
 
                 fileChannel.read(headerBuffer);
 
@@ -74,6 +71,7 @@ public class LogFileViewerMain
                 try
                 {
                     logRecordHeader.read(headerBuffer);
+
                 }
                 catch (final Exception e)
                 {
@@ -87,9 +85,10 @@ public class LogFileViewerMain
                 }
 
                 //read key
+                final ByteBuffer keyBuffer = ByteBuffer.allocate(logRecordHeader.getKeyLength());
+                keyBuffer.order(fileByteOrder);
                 fileChannel.read(keyBuffer);
-                keyBuffer.rewind();
-                final long key = keyBuffer.getLong();
+                final String key = new String(keyBuffer.array());
 
                 //read value
                 final ByteBuffer valueBuffer = ByteBuffer.allocate(logRecordHeader.getValueLength());
@@ -99,13 +98,21 @@ public class LogFileViewerMain
 
                 lastRecordSize = logRecordHeader.getSize() + logRecordHeader.getKeyLength() + logRecordHeader.getValueLength();
 
-                System.out.println(
-                        String.format("offset %d : %s | key %d | value %s",
-                                i,
-                                logRecordHeader,
-                                key,
-                                valueString)
-                );
+                switch (logRecordHeader.getRecordType())
+                {
+                    case UPDATE:
+                        System.out.println(
+                                String.format("offset %d : %s | key %s | value %s",
+                                        i,
+                                        logRecordHeader,
+                                        key,
+                                        valueString)
+                        );
+                        break;
+                    case DELETE:
+                        System.out.println(String.format("offset %d : %s | key %s ", i, logRecordHeader, key));
+                        break;
+                }
             }
         }
     }
