@@ -70,28 +70,29 @@ public class BTreeImpl extends BTreeAbstract
 
         try (BTreeMappedNode  mappedNode = nodesManager.getOrCreateMappedNode())
         {
-            BTreeNode targetNode = cursorPosition.getNode(mappedNode);
+            final BTreeNode targetNode = cursorPosition.getNode(mappedNode);
             CursorPosition parentCursor = cursorPosition.parent;
 
             BTreeNodeHeap currentNode = nodesManager.copyNode(targetNode, newVersion);
             @ByteSize int requiredSpace = StorageUnits.size(key.length + value.length);
 
             assert (BtreeNodeType.Leaf.equals(currentNode.getNodeType()));
-            BTreeNodeHeap split = null;
+            BTreeNodeHeap splitNode = null;
             byte[] splitKey = null;
 
+            //Split leaf node
             if (currentNode.shouldSplit(requiredSpace))
             {
                 this.nodesCount++;
                 final int keyCount = currentNode.getPairCount();
                 final int at = keyCount >> 1;
                 splitKey = currentNode.getKey(at);
-                split = nodesManager.splitNode(currentNode, at, newVersion);
+                splitNode = nodesManager.splitNode(currentNode, at, newVersion);
 
                 final int compare = ByteArrayComparator.INSTANCE.compare(splitKey, key);
                 if (compare <= 0)
                 {
-                    split.insert(key, value);
+                    splitNode.insert(key, value);
                 }
                 else
                 {
@@ -103,8 +104,10 @@ public class BTreeImpl extends BTreeAbstract
                 currentNode.insert(key, value);
             }
 
-            while (split != null)
+            //Split internal nodes until no further split is required
+            while (splitNode != null)
             {
+                // there is no root
                 if (parentCursor == null)
                 {
                     this.nodesCount++;
@@ -112,11 +115,11 @@ public class BTreeImpl extends BTreeAbstract
                     temp.setVersion(newVersion);
 
                     temp.insertChild(0, splitKey, currentNode);
-                    temp.setChild(1, split);
+                    temp.setChild(1, splitNode);
 
                     currentNode = temp;
 
-                    split = null;
+                    splitNode = null;
                     splitKey = null;
                 }
                 else
@@ -125,7 +128,7 @@ public class BTreeImpl extends BTreeAbstract
                     final BTreeNodeHeap parentNode = nodesManager.copyNode(parentCursor.getNode(mappedNode), newVersion);
                     if (parentNode.shouldSplit(requiredSpace))
                     {
-                        parentNode.setChild(parentCursor.index, split);
+                        parentNode.setChild(parentCursor.index, splitNode);
 
                         this.nodesCount++;
                         final int keyCount = parentNode.getPairCount();
@@ -143,16 +146,16 @@ public class BTreeImpl extends BTreeAbstract
                              parentNode.insertChild(splitKey, currentNode);
                         }
 
-                        split = splitNonLeaf;
+                        splitNode = splitNonLeaf;
                         splitKey = splitKeyNonLeaf;
                     }
+                    //no more splitting required
                     else
                     {
-                        //no more splitting required
                         parentNode.insertChild(parentCursor.index, splitKey, currentNode);
-                        parentNode.setChild(parentCursor.index + 1, split);
+                        parentNode.setChild(parentCursor.index + 1, splitNode);
 
-                        split = null;
+                        splitNode = null;
                         splitKey = null;
                     }
 

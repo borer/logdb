@@ -14,8 +14,7 @@ import java.util.Arrays;
 public class BTreeWithLog extends BTreeAbstract
 {
     private static final byte[] LOG_VALUE_TO_REMOVE_SENTINEL = BinaryHelper.longToBytes(-1);
-    private static final @ByteSize int REQUIRED_SPACE = StorageUnits.size(2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-    private static final @ByteSize int REQUIRED_SPACE_LOG = StorageUnits.size(BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE);
+    private static final int ONLY_CHILD_INDEX = 0;
 
     public BTreeWithLog(
             final NodesManager nodesManager,
@@ -54,14 +53,14 @@ public class BTreeWithLog extends BTreeAbstract
 
             removeWithLogRecursive(null, -1, newRoot, key);
 
-            if (newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getPairCount() == 1)
+            final boolean rootHasSingleNode = newRoot.getNodeType() == BtreeNodeType.NonLeaf && newRoot.getPairCount() == 1;
+            if (rootHasSingleNode)
             {
-                final int onlyChildIndex = 0;
-                final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(onlyChildIndex, newRoot, mappedNode);
+                final BTreeNode nodeToRemoveFrom = nodesManager.loadNode(ONLY_CHILD_INDEX, newRoot, mappedNode);
                 if (nodeToRemoveFrom.getNodeType() == BtreeNodeType.Leaf)
                 {
                     this.nodesCount--;
-                    newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, onlyChildIndex);
+                    newRoot = getOrCreateChildrenCopy((BTreeNodeNonLeaf) newRoot, ONLY_CHILD_INDEX);
                 }
                 else
                 {
@@ -71,7 +70,7 @@ public class BTreeWithLog extends BTreeAbstract
                     if (nonLeaf.getPairCount() == 1)
                     {
                         this.nodesCount--;
-                        newRoot = getOrCreateChildrenCopy(nonLeaf, onlyChildIndex);
+                        newRoot = getOrCreateChildrenCopy(nonLeaf, ONLY_CHILD_INDEX);
                     }
                 }
             }
@@ -97,7 +96,8 @@ public class BTreeWithLog extends BTreeAbstract
         else
         {
             final BTreeNodeNonLeaf nonLeaf = (BTreeNodeNonLeaf) node;
-            if (nonLeaf.logHasFreeSpace(REQUIRED_SPACE_LOG))
+            final @ByteSize int sizeToInsert = StorageUnits.size(key.length + StorageUnits.LONG_BYTES_SIZE);
+            if (nonLeaf.logHasFreeSpace(sizeToInsert))
             {
                 nonLeaf.insertLog(key, LOG_VALUE_TO_REMOVE_SENTINEL);
             }
@@ -307,7 +307,8 @@ public class BTreeWithLog extends BTreeAbstract
             newRoot = nodesManager.copyNode(currentNode, newVersion);
         }
 
-        if (newRoot.shouldSplit(REQUIRED_SPACE))
+        final @ByteSize int sizeToInsert = StorageUnits.size(key.length + value.length);
+        if (newRoot.shouldSplit(sizeToInsert))
         {
             this.nodesCount = this.nodesCount + 2;
             int keyCount = newRoot.getPairCount();
@@ -349,8 +350,9 @@ public class BTreeWithLog extends BTreeAbstract
         {
             assert node instanceof BTreeNodeNonLeaf : "Node is not instance of BTreeNodeNonLeaf. " + node.toString();
 
+            final @ByteSize int sizeToInsert = StorageUnits.size(key.length + value.length);
             BTreeNodeNonLeaf currentNonLeaf = (BTreeNodeNonLeaf) node;
-            if (currentNonLeaf.logHasFreeSpace(REQUIRED_SPACE_LOG))
+            if (currentNonLeaf.logHasFreeSpace(sizeToInsert))
             {
                 currentNonLeaf.insertLog(key, value);
             }
@@ -364,7 +366,7 @@ public class BTreeWithLog extends BTreeAbstract
                 spillLogForPut(currentNonLeaf);
             }
 
-            if (currentNonLeaf.shouldSplit(REQUIRED_SPACE) && parent != null)
+            if (currentNonLeaf.shouldSplit(sizeToInsert) && parent != null)
             {
                 this.nodesCount++;
                 final int nodeKeyCount = currentNonLeaf.getPairCount();
@@ -385,7 +387,8 @@ public class BTreeWithLog extends BTreeAbstract
         int keyIndex = parent.getKeyIndex(key);
         final BTreeNodeHeap childrenCopy = getOrCreateChildrenCopy(parent, keyIndex);
 
-        if (childrenCopy.shouldSplit(REQUIRED_SPACE))
+        final @ByteSize int sizeToInsert = StorageUnits.size(key.length + value.length);
+        if (childrenCopy.shouldSplit(sizeToInsert))
         {
             this.nodesCount++;
             final int childrenKeyCount = childrenCopy.getPairCount();
