@@ -12,8 +12,6 @@ import java.util.function.BiConsumer;
 
 public class BTreeImpl extends BTreeAbstract
 {
-    private static final @ByteSize int REQUIRED_SPACE = StorageUnits.size(2 * (BTreeNodePage.KEY_SIZE + BTreeNodePage.VALUE_SIZE));
-
     public BTreeImpl(
             final NodesManager nodesManager,
             final TimeSource timeSource,

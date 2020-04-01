@@ -108,9 +108,9 @@ public interface BTreeNode
 
     void insertChild(int index, byte[] key, BTreeNodeHeap child);
 
-    void setChild(int index, BTreeNodeHeap child);
-
     void insertChild(byte[] key, BTreeNodeHeap child);
+
+    void setChild(int index, BTreeNodeHeap child);
 
     void setVersion(@Version long newVersion);
 

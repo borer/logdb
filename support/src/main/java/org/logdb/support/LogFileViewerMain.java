@@ -112,6 +112,8 @@ public class LogFileViewerMain
                     case DELETE:
                         System.out.println(String.format("offset %d : %s | key %s ", i, logRecordHeader, key));
                         break;
+                    default:
+                        throw new RuntimeException("Unexpected record type " + logRecordHeader);
                 }
             }
         }

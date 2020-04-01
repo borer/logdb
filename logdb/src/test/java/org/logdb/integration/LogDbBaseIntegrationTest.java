@@ -42,6 +42,7 @@ abstract class LogDbBaseIntegrationTest
                 .setByteOrder(TestUtils.BYTE_ORDER)
                 .setSegmentFileSize(TestUtils.SEGMENT_FILE_SIZE)
                 .setPageSizeBytes(TestUtils.PAGE_SIZE_BYTES)
+                .pageLogSize(TestUtils.NODE_LOG_SIZE)
                 .useIndexWithLog(shouldUseIndexWithLog)
                 .pageLogSize(TestUtils.NODE_LOG_SIZE)
                 .build();

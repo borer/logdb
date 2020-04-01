@@ -206,37 +206,6 @@ abstract class BTreeNodeAbstract implements BTreeNode
         entries.setValue(index, value);
     }
 
-    void splitKeysAndValuesNonLeaf(
-            final int aNumberOfPairs,
-            final int bNumberOfPairs,
-            final BTreeNodeAbstract bNode)
-    {
-        //copy keys
-        final int baseOffset = aNumberOfPairs;
-
-        //////set bnode rightmost value
-        final int rightmostIndex = (baseOffset + bNumberOfPairs) - 1;
-        final byte[] valueR = entries.getValueAtIndex(rightmostIndex);
-
-        bNode.setValue(0, valueR);
-        removeKeyAndValueWithCell(rightmostIndex, getPairCount());
-
-        for (int i = 0; i < bNumberOfPairs - 1; i++)
-        {
-            final byte[] key = entries.getKeyAtIndex(baseOffset);
-            final byte[] value = entries.getValueAtIndex(baseOffset);
-
-            bNode.insert(key, value);
-
-            removeKeyAndValueWithCell(baseOffset, getPairCount());
-        }
-
-        final int mostRightPairIndex = aNumberOfPairs - 1;
-        entries.removeOnlyKey(mostRightPairIndex);
-
-        setDirty();
-    }
-
     abstract @ByteSize long calculateFreeSpaceLeft(@ByteSize long pageSize);
 
     @Override

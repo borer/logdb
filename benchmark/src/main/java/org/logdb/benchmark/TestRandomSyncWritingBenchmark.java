@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.Random;
 
 import static org.logdb.benchmark.DefaultBenchmarkConfig.BYTE_ORDER;
+import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_LOG_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.PAGE_SIZE_BYTES;
 import static org.logdb.benchmark.DefaultBenchmarkConfig.SEGMENT_FILE_SIZE;
 
@@ -47,6 +48,7 @@ public class TestRandomSyncWritingBenchmark
                     .setPageSizeBytes(PAGE_SIZE_BYTES)
                     .setSegmentFileSize(SEGMENT_FILE_SIZE)
                     .useIndexWithLog(true)
+                    .pageLogSize(PAGE_LOG_SIZE_BYTES)
                     .setTimeSource(new SystemTimeSource())
                     .asyncIndexWrite(false)
                     .asyncQueueCapacity(16384)

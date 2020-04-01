@@ -120,7 +120,10 @@ final class KeyValueHeapImpl implements KeyValueHeap
 
         final byte[] valueBytes = new byte[entryValueSize];
 
-        keyValuesBuffer.getBytes(valueOffset, entryValueSize, valueBytes);
+        if (entryValueSize > 0)
+        {
+            keyValuesBuffer.getBytes(valueOffset, entryValueSize, valueBytes);
+        }
 
         return valueBytes;
     }
@@ -247,8 +250,8 @@ final class KeyValueHeapImpl implements KeyValueHeap
             MemoryCopy.copy(keyValuesBuffer, oldLogKeyValueIndexOffset, keyValuesBuffer, newLogKeyValueIndexOffset, sizeToMove);
 
             final @ByteSize int lengthDifferenceSize = StorageUnits.size(newValueLength - existingValueLength);
-            updateCellOffsetByDifference(index, ZERO_OFFSET, ZERO_SIZE, lengthDifferenceSize);
-            updateCellOffsetsByDifferenceFromIndex(originalOffset, lengthDifferenceFromExistingPerspective, ZERO_SIZE, ZERO_SIZE);
+            updateCell(index, ZERO_OFFSET, ZERO_SIZE, lengthDifferenceSize);
+            updateCellOffsetsFromOffset(originalOffset, lengthDifferenceFromExistingPerspective);
 
             final @ByteOffset int newOffset = StorageUnits.offset(keyValuesBuffer.getShort(getIndexOffset(index)));
             final @ByteOffset int newValueOffset = StorageUnits.offset(newOffset + keyLength);
@@ -457,37 +460,32 @@ final class KeyValueHeapImpl implements KeyValueHeap
 
         MemoryCopy.copy(keyValuesBuffer, oldKeyValueIndexOffset, keyValuesBuffer, newKeyValueIndexOffset, sizeToMove);
 
-        updateCellOffsetsByDifferenceFromIndex(offset, totalRemoveLength, ZERO_SIZE, ZERO_SIZE);
+        updateCellOffsetsFromOffset(offset, totalRemoveLength);
 
         popBytesFromHeap(totalRemoveLength);
     }
 
-    private void updateCellOffsetsByDifferenceFromIndex(
-            final @ByteOffset short offsetMoved,
-            final @ByteSize int totalMovedLength,
-            final @ByteSize int keyLengthDifference,
-            final @ByteSize int valueLengthDifference)
+    private void updateCellOffsetsFromOffset(final @ByteOffset short fromOffset, final @ByteSize int totalMovedLength)
     {
         for (int i = 0; i < numberOfEntries; i++)
         {
             final @ByteSize int offset = StorageUnits.size(keyValuesBuffer.getShort(getIndexOffset(i)));
-
-            if (offset <= offsetMoved)
+            if (offset <= fromOffset)
             {
-                updateCellOffsetByDifference(i, totalMovedLength, keyLengthDifference, valueLengthDifference);
+                updateCell(i, totalMovedLength, ZERO_SIZE, ZERO_SIZE);
             }
         }
     }
 
-    private void updateCellOffsetByDifference(
-            final int index,
+    private void updateCell(
+            final int cellIndex,
             final @ByteSize int offsetDifference,
             final @ByteSize int keyLengthDifference,
             final @ByteSize int valueLengthDifference)
     {
         if (offsetDifference != ZERO_SIZE)
         {
-            final @ByteOffset long cellIndexOffset = getIndexOffset(index);
+            final @ByteOffset long cellIndexOffset = getIndexOffset(cellIndex);
             final @ByteOffset short oldPairOffset = StorageUnits.offset(keyValuesBuffer.getShort(cellIndexOffset));
             final @ByteOffset short newPairOffset = StorageUnits.offset((short) (oldPairOffset + offsetDifference));
             keyValuesBuffer.putShort(cellIndexOffset, newPairOffset);
@@ -495,7 +493,7 @@ final class KeyValueHeapImpl implements KeyValueHeap
 
         if (keyLengthDifference != ZERO_SIZE)
         {
-            final @ByteOffset long cellKeyLengthOffset = getKeyLengthOffset(index);
+            final @ByteOffset long cellKeyLengthOffset = getKeyLengthOffset(cellIndex);
             final @ByteSize short oldKeyLength = StorageUnits.size(keyValuesBuffer.getShort(cellKeyLengthOffset));
             final @ByteSize short newKeyLength = StorageUnits.size((short) (oldKeyLength + keyLengthDifference));
             keyValuesBuffer.putShort(cellKeyLengthOffset, newKeyLength);
@@ -503,7 +501,7 @@ final class KeyValueHeapImpl implements KeyValueHeap
 
         if (valueLengthDifference != ZERO_SIZE)
         {
-            final @ByteOffset long cellValueLengthOffset = getValueLengthOffset(index);
+            final @ByteOffset long cellValueLengthOffset = getValueLengthOffset(cellIndex);
             final @ByteSize short oldValueLength = StorageUnits.size(keyValuesBuffer.getShort(cellValueLengthOffset));
             final @ByteSize short newValueLength = StorageUnits.offset((short) (oldValueLength + valueLengthDifference));
             keyValuesBuffer.putShort(cellValueLengthOffset, newValueLength);

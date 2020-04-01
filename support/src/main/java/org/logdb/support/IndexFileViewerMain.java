@@ -43,8 +43,9 @@ public class IndexFileViewerMain
             final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
 
             System.out.println(
-                    String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
+                    String.format("Log file header: \n\tpage Size %d \n\tpage log size %d\n\tlastPersistedOffset %d \n\tByte Order %s",
                             pageSize,
+                            pageLogSize,
                             lastPersistedOffset,
                             fileByteOrder.toString()));
 

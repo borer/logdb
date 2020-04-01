@@ -162,6 +162,12 @@ public class MemoryByteBufferImpl implements HeapMemory
             final @ByteSize long length,
             final byte[] destinationArray)
     {
+        assert buffer.array().length >= buffer.arrayOffset() + offset + length
+                : String.format("Array out of bounds. Source array length : %d Requested params : offset %d, length %d",
+                buffer.array().length - buffer.arrayOffset(),
+                offset,
+                length);
+
         System.arraycopy(buffer.array(), buffer.arrayOffset() + (int)offset, destinationArray, ZERO_OFFSET, (int)length);
     }
 

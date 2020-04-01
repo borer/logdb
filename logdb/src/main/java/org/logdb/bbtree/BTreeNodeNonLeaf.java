@@ -181,7 +181,23 @@ public class BTreeNodeNonLeaf extends BTreeLogNodeAbstract implements BTreeNodeH
 
         bTreeNodeLeaf.setChildren(bChildren);
 
-        splitKeysAndValuesNonLeaf(aNumberOfPairs, bNumberOfPairs, bTreeNodeLeaf);
+        //set bnode rightmost value
+        final int rightmostIndex = (aNumberOfPairs + bNumberOfPairs) - 1;
+        final byte[] rightmostValue = entries.getValueAtIndex(rightmostIndex);
+        bTreeNodeLeaf.setValue(0, rightmostValue);
+        removeKeyAndValueWithCell(rightmostIndex, getPairCount());
+
+        //move pairs from this to bnode
+        for (int i = 0; i < bNumberOfPairs - 1; i++)
+        {
+            final byte[] key = entries.getKeyAtIndex(aNumberOfPairs);
+            final byte[] value = entries.getValueAtIndex(aNumberOfPairs);
+            bTreeNodeLeaf.insert(key, value);
+            removeKeyAndValueWithCell(aNumberOfPairs, getPairCount());
+        }
+
+        final int mostRightPairIndex = aNumberOfPairs - 1;
+        entries.removeOnlyKey(mostRightPairIndex);
 
         bTreeNodeLeaf.setDirty();
         setDirty();

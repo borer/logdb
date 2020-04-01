@@ -1,6 +1,5 @@
 package org.logdb.bbtree;
 
-import org.logdb.bit.BinaryHelper;
 import org.logdb.bit.ByteArrayComparator;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.PageNumber;
@@ -9,11 +8,9 @@ import org.logdb.storage.Version;
 import org.logdb.time.Milliseconds;
 import org.logdb.time.TimeSource;
 
-import java.util.Arrays;
-
 public class BTreeWithLog extends BTreeAbstract
 {
-    private static final byte[] LOG_VALUE_TO_REMOVE_SENTINEL = BinaryHelper.longToBytes(-1);
+    private static final byte[] LOG_VALUE_TO_REMOVE_SENTINEL = new byte[0];
     private static final int ONLY_CHILD_INDEX = 0;
 
     public BTreeWithLog(
@@ -127,8 +124,7 @@ public class BTreeWithLog extends BTreeAbstract
             final byte[] logKey = keyValueLog.getKeyAtIndex(i);
             final byte[] logValue = keyValueLog.getValueAtIndex(i);
 
-            final boolean shouldRemoveValue = Arrays.equals(logValue, LOG_VALUE_TO_REMOVE_SENTINEL);
-            if (shouldRemoveValue)
+            if (isLogValueMarkedToRemove(logValue))
             {
                 removeWithLogRecursiveAndRebalanceParent(node, logKey);
             }
@@ -424,8 +420,7 @@ public class BTreeWithLog extends BTreeAbstract
             final byte[] logKey = keyValueLog.getKeyAtIndex(i);
             final byte[] logValue = keyValueLog.getValueAtIndex(i);
 
-            final boolean shouldRemoveValue = Arrays.equals(logValue, LOG_VALUE_TO_REMOVE_SENTINEL);
-            if (shouldRemoveValue)
+            if (isLogValueMarkedToRemove(logValue))
             {
                 removeWithLogRecursiveAndRebalanceParent(nonLeaf, logKey);
             }
@@ -522,7 +517,7 @@ public class BTreeWithLog extends BTreeAbstract
                     if (bTreeLogNode.hasKeyLog(key))
                     {
                         final byte[] logValue = bTreeLogNode.getLogValue(key);
-                        if (Arrays.equals(logValue, LOG_VALUE_TO_REMOVE_SENTINEL))
+                        if (isLogValueMarkedToRemove(logValue))
                         {
                             return null;
                         }
@@ -538,5 +533,10 @@ public class BTreeWithLog extends BTreeAbstract
 
             return currentNode.get(key);
         }
+    }
+
+    private static boolean isLogValueMarkedToRemove(final byte[] logValue)
+    {
+        return logValue.length == 0;
     }
 }

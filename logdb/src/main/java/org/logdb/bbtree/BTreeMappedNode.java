@@ -158,13 +158,13 @@ public class BTreeMappedNode extends BTreeLogNodeAbstract implements AutoCloseab
     }
 
     @Override
-    public void setChild(final int index, final BTreeNodeHeap child)
+    public void insertChild(final byte[] key, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support setting children");
     }
 
     @Override
-    public void insertChild(final byte[] key, final BTreeNodeHeap child)
+    public void setChild(final int index, final BTreeNodeHeap child)
     {
         throw new UnsupportedOperationException("Mapped node doesn't support setting children");
     }
