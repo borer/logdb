@@ -1,4 +1,4 @@
-package org.logdb.storage.file;
+package org.logdb.storage.file.header;
 
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
@@ -16,7 +16,7 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     private final RandomAccessFile headerFile;
     private final FileChannel headerFileChannel;
 
-    FixedFileStorageHeader(
+    public FixedFileStorageHeader(
             final FileHeader delegate,
             final RandomAccessFile headerFile,
             final FileChannel headerFileChannel)
@@ -27,9 +27,9 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     }
 
     @Override
-    public void writeHeadersAndAlign(final SeekableByteChannel channel) throws IOException
+    public void writeAlign(final SeekableByteChannel channel) throws IOException
     {
-        delegate.writeHeadersAndAlign(headerFileChannel);
+        delegate.writeAlign(headerFileChannel);
     }
 
     @Override
@@ -90,6 +90,12 @@ public class FixedFileStorageHeader implements FileHeader, AutoCloseable
     public @Version long getAppendVersion()
     {
         return delegate.getAppendVersion();
+    }
+
+    @Override
+    public @ByteSize int getChecksumSize()
+    {
+        return delegate.getChecksumSize();
     }
 
     @Override

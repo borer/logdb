@@ -6,7 +6,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
-class FileUtils
+public class FileUtils
 {
     /**
      * Read data from the channel to the given byte buffer until there are no bytes remaining in the buffer or the end
@@ -19,7 +19,7 @@ class FileUtils
      * @throws IOException If an I/O error occurs, see {@link FileChannel#read(ByteBuffer, long)} for details on the
      *                  possible exceptions
      */
-    static void readFully(final ReadableByteChannel channel,
+    public static void readFully(final ReadableByteChannel channel,
                           final ByteBuffer destinationBuffer) throws IOException
     {
         int bytesRead;
@@ -30,7 +30,7 @@ class FileUtils
         while (bytesRead != -1 && destinationBuffer.hasRemaining());
     }
 
-    static void writeFully(final WritableByteChannel channel, final ByteBuffer sourceBuffer) throws IOException
+    public static void writeFully(final WritableByteChannel channel, final ByteBuffer sourceBuffer) throws IOException
     {
         sourceBuffer.mark();
         while (sourceBuffer.hasRemaining())

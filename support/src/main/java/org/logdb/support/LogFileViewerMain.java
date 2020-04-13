@@ -4,7 +4,9 @@ import org.logdb.logfile.LogRecordHeader;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
-import org.logdb.storage.file.FileStorageHeader;
+import org.logdb.storage.file.header.FileStorageDynamicHeader;
+import org.logdb.storage.file.header.FileStorageHeader;
+import org.logdb.storage.file.header.FileStorageStaticHeader;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,12 +39,12 @@ public class LogFileViewerMain
 
         try (FileChannel fileChannel = new RandomAccessFile(file, "r").getChannel())
         {
-            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
+            final FileStorageHeader fileHeader = FileStorageHeader.readFrom(fileChannel);
 
-            final ByteOrder fileByteOrder = fileStorageHeader.getOrder();
-            final @ByteSize int pageSize = fileStorageHeader.getPageSize();
-            final @ByteOffset long lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
-            final @ByteSize int checksumSize = fileStorageHeader.getChecksumSize();
+            final ByteOrder fileByteOrder = fileHeader.getOrder();
+            final @ByteSize int pageSize = fileHeader.getPageSize();
+            final @ByteOffset long lastPersistedOffset = fileHeader.getGlobalAppendOffset();
+            final @ByteSize int checksumSize = fileHeader.getChecksumSize();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",
@@ -56,8 +58,8 @@ public class LogFileViewerMain
             headerBuffer.order(fileByteOrder);
 
             final @ByteOffset long fileHeaderOffsetToSkip = StorageUnits.offset(
-                    FileStorageHeader.getStaticHeaderSizeAlignedToNearestPage(pageSize) +
-                    (FileStorageHeader.getDynamicHeaderSizeAlignedToNearestPage(pageSize) * 2));
+                    FileStorageStaticHeader.getStaticHeaderSizeAlignedToNearestPage(pageSize) +
+                    (FileStorageDynamicHeader.getDynamicHeaderSizeAlignedToNearestPage(pageSize) * 2));
             fileChannel.position(fileHeaderOffsetToSkip);
 
             long lastRecordSize = 0;

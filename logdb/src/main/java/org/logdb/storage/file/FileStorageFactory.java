@@ -8,6 +8,9 @@ import org.logdb.checksum.ChecksumType;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
+import org.logdb.storage.file.header.FileHeader;
+import org.logdb.storage.file.header.FileStorageHeader;
+import org.logdb.storage.file.header.FixedFileStorageHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +87,7 @@ public class FileStorageFactory
                 newFileHeader = new FixedFileStorageHeader(newFileHeader, headerAccessFile, headerChannel);
             }
 
-            fileHeader.writeHeadersAndAlign(currentAppendChannel);
+            fileHeader.writeAlign(currentAppendChannel);
 
             fileStorage = createFileStorage(
                     rootDirectory,
@@ -133,7 +136,7 @@ public class FileStorageFactory
                 final RandomAccessFile headerAccessFile = new RandomAccessFile(rootIndexHeaderFile, "rw");
                 final FileChannel headerChannel = headerAccessFile.getChannel();
 
-                final FileStorageHeader rootIndexHeader = FileStorageHeader.readFrom(headerChannel);
+                final FileHeader rootIndexHeader = FileStorageHeader.readFrom(headerChannel);
                 fileHeader = new FixedFileStorageHeader(rootIndexHeader, headerAccessFile, headerChannel);
                 newFileHeader = new FixedFileStorageHeader(
                         FileStorageHeader.newHeader(

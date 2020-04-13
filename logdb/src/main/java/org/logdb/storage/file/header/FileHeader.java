@@ -1,4 +1,4 @@
-package org.logdb.storage.file;
+package org.logdb.storage.file.header;
 
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
@@ -10,7 +10,7 @@ import java.nio.channels.SeekableByteChannel;
 
 public interface FileHeader
 {
-    void writeHeadersAndAlign(SeekableByteChannel channel) throws IOException;
+    void writeAlign(SeekableByteChannel channel) throws IOException;
 
     void writeStaticHeaderTo(SeekableByteChannel channel) throws IOException;
 
@@ -23,6 +23,8 @@ public interface FileHeader
     @ByteSize int getPageLogSize();
 
     ByteOrder getOrder();
+
+    @ByteSize int getChecksumSize();
 
     @Version int getDbVersion();
 

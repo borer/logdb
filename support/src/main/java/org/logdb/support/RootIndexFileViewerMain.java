@@ -4,7 +4,8 @@ import org.logdb.root.index.RootIndexRecord;
 import org.logdb.storage.ByteOffset;
 import org.logdb.storage.ByteSize;
 import org.logdb.storage.StorageUnits;
-import org.logdb.storage.file.FileStorageHeader;
+import org.logdb.storage.file.header.FileHeader;
+import org.logdb.storage.file.header.FileStorageHeader;
 import org.logdb.time.TimeUnits;
 
 import java.io.File;
@@ -37,11 +38,11 @@ public class RootIndexFileViewerMain
         @ByteOffset long lastPersistedOffset;
         try (FileChannel fileChannel = new RandomAccessFile(headerFile, "r").getChannel())
         {
-            final FileStorageHeader fileStorageHeader = FileStorageHeader.readFrom(fileChannel);
+            final FileHeader fileHeader = FileStorageHeader.readFrom(fileChannel);
 
-            fileByteOrder = fileStorageHeader.getOrder();
-            pageSize = fileStorageHeader.getPageSize();
-            lastPersistedOffset = fileStorageHeader.getGlobalAppendOffset();
+            fileByteOrder = fileHeader.getOrder();
+            pageSize = fileHeader.getPageSize();
+            lastPersistedOffset = fileHeader.getGlobalAppendOffset();
 
             System.out.println(
                     String.format("Log file header: \n\tpage Size %d \n\tlastPersistedOffset %d \n\tByte Order %s",

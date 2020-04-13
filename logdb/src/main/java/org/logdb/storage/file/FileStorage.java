@@ -13,6 +13,8 @@ import org.logdb.storage.PageNumber;
 import org.logdb.storage.Storage;
 import org.logdb.storage.StorageUnits;
 import org.logdb.storage.Version;
+import org.logdb.storage.file.header.FileHeader;
+import org.logdb.storage.file.header.FixedFileStorageHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +108,7 @@ public final class FileStorage implements Storage
         final FileChannel channel = accessFile.getChannel();
         accessFile.setLength(fileSegmentSize);
 
-        newFileStorageHeader.writeHeadersAndAlign(channel);
+        newFileStorageHeader.writeAlign(channel);
         globalFilePosition += StorageUnits.offset(channel.position());
 
         currentAppendingFile = accessFile;

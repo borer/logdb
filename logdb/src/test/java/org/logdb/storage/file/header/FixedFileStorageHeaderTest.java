@@ -1,4 +1,4 @@
-package org.logdb.storage.file;
+package org.logdb.storage.file.header;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,12 +30,13 @@ class FixedFileStorageHeaderTest
     {
         final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
         final @ByteSize int pageLogSize = StorageUnits.size(1228);
-        final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
+        final FileHeader fileHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
                 pageLogSize,
                 pageSizeBytes << 5,
                 CHECKSUM_HELPER);
+
 
         final File emptyFile = tempDirectory.resolve("empty_file.logindex").toFile();
         try (RandomAccessFile emptyRaf = new RandomAccessFile(emptyFile, "rw"))
@@ -46,12 +47,12 @@ class FixedFileStorageHeaderTest
                 final RandomAccessFile headerRandomAccessFile = new RandomAccessFile(headerFile, "rw");
                 final FileChannel headerFileChannel = headerRandomAccessFile.getChannel();
                 try (FixedFileStorageHeader fixedFileStorageHeader = new FixedFileStorageHeader(
-                        expectedHeader,
+                        fileHeader,
                         headerRandomAccessFile,
                         headerFileChannel))
                 {
 
-                    fixedFileStorageHeader.writeHeadersAndAlign(emptyChannel);
+                    fixedFileStorageHeader.writeAlign(emptyChannel);
                     fixedFileStorageHeader.flush(true);
 
                     assertEquals(StorageUnits.ZERO_OFFSET, emptyChannel.position());
@@ -67,7 +68,7 @@ class FixedFileStorageHeaderTest
         final @ByteSize int pageSizeBytes = StorageUnits.size(4096);
         final @ByteSize int pageLogSize = StorageUnits.size(1228);
 
-        final FileStorageHeader expectedHeader = FileStorageHeader.newHeader(
+        final FileHeader delegateHeader = FileStorageHeader.newHeader(
                 ByteOrder.BIG_ENDIAN,
                 pageSizeBytes,
                 pageLogSize,
@@ -78,32 +79,34 @@ class FixedFileStorageHeaderTest
         final RandomAccessFile headerRandomAccessFile = new RandomAccessFile(headerFile, "rw");
         final FileChannel headerFileChannel = headerRandomAccessFile.getChannel();
         try (FixedFileStorageHeader fixedFileStorageHeader = new FixedFileStorageHeader(
-                expectedHeader,
+                delegateHeader,
                 headerRandomAccessFile,
                 headerFileChannel))
         {
-            fixedFileStorageHeader.writeHeadersAndAlign(null);
+            fixedFileStorageHeader.writeAlign(null);
             fixedFileStorageHeader.flush(true);
 
             assertEquals(pageSizeBytes * 3, headerFileChannel.position());
         }
 
+        ////Read persisted header
         final RandomAccessFile headerRandomAccessFile2 = new RandomAccessFile(headerFile, "rw");
         final FileChannel headerFileChannel2 = headerRandomAccessFile2.getChannel();
-        final FileStorageHeader actualHeader = FileStorageHeader.readFrom(headerFileChannel2);
+        final FileHeader readDelegateHeader = FileStorageHeader.readFrom(headerFileChannel2);
 
         try (FixedFileStorageHeader fixedFileStorageHeader = new FixedFileStorageHeader(
-                actualHeader,
+                readDelegateHeader,
                 headerRandomAccessFile2,
                 headerFileChannel2))
         {
-            assertEquals(actualHeader.getPageSize(), fixedFileStorageHeader.getPageSize());
-            assertEquals(actualHeader.getSegmentFileSize(), fixedFileStorageHeader.getSegmentFileSize());
-            assertEquals(actualHeader.getOrder(), fixedFileStorageHeader.getOrder());
-            assertEquals(actualHeader.getDbVersion(), fixedFileStorageHeader.getDbVersion());
-            assertEquals(actualHeader.getAppendVersion(), fixedFileStorageHeader.getAppendVersion());
-            assertEquals(actualHeader.getGlobalAppendOffset(), fixedFileStorageHeader.getGlobalAppendOffset());
-            assertEquals(actualHeader.getCurrentFileAppendOffset(), fixedFileStorageHeader.getCurrentFileAppendOffset());
+            assertEquals(delegateHeader.getPageSize(), fixedFileStorageHeader.getPageSize());
+            assertEquals(delegateHeader.getSegmentFileSize(), fixedFileStorageHeader.getSegmentFileSize());
+            assertEquals(delegateHeader.getOrder(), fixedFileStorageHeader.getOrder());
+            assertEquals(delegateHeader.getDbVersion(), fixedFileStorageHeader.getDbVersion());
+            assertEquals(delegateHeader.getAppendVersion(), fixedFileStorageHeader.getAppendVersion());
+            assertEquals(delegateHeader.getGlobalAppendOffset(), fixedFileStorageHeader.getGlobalAppendOffset());
+            assertEquals(delegateHeader.getCurrentFileAppendOffset(), fixedFileStorageHeader.getCurrentFileAppendOffset());
+            assertEquals(delegateHeader.getChecksumSize(), fixedFileStorageHeader.getChecksumSize());
         }
     }
 }
