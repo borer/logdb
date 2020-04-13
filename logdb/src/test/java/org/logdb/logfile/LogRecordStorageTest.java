@@ -28,6 +28,6 @@ class LogRecordStorageTest
         final long positionOffset = logRecordStorage.writePut(key, value, 1, 2);
 
         assertEquals(0, positionOffset);
-        assertArrayEquals(value, logRecordStorage.readRecordValue(positionOffset));
+        assertArrayEquals(value, logRecordStorage.readValue(positionOffset));
     }
 }

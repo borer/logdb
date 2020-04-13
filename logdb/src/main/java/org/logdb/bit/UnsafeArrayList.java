@@ -15,14 +15,14 @@ public class UnsafeArrayList<S>
 
     public void add(final S element)
     {
-        ++maxValidIndex;
-        if (maxValidIndex >= storageArray.length)
+        if (maxValidIndex == storageArray.length - 1)
         {
             final int newLength = Math.max(1, storageArray.length * 2);
             storageArray = Arrays.copyOf(storageArray, newLength);
         }
 
-        storageArray[maxValidIndex] = element;
+        storageArray[maxValidIndex + 1] = element;
+        ++maxValidIndex;
     }
 
     public S get(final int index)

@@ -93,7 +93,13 @@ public class MemoryStorage implements Storage
     @Override
     public @ByteOffset long append(final ByteBuffer buffer)
     {
-        final @ByteOffset int bufferSize = StorageUnits.offset(buffer.capacity());
+        return append(buffer.array());
+    }
+
+    @Override
+    public @ByteOffset long append(final byte[] buffer)
+    {
+        final @ByteOffset int bufferSize = StorageUnits.offset(buffer.length);
         final @ByteOffset long expectedOffset = currentMemoryChunkOffset + bufferSize;
 
         final @ByteOffset long currentOffset;
@@ -111,11 +117,11 @@ public class MemoryStorage implements Storage
         final @ByteOffset long baseOffset = getBaseOffset(allocatedMemoryOffset);
         if (MemoryOrder.isNativeOrder(order))
         {
-            NativeMemoryAccess.putBytes(baseOffset, buffer.array());
+            NativeMemoryAccess.putBytes(baseOffset, buffer);
         }
         else
         {
-            NonNativeMemoryAccess.putBytes(baseOffset, buffer.array());
+            NonNativeMemoryAccess.putBytes(baseOffset, buffer);
         }
 
         currentOffset = this.allocatedMemoryOffset;
@@ -192,9 +198,9 @@ public class MemoryStorage implements Storage
     }
 
     @Override
-    public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
+    public void readBytes(final @ByteOffset long offset, final ByteBuffer destinationBuffer)
     {
-        final @ByteSize long lengthBytes = StorageUnits.size(buffer.capacity());
+        final @ByteSize long lengthBytes = StorageUnits.size(destinationBuffer.capacity());
         @ByteOffset long readPosition = ZERO_OFFSET;
 
         @PageNumber long pageNumber = getPageNumber(offset);
@@ -213,7 +219,7 @@ public class MemoryStorage implements Storage
         {
             NativeMemoryAccess.getBytes(
                     baseOffset + offsetInsidePage,
-                    buffer.array(),
+                    destinationBuffer.array(),
                     ZERO_OFFSET,
                     lengthBytes);
         }
@@ -221,7 +227,7 @@ public class MemoryStorage implements Storage
         {
             NonNativeMemoryAccess.getBytes(
                     baseOffset + offsetInsidePage,
-                    buffer.array(),
+                    destinationBuffer.array(),
                     ZERO_OFFSET,
                     lengthBytes);
         }
@@ -238,7 +244,7 @@ public class MemoryStorage implements Storage
             {
                 NativeMemoryAccess.getBytes(
                         baseOffset2,
-                        buffer.array(),
+                        destinationBuffer.array(),
                         readPosition,
                         bytesToRead2);
             }
@@ -246,7 +252,7 @@ public class MemoryStorage implements Storage
             {
                 NonNativeMemoryAccess.getBytes(
                         baseOffset2,
-                        buffer.array(),
+                        destinationBuffer.array(),
                         readPosition,
                         bytesToRead2);
             }

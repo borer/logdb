@@ -11,7 +11,9 @@ import java.io.IOException;
 
 public class LogFile implements AutoCloseable
 {
-    private final LogRecordStorage logRecordStorage;
+    //TODO: LogRecordStorage is currently single threaded, think about ways to improve it
+    private final LogRecordStorage writeLogRecordStorage;
+    private final LogRecordStorage readLogRecordStorage;
     private final boolean shouldSyncWrite;
     private final Storage storage;
     private final TimeSource timeSource;
@@ -28,14 +30,15 @@ public class LogFile implements AutoCloseable
         this.storage = storage;
         this.timeSource = timeSource;
         this.nextWriteVersion = nextWriteVersion;
-        this.logRecordStorage = new LogRecordStorage(storage, checksumHelper);
+        this.writeLogRecordStorage = new LogRecordStorage(storage, checksumHelper);
+        this.readLogRecordStorage = new LogRecordStorage(storage, checksumHelper);
         this.shouldSyncWrite = shouldSyncWrite;
     }
 
     public @ByteOffset long put(final byte[] key, final byte[] value) throws IOException
     {
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long putRecordStartOffset = logRecordStorage.writePut(
+        final @ByteOffset long putRecordStartOffset = writeLogRecordStorage.writePut(
                 key,
                 value,
                 nextWriteVersion,
@@ -51,14 +54,13 @@ public class LogFile implements AutoCloseable
 
     public byte[] read(final @ByteOffset long offset)
     {
-        //TODO: this read is currently single threaded
-        return logRecordStorage.readRecordValue(offset);
+        return readLogRecordStorage.readValue(offset);
     }
 
     public @ByteOffset long delete(final byte[] key) throws IOException
     {
         final @Milliseconds long timestamp = timeSource.getCurrentMillis();
-        final @ByteOffset long deleteRecordStartOffset = logRecordStorage.writeDelete(
+        final @ByteOffset long deleteRecordStartOffset = writeLogRecordStorage.writeDelete(
                 key,
                 nextWriteVersion,
                 timestamp);

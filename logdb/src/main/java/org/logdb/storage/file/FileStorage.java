@@ -148,22 +148,45 @@ public final class FileStorage implements Storage
             buffer.order(order);
         }
 
-        @ByteOffset long positionOffset = INVALID_OFFSET;
+        @ByteOffset long appendGlobalOffset = INVALID_OFFSET;
         try
         {
             final @ByteSize int writeSize = StorageUnits.size(buffer.capacity());
-            positionOffset = tryRollCurrentFile(writeSize);
+            appendGlobalOffset = tryRollCurrentFile(writeSize);
             FileUtils.writeFully(currentAppendingChannel, buffer);
             globalFilePosition += StorageUnits.offset(writeSize);
         }
         catch (final IOException e)
         {
-            final String msg = "Unable to persist node to database file. Position offset " + positionOffset;
+            final String msg = "Unable to persist node to database file. Position offset " + appendGlobalOffset;
             LOGGER.error(msg, e);
             throw new IOException(msg, e);
         }
 
-        return positionOffset;
+        return appendGlobalOffset;
+    }
+
+    @Override
+    public @ByteOffset long append(final byte[] buffer) throws IOException
+    {
+        assert buffer != null : "buffer to persist must be non null";
+
+        @ByteOffset long appendGlobalOffset = INVALID_OFFSET;
+        try
+        {
+            final @ByteSize int writeSize = StorageUnits.size(buffer.length);
+            appendGlobalOffset = tryRollCurrentFile(writeSize);
+            currentAppendingFile.write(buffer);
+            globalFilePosition += StorageUnits.offset(writeSize);
+        }
+        catch (final IOException e)
+        {
+            final String msg = "Unable to persist node to database file. Position offset " + appendGlobalOffset;
+            LOGGER.error(msg, e);
+            throw new IOException(msg, e);
+        }
+
+        return appendGlobalOffset;
     }
 
     @Override
@@ -173,8 +196,8 @@ public final class FileStorage implements Storage
                 : "buffer must be of multiple of page size " + pageSize +
                         " capacity. Current buffer capacity " + buffer.capacity();
 
-        final @ByteOffset long positionOffset = append(buffer);
-        return StorageUnits.pageNumber(positionOffset / pageSize);
+        final @ByteOffset long appendGlobalOffset = append(buffer);
+        return StorageUnits.pageNumber(appendGlobalOffset / pageSize);
     }
 
     @Override
@@ -224,9 +247,9 @@ public final class FileStorage implements Storage
     }
 
     @Override
-    public void readBytes(final @ByteOffset long offset, final ByteBuffer buffer)
+    public void readBytes(final @ByteOffset long offset, final ByteBuffer destinationBuffer)
     {
-        final @ByteSize long lengthBytes = StorageUnits.size(buffer.capacity());
+        final @ByteSize long lengthBytes = StorageUnits.size(destinationBuffer.capacity());
         @ByteOffset long readPosition = ZERO_OFFSET;
 
         @PageNumber long pageNumber = getPageNumber(offset);
@@ -241,7 +264,7 @@ public final class FileStorage implements Storage
 
         readPosition += StorageUnits.offset(bytesToRead);
 
-        readBytesNative(sourceAddress, order, buffer, ZERO_OFFSET, bytesToRead);
+        readBytesNative(sourceAddress, order, destinationBuffer, ZERO_OFFSET, bytesToRead);
 
         while (readPosition < lengthBytes)
         {
@@ -252,7 +275,7 @@ public final class FileStorage implements Storage
             final @ByteSize long leftToRead = StorageUnits.size(lengthBytes - readPosition);
             final @ByteSize long bytesToRead2 = StorageUnits.size(Math.min(pageSize, leftToRead));
 
-            readBytesNative(pageBaseOffset2, order, buffer, readPosition, bytesToRead2);
+            readBytesNative(pageBaseOffset2, order, destinationBuffer, readPosition, bytesToRead2);
 
             readPosition += StorageUnits.offset(bytesToRead2);
         }

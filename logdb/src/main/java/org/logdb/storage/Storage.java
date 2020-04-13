@@ -50,13 +50,18 @@ public interface Storage extends AutoCloseable
     @ByteOffset long append(ByteBuffer buffer) throws IOException;
 
     /**
+     * Write any arbitrary buffer.
+     * @param buffer the buffer to store. Can be any size
+     * @return the byte offset where the buffer start is located.
+     */
+    @ByteOffset long append(byte[] buffer) throws IOException;
+
+    /**
      * Writes a page aligned bytebuffer.
      * @param buffer the buffer to store, must be of size of a page
      * @return the page number where the buffer is located
      */
     @PageNumber long appendPageAligned(ByteBuffer buffer) throws IOException;
-
-    void commitMetadata(@ByteOffset long lastPersistedOffset, @Version long version);
 
     /**
      * Maps the page specified by pageNumber into memory object.
@@ -68,11 +73,13 @@ public interface Storage extends AutoCloseable
     /**
      * Reads from offset the byte buffer amount of bytes.
      * @param offset the logical offset in the storage to start reading
-     * @param buffer t=this buffer is going to be populated with content form the storage bytes
+     * @param destinationBuffer this buffer is going to be populated with content form the storage bytes
      */
     //NOTE: this potentially could solve the single threaded readers,
     // as they just have to ask the storage for some bytes and then each one will get a copy.
-    void readBytes(@ByteOffset long offset, ByteBuffer buffer);
+    void readBytes(@ByteOffset long offset, ByteBuffer destinationBuffer);
+
+    void commitMetadata(@ByteOffset long lastPersistedOffset, @Version long version);
 
     void flush(boolean flushMeta);
 }

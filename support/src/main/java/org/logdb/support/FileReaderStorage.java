@@ -84,6 +84,12 @@ final class FileReaderStorage implements Storage
     }
 
     @Override
+    public @ByteOffset long append(byte[] buffer)
+    {
+        throw new UnsupportedOperationException("Method not Implemented");
+    }
+
+    @Override
     public @PageNumber long appendPageAligned(ByteBuffer buffer)
     {
         throw new UnsupportedOperationException("Method not Implemented");
@@ -129,9 +135,9 @@ final class FileReaderStorage implements Storage
     }
 
     @Override
-    public void readBytes(@ByteOffset long offset, ByteBuffer buffer)
+    public void readBytes(@ByteOffset long offset, ByteBuffer destinationBuffer)
     {
         mappedByteBuffer.position((int)offset);
-        mappedByteBuffer.get(buffer.array());
+        mappedByteBuffer.get(destinationBuffer.array());
     }
 }

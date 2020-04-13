@@ -24,6 +24,8 @@ import static org.logdb.storage.StorageUnits.ZERO_OFFSET;
  * ------------------------------------------ h + keyLength + valueLength (N)
  * |                 ....                   |
  * ------------------------------------------ N + 1
+ *
+ * This class is intended for single thread usage, as the headerBuffer is reused by the different operations
  */
 class LogRecordStorage
 {
@@ -39,7 +41,7 @@ class LogRecordStorage
 
         this.logRecordHeader = new LogRecordHeader(checksumHelper.getValueSize());
 
-        this.headerBuffer = ByteBuffer.allocate(LogRecordHeader.RECORD_HEADER_STATIC_SIZE + checksumHelper.getValueSize());
+        this.headerBuffer = ByteBuffer.allocate(logRecordHeader.getSize());
         headerBuffer.order(storage.getOrder());
     }
 
@@ -59,20 +61,20 @@ class LogRecordStorage
         logRecordHeader.write(headerBuffer);
 
         final @ByteOffset long positionOffset = storage.append(headerBuffer);
-        storage.append(ByteBuffer.wrap(key));
-        storage.append(ByteBuffer.wrap(value));
+        storage.append(key);
+        storage.append(value);
 
         return positionOffset;
     }
 
-    byte[] readRecordValue(final @ByteOffset long offset)
+    byte[] readValue(final @ByteOffset long offset)
     {
         readHeader(offset);
 
         if (LogRecordType.UPDATE == logRecordHeader.getRecordType())
         {
             final @ByteOffset long valueOffset = StorageUnits.offset(offset + logRecordHeader.getSize() + logRecordHeader.getKeyLength());
-            return readValue(valueOffset);
+            return readRecordValue(valueOffset);
         }
         else if (LogRecordType.DELETE == logRecordHeader.getRecordType())
         {
@@ -98,7 +100,7 @@ class LogRecordStorage
         logRecordHeader.write(headerBuffer);
 
         final @ByteOffset long offset = storage.append(headerBuffer);
-        storage.append(ByteBuffer.wrap(key));
+        storage.append(key);
 
         return offset;
     }
@@ -131,10 +133,7 @@ class LogRecordStorage
     {
         try
         {
-            final ByteBuffer headerBuffer = ByteBuffer.allocate(logRecordHeader.getSize());
-            headerBuffer.order(storage.getOrder());
             storage.readBytes(offset, headerBuffer);
-
             logRecordHeader.read(headerBuffer);
         }
         catch (final RuntimeException e)
@@ -143,7 +142,7 @@ class LogRecordStorage
         }
     }
 
-    private byte[] readValue(final @ByteOffset long offset)
+    private byte[] readRecordValue(final @ByteOffset long offset)
     {
         final ByteBuffer valueBuffer = ByteBuffer.allocate(logRecordHeader.getValueLength());
         valueBuffer.order(storage.getOrder());

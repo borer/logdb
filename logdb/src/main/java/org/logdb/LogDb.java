@@ -1,6 +1,5 @@
 package org.logdb;
 
-import org.logdb.bbtree.BTree;
 import org.logdb.bit.BinaryHelper;
 import org.logdb.logfile.LogFile;
 import org.logdb.storage.ByteOffset;
@@ -12,11 +11,11 @@ import java.io.IOException;
 public class LogDb implements AutoCloseable
 {
     private final LogFile logFile;
-    private final BTree index;
+    private final Index index;
 
-    private byte[] buffer = new byte[Long.BYTES];
+    private byte[] offsetBuffer = new byte[Long.BYTES];
 
-    public LogDb(final LogFile logFile, final BTree index)
+    public LogDb(final LogFile logFile, final Index index)
     {
         this.logFile = logFile;
         this.index = index;
@@ -25,8 +24,8 @@ public class LogDb implements AutoCloseable
     public void put(final byte[] key, final byte[] value) throws IOException
     {
         final @ByteOffset long offset = logFile.put(key, value);
-        BinaryHelper.longToBytes(offset, buffer);
-        index.put(key, buffer);
+        BinaryHelper.longToBytes(offset, offsetBuffer);
+        index.put(key, offsetBuffer);
     }
 
     /**
