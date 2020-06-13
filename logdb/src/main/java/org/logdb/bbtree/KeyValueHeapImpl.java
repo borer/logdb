@@ -161,7 +161,7 @@ final class KeyValueHeapImpl implements KeyValueHeap
 
             newKeyValueHeap.insertAtIndex(i, keyBytes, valueBytes);
 
-            removeKeyValue(keyBytes);
+            removeKeyValueAtIndex(index);
         }
     }
 
